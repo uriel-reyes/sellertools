@@ -11,7 +11,6 @@ import LoadingSpinner from '@commercetools-uikit/loading-spinner';
 import useCustomerAuth from '../../hooks/use-customer-auth';
 import useCustomerDetails from '../../hooks/use-customer-details';
 import useStoreLookup from '../../hooks/use-store-lookup';
-import useCustomerLookup from '../../hooks/use-customer-lookup';
 import SellerDashboard from '../seller-dashboard/seller-dashboard';
 import messages from './messages';
 import styles from './welcome.module.css';
@@ -48,7 +47,6 @@ const Welcome: React.FC = () => {
   const { login, loading: authLoading, error: authError, errorCode } = useCustomerAuth();
   const { fetchCustomer, loading: customerLoading, error: detailsError } = useCustomerDetails();
   const { checkStoreByKey, loading: storeLoading, error: storeError } = useStoreLookup();
-  const { lookupCustomerByEmail, loading: lookupLoading } = useCustomerLookup();
 
   // Fetch customer details when logged in
   useEffect(() => {
@@ -172,7 +170,7 @@ const Welcome: React.FC = () => {
     }
   };
 
-  const loading = authLoading || customerLoading || storeLoading || lookupLoading;
+  const loading = authLoading || customerLoading || storeLoading;
 
   return (
     <div className={styles.pageContainer}>

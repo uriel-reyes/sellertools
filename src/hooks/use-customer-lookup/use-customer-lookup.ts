@@ -7,7 +7,6 @@ interface CustomerInfo {
   id: string;
   key?: string;
   email: string;
-  storeKeys: string[];
 }
 
 interface CustomerQueryResult {
@@ -16,9 +15,6 @@ interface CustomerQueryResult {
       id: string;
       key?: string;
       email: string;
-      stores?: Array<{
-        key: string;
-      }>;
     }>;
   };
 }
@@ -36,9 +32,6 @@ const LOOKUP_CUSTOMER_QUERY = gql`
         id
         key
         email
-        stores {
-          key
-        }
       }
     }
   }
@@ -78,16 +71,10 @@ const useCustomerLookup = (): CustomerLookupResult => {
           const customer = result.data.customers.results[0];
           console.log('Found customer:', customer);
           
-          // Extract store keys
-          const storeKeys = customer.stores 
-            ? customer.stores.map((store) => store.key) 
-            : [];
-          
           return {
             id: customer.id,
             key: customer.key,
-            email: customer.email,
-            storeKeys
+            email: customer.email
           };
         }
         

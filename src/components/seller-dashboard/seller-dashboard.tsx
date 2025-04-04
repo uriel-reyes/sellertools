@@ -4,6 +4,7 @@ import Spacings from '@commercetools-uikit/spacings';
 import Text from '@commercetools-uikit/text';
 import Card from '@commercetools-uikit/card';
 import Orders from '../orders/orders';
+import Customers from '../customers/customers';
 
 import styles from './seller-dashboard.module.css';
 
@@ -44,6 +45,10 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, storeKey 
   // If we're in a specific view, show that component
   if (activeView === '/orders') {
     return <Orders storeKey={storeKey} onBack={goBackToDashboard} />;
+  }
+
+  if (activeView === '/customers') {
+    return <Customers storeKey={storeKey} onBack={goBackToDashboard} />;
   }
 
   // Otherwise show the dashboard

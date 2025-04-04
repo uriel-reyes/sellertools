@@ -23,6 +23,7 @@ This application addresses the need for store-specific management tools in a mul
 - Secure login system that validates store association
 - Custom authentication flow that respects store permissions
 - Dynamic retrieval of store-specific data
+- Utilizes customer custom fields to establish store association
 
 ### Order Management
 - Comprehensive order listing with:
@@ -45,6 +46,11 @@ This application addresses the need for store-specific management tools in a mul
 - Real-time status updates to the commercetools backend
 - Visual indicators for different order statuses
 
+### Customer Management
+- View customers associated with the seller's store
+- Detailed customer profile information
+- Address and contact details for each customer
+
 ## Technical Implementation
 
 This application leverages:
@@ -53,10 +59,43 @@ This application leverages:
 - GraphQL for efficient data fetching
 - UI Kit components for consistent design language
 
+### Authentication Implementation
+The application implements customer authentication through standard commercetools customer sign-in:
+
+```graphql
+mutation CustomerSignIn($draft: CustomerSignInDraft!) {
+  customerSignIn(draft: $draft) {
+    customer {
+      id
+      email
+      firstName
+      lastName
+      isEmailVerified
+    }
+  }
+}
+```
+
+After authentication, the application checks for a custom field in the customer record to determine store association. This was implemented as a workaround for issues encountered with `KeyReferenceInput`.
+
+### Required Custom Types
+
+This application requires a Custom Type at the Customer level with the following configuration:
+
+1. **Custom Type Name**: `seller-store-association` (or similar)
+2. **Field Definition**:
+   - Field Name: `store-key`
+   - Type: String
+   - Required: No
+   - Label: "Store Key"
+
+This custom field is used to associate customers (sellers) with their respective stores, since direct store-based authentication with `KeyReferenceInput` couldn't be implemented.
+
 ## Getting Started
 
 ### Prerequisites
 - commercetools project with appropriate API scopes (`view_orders`, `view_customers`, `view_stores`, `manage_stores`)
+- Custom Type for Customers with a `store-key` field
 - Node.js (v14+) and npm
 
 ### Installation
