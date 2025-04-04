@@ -2,12 +2,11 @@
   <a href="https://commercetools.com/">
     <img alt="commercetools logo" src="https://unpkg.com/@commercetools-frontend/assets/logos/commercetools_primary-logo_horizontal_RGB.png">
   </a>
-  <b>SellerTools - Store Management for commercetools</b>
 </p>
 
-# SellerTools
+# sellertools
 
-SellerTools is a Custom Application built on the commercetools platform that empowers store owners to manage their store operations efficiently. It provides a dedicated dashboard for sellers with store-based authentication and comprehensive order management capabilities.
+sellertools is an early marketplace seller dashboard proof of concept built on the commercetools Merchant Center Apps framework. It empowers store owners to manage their store operations efficiently, providing a dedicated dashboard for sellers with store-based authentication and comprehensive order management capabilities.
 
 ## Purpose
 
