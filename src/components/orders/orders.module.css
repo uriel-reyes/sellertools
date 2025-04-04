@@ -191,4 +191,15 @@
 .detailValue {
   font-size: 13px;
   color: var(--color-neutral-40);
+}
+
+/* Hide only the specific header buttons in modal headers */
+:global([data-testid="order-details-modal"]) :global(.css-dq4vwv-PageHeader) :global(.css-l5nm51-getStyles),
+:global([data-testid="order-details-modal"]) :global(.css-l5nm51-getStyles) {
+  display: none !important;
+}
+
+/* Maintain padding fix only for order details modal */
+:global([data-testid="order-details-modal"]) :global(.modal-page-content) {
+  padding-bottom: 0 !important;
 } 

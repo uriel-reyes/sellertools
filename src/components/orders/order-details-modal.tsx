@@ -11,7 +11,8 @@ import {
   UsersIcon,
   WorldIcon,
   CartIcon,
-  CoinsIcon
+  CoinsIcon,
+  CloseIcon
 } from '@commercetools-uikit/icons';
 import styles from './orders.module.css';
 
@@ -149,14 +150,15 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
   return (
     <FormModalPage
+      data-testid="order-details-modal"
       title={`Order ${order.orderNumber || order.id}`}
       isOpen={isOpen}
       onClose={onClose}
       isPrimaryButtonDisabled={true}
-      isSecondaryButtonDisabled={false}
+      isSecondaryButtonDisabled={true}
       labelPrimaryButton=""
-      labelSecondaryButton="Close"
-      onSecondaryButtonClick={onClose}
+      labelSecondaryButton=""
+      onSecondaryButtonClick={() => {}}
       onPrimaryButtonClick={() => {}}
     >
       <Constraints.Horizontal max={16}>
@@ -305,7 +307,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                   <Table
                     columns={lineItemColumns}
                     rows={lineItemRows}
-                    maxHeight="300px"
+                    maxHeight="400px"
                   />
                 </>
               )}

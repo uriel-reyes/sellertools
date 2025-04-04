@@ -4,6 +4,17 @@ import { useMcQuery } from '@commercetools-frontend/application-shell';
 import { GRAPHQL_TARGETS } from '@commercetools-frontend/constants';
 import gql from 'graphql-tag';
 
+interface Order {
+  id: string;
+  orderNumber?: string;
+  createdAt: string;
+  totalPrice: {
+    centAmount: number;
+    currencyCode: string;
+  };
+  orderState: string;
+}
+
 interface Customer {
   id: string;
   version: number;
@@ -17,12 +28,17 @@ interface Customer {
   stores?: Array<{
     key: string;
   }>;
+  customerGroup?: {
+    id: string;
+    name?: string;
+  };
   custom?: {
     customFieldsRaw: Array<{
       name: string;
       value: string;
     }>;
   };
+  orders?: Order[];
 }
 
 // GraphQL query to fetch customers by store key
@@ -39,6 +55,9 @@ const GET_STORE_CUSTOMERS = gql`
         isEmailVerified
         createdAt
         lastModifiedAt
+        customerGroup {
+          id
+        }
         stores {
           key
         }
@@ -66,6 +85,9 @@ const GET_CUSTOMER_BY_ID = gql`
       isEmailVerified
       createdAt
       lastModifiedAt
+      customerGroup {
+        id
+      }
       stores {
         key
       }
@@ -81,13 +103,43 @@ const GET_CUSTOMER_BY_ID = gql`
         phone
         email
       }
-      defaultShippingAddress
-      defaultBillingAddress
+      defaultShippingAddressId
+      defaultBillingAddressId
       custom {
         customFieldsRaw {
           name
           value
         }
+      }
+    }
+  }
+`;
+
+// GraphQL query to fetch a customer group by ID
+const GET_CUSTOMER_GROUP = gql`
+  query GetCustomerGroup($id: String!) {
+    customerGroup(id: $id) {
+      id
+      version
+      name
+      key
+    }
+  }
+`;
+
+// Add orders query
+const GET_CUSTOMER_ORDERS = gql`
+  query GetCustomerOrders($where: String, $sort: [String!], $limit: Int) {
+    orders(where: $where, sort: $sort, limit: $limit) {
+      results {
+        id
+        orderNumber
+        createdAt
+        totalPrice {
+          centAmount
+          currencyCode
+        }
+        orderState
       }
     }
   }
@@ -103,9 +155,26 @@ interface CustomerDetailResponse {
   customer: Customer;
 }
 
+interface CustomerGroupResponse {
+  customerGroup: {
+    id: string;
+    version: number;
+    name: string;
+    key?: string;
+  };
+}
+
+interface CustomerOrdersResponse {
+  orders: {
+    results: Array<Order>;
+  };
+}
+
 interface UseStoreCustomersHook {
   fetchCustomersByStore: (storeKey: string) => Promise<Customer[]>;
   fetchCustomerById: (customerId: string) => Promise<Customer | null>;
+  fetchCustomerGroupById: (groupId: string) => Promise<{ id: string; name: string } | null>;
+  fetchCustomerOrders: (customerId: string, limit?: number) => Promise<Order[]>;
   customers: Customer[];
   loading: boolean;
   error: Error | null;
@@ -115,6 +184,7 @@ const useStoreCustomers = (): UseStoreCustomersHook => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const [customerGroups, setCustomerGroups] = useState<{[key: string]: {id: string; name: string}}>({});
   
   const { dataLocale } = useApplicationContext(context => ({
     dataLocale: context.dataLocale,
@@ -137,6 +207,70 @@ const useStoreCustomers = (): UseStoreCustomersHook => {
       },
       skip: true, // Skip on initial render
     }
+  );
+
+  const { refetch: refetchCustomerGroupById, loading: groupLoading } = useMcQuery<CustomerGroupResponse>(
+    GET_CUSTOMER_GROUP,
+    {
+      context: {
+        target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
+      },
+      skip: true, // Skip on initial render
+    }
+  );
+
+  const { refetch: refetchCustomerOrders, loading: ordersLoading } = useMcQuery<CustomerOrdersResponse>(
+    GET_CUSTOMER_ORDERS,
+    {
+      context: {
+        target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
+      },
+      skip: true, // Skip on initial render
+    }
+  );
+
+  const fetchCustomerGroupById = useCallback(
+    async (groupId: string): Promise<{ id: string; name: string } | null> => {
+      // Check if we already have this group cached
+      if (customerGroups[groupId]) {
+        return customerGroups[groupId];
+      }
+      
+      try {
+        console.log(`Fetching customer group for ID: ${groupId}`);
+        
+        const { data, error: apiError } = await refetchCustomerGroupById({ 
+          id: groupId
+        });
+        
+        if (apiError) {
+          console.error('API Error fetching customer group:', apiError);
+          return null;
+        }
+        
+        if (!data?.customerGroup) {
+          console.log('Customer group not found');
+          return null;
+        }
+        
+        const group = {
+          id: data.customerGroup.id,
+          name: data.customerGroup.name
+        };
+        
+        // Cache the result
+        setCustomerGroups(prev => ({
+          ...prev,
+          [groupId]: group
+        }));
+        
+        return group;
+      } catch (err) {
+        console.error('Error in fetchCustomerGroupById:', err);
+        return null;
+      }
+    },
+    [refetchCustomerGroupById, customerGroups]
   );
 
   const fetchCustomersByStore = useCallback(
@@ -223,6 +357,19 @@ const useStoreCustomers = (): UseStoreCustomersHook => {
             : undefined,
         };
         
+        // Fetch customer group name if available
+        if (formattedCustomer.customerGroup?.id) {
+          try {
+            const group = await fetchCustomerGroupById(formattedCustomer.customerGroup.id);
+            if (group) {
+              formattedCustomer.customerGroup.name = group.name;
+            }
+          } catch (groupErr) {
+            console.error('Error fetching customer group:', groupErr);
+            // Continue without the group name
+          }
+        }
+        
         return formattedCustomer;
       } catch (err) {
         console.error('Error in fetchCustomerById:', err);
@@ -233,14 +380,56 @@ const useStoreCustomers = (): UseStoreCustomersHook => {
         setLoading(false);
       }
     },
-    [refetchCustomerById]
+    [refetchCustomerById, fetchCustomerGroupById]
+  );
+
+  const fetchCustomerOrders = useCallback(
+    async (customerId: string, limit: number = 5): Promise<Order[]> => {
+      try {
+        console.log(`Fetching orders for customer ID: ${customerId}`);
+        
+        // Create a where condition to filter orders by customer ID
+        const whereCondition = `customerId="${customerId}"`;
+        
+        const { data, error: apiError } = await refetchCustomerOrders({ 
+          where: whereCondition,
+          sort: ['createdAt desc'], // Sort by creation date, newest first
+          limit
+        });
+        
+        if (apiError) {
+          console.error('API Error fetching customer orders:', apiError);
+          return [];
+        }
+        
+        if (!data?.orders?.results) {
+          console.log('No orders found for this customer');
+          return [];
+        }
+        
+        console.log(`Found ${data.orders.results.length} orders for customer ${customerId}`);
+        
+        const formattedOrders = data.orders.results.map(order => ({
+          ...order,
+          createdAt: new Date(order.createdAt).toLocaleString(),
+        }));
+        
+        return formattedOrders;
+      } catch (err) {
+        console.error('Error fetching customer orders:', err);
+        return [];
+      }
+    },
+    [refetchCustomerOrders]
   );
 
   return {
     fetchCustomersByStore,
     fetchCustomerById,
+    fetchCustomerGroupById,
+    fetchCustomerOrders,
     customers,
-    loading: loading || queryLoading || customerDetailLoading,
+    loading: loading || queryLoading || customerDetailLoading || groupLoading || ordersLoading,
     error,
   };
 };

@@ -16,13 +16,23 @@ interface CustomersProps {
   onBack: () => void;
 }
 
+interface CustomerWithGroup {
+  id: string;
+  name: string;
+  email: string;
+  customerGroup?: string;
+  rawData: any;
+}
+
 const Customers: React.FC<CustomersProps> = ({ storeKey, onBack }) => {
-  const { fetchCustomersByStore, fetchCustomerById, customers, loading, error } = useStoreCustomers();
+  const { fetchCustomersByStore, fetchCustomerById, fetchCustomerGroupById, customers, loading, error } = useStoreCustomers();
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState<string>('');
+  const [enhancedCustomers, setEnhancedCustomers] = useState<CustomerWithGroup[]>([]);
+  const [loadingGroups, setLoadingGroups] = useState(false);
 
   useEffect(() => {
     if (storeKey) {
@@ -35,6 +45,41 @@ const Customers: React.FC<CustomersProps> = ({ storeKey, onBack }) => {
       console.warn('No store key provided, cannot load customers');
     }
   }, [storeKey, fetchCustomersByStore]);
+
+  // Fetch customer group names when customers change
+  useEffect(() => {
+    const enrichCustomersWithGroups = async () => {
+      if (customers.length === 0) return;
+      
+      setLoadingGroups(true);
+      
+      const enhanced = await Promise.all(
+        customers.map(async (customer) => {
+          let groupName = 'N/A';
+          
+          if (customer.customerGroup?.id) {
+            const group = await fetchCustomerGroupById(customer.customerGroup.id);
+            if (group) {
+              groupName = group.name;
+            }
+          }
+          
+          return {
+            id: customer.id,
+            name: `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'N/A',
+            email: customer.email,
+            customerGroup: groupName,
+            rawData: customer
+          };
+        })
+      );
+      
+      setEnhancedCustomers(enhanced);
+      setLoadingGroups(false);
+    };
+    
+    enrichCustomersWithGroups();
+  }, [customers, fetchCustomerGroupById]);
 
   const handleRowClick = (row: any) => {
     // Skip handling if we don't have the raw data
@@ -79,25 +124,12 @@ const Customers: React.FC<CustomersProps> = ({ storeKey, onBack }) => {
 
   // Define columns for the table
   const columns = [
-    { key: 'date', label: 'Registration Date' },
-    { key: 'email', label: 'Email' },
     { key: 'name', label: 'Customer Name' },
-    { key: 'customerNumber', label: 'Customer Number' },
-    { key: 'verified', label: 'Verified' },
+    { key: 'email', label: 'Email' },
+    { key: 'customerGroup', label: 'Customer Group' }
   ];
 
-  // Map customers to simple row format
-  const rows = customers
-    .filter(() => true) // Placeholder for additional filtering if needed
-    .map(customer => ({
-      id: customer.id,
-      date: customer.createdAt,
-      email: customer.email,
-      name: `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'N/A',
-      customerNumber: customer.customerNumber || 'N/A',
-      verified: customer.isEmailVerified ? 'Yes' : 'No',
-      rawData: customer
-    }));
+  const isLoading = loading || isFirstLoad || loadingGroups;
 
   return (
     <div className={styles.customersContainer}>
@@ -119,7 +151,7 @@ const Customers: React.FC<CustomersProps> = ({ storeKey, onBack }) => {
               iconLeft={<RefreshIcon />}
               label="Refresh"
               onClick={handleRefreshCustomers}
-              isDisabled={loading}
+              isDisabled={isLoading}
             />
             <PrimaryButton
               label="Back to Dashboard"
@@ -128,7 +160,7 @@ const Customers: React.FC<CustomersProps> = ({ storeKey, onBack }) => {
           </Spacings.Inline>
         </div>
 
-        {loading && isFirstLoad ? (
+        {isLoading ? (
           <div className={styles.loadingContainer}>
             <LoadingSpinner scale="l" />
             <Text.Body>Loading customers...</Text.Body>
@@ -137,7 +169,7 @@ const Customers: React.FC<CustomersProps> = ({ storeKey, onBack }) => {
           <ErrorMessage>
             Error loading customers: {error.message}
           </ErrorMessage>
-        ) : customers.length === 0 ? (
+        ) : enhancedCustomers.length === 0 ? (
           <div className={styles.emptyState}>
             <Text.Headline as="h2">No customers found</Text.Headline>
             <Text.Body>There are no customers associated with this store.</Text.Body>
@@ -146,7 +178,7 @@ const Customers: React.FC<CustomersProps> = ({ storeKey, onBack }) => {
           <div className={styles.tableContainer}>
             <DataTable
               columns={columns}
-              rows={rows}
+              rows={enhancedCustomers}
               onRowClick={handleRowClick}
               maxHeight="80vh"
               maxWidth="100%"
