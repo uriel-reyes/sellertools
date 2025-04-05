@@ -6,7 +6,7 @@
 
 # sellertools
 
-sellertools is an early marketplace seller dashboard proof of concept built on the commercetools Merchant Center Apps framework. It empowers store owners to manage their store operations efficiently, providing a dedicated dashboard for sellers with store-based authentication and comprehensive order management capabilities.
+sellertools is an early marketplace seller dashboard proof of concept built on the commercetools Merchant Center Apps framework. It empowers store owners to manage their store operations efficiently, providing a dedicated dashboard for sellers with store-based authentication, comprehensive order management capabilities, and product selection management.
 
 ## Purpose
 
@@ -16,14 +16,16 @@ This application addresses the need for store-specific management tools in a mul
 - View and manage orders specific to their store
 - Track order statuses and update them as needed
 - Access customer information associated with their orders
+- Manage product selections for their store, adding or removing products from a master catalog
 
 ## Features
 
 ### Store-Based Authentication
 - Secure login system that validates store association
-- Custom authentication flow that respects store permissions
-- Dynamic retrieval of store-specific data
-- Utilizes customer custom fields to establish store association
+- Enhanced authentication flow using direct store references
+- Support for newer storesRef property on customers
+- Automatic redirect to products dashboard after authentication
+- Fallback to custom field approach for older API versions
 
 ### Order Management
 - Comprehensive order listing with:
@@ -48,7 +50,7 @@ This application addresses the need for store-specific management tools in a mul
 ### Status Management
 - Interactive status dropdown for order state changes
 - Real-time status updates to the commercetools backend
-- Visual indicators for different order statuses
+- Visual indicators for different order statuses, with improved readability
 
 ### Customer Management
 - View customers associated with the seller's store
@@ -56,20 +58,32 @@ This application addresses the need for store-specific management tools in a mul
 - Address information displayed in user-friendly cards
 - Recently placed orders displayed within the customer profile
 - Custom fields display for extended customer information
+- Streamlined account details for better focus on key information
+
+### Product Selection Management
+- Dual-table interface for managing product selections
+- View master catalog products and select items to add to your store
+- View your store's current product selection
+- Add products to your store with a single click
+- Remove products from your store's selection
+- Real-time updates and synchronization with the commercetools platform
+- Selection checkboxes with clear visual feedback
+- Table side-by-side layout for easy comparison
 
 ### UI Improvements
 - Consistent card-based interfaces across the application
 - Enhanced typography with improved readability
 - Responsive layouts that work on various screen sizes
-- Visual indicators using color coding for order statuses
+- Visual indicators using color coding for statuses
 - Separate sections for different types of information
 - Clean navigation between dashboard, orders, and customer details
+- Side-by-side layouts for related information
 
 ### Error Handling
 - Detailed error messages for authentication failures
 - Loading indicators for data fetching operations
 - Graceful handling of missing data
-- Visual feedback for user actions (status updates, etc.)
+- Visual feedback for user actions (status updates, product selection, etc.)
 
 ## Technical Implementation
 
@@ -80,27 +94,48 @@ This application leverages:
 - UI Kit components for consistent design language
 
 ### Authentication Implementation
-The application implements customer authentication through standard commercetools customer sign-in:
+The application implements customer authentication through enhanced commercetools customer sign-in:
 
 ```graphql
-mutation CustomerSignIn($draft: CustomerSignInDraft!) {
-  customerSignIn(draft: $draft) {
+mutation CustomerSignMeIn($draft: CustomerSignMeInDraft!, $storeKey: KeyReferenceInput) {
+  customerSignMeIn(draft: $draft, storeKey: $storeKey) {
     customer {
       id
       email
       firstName
       lastName
       isEmailVerified
+      storesRef {
+        key
+        typeId
+      }
     }
   }
 }
 ```
 
-After authentication, the application checks for a custom field in the customer record to determine store association. This was implemented as a workaround for issues encountered with `KeyReferenceInput`.
+The application now supports the newer `storesRef` property on customers, which provides a direct reference to the stores a customer is associated with. For backward compatibility, it still supports the custom field approach as a fallback.
+
+### Product Selection Implementation
+The application uses Product Selections to manage which products are available in a store:
+
+```graphql
+mutation UpdateProductSelection($id: String!, $version: Long!, $actions: [ProductSelectionUpdateAction!]!) {
+  updateProductSelection(id: $id, version: $version, actions: $actions) {
+    id
+    version
+  }
+}
+```
+
+This allows sellers to:
+1. View products from a master catalog
+2. Add selected products to their store's selection
+3. Remove products from their store's selection when needed
 
 ### Required Custom Types
 
-This application requires a Custom Type at the Customer level with the following configuration:
+When using the fallback authentication method, this application requires a Custom Type at the Customer level with the following configuration:
 
 1. **Custom Type Name**: `seller-store-association` (or similar)
 2. **Field Definition**:
@@ -109,13 +144,12 @@ This application requires a Custom Type at the Customer level with the following
    - Required: No
    - Label: "Store Key"
 
-This custom field is used to associate customers (sellers) with their respective stores, since direct store-based authentication with `KeyReferenceInput` couldn't be implemented.
+This custom field is used as a fallback method to associate customers (sellers) with their respective stores when direct store references are not available.
 
 ## Getting Started
 
 ### Prerequisites
-- commercetools project with appropriate API scopes (`view_orders`, `view_customers`, `view_stores`, `manage_stores`)
-- Custom Type for Customers with a `store-key` field
+- commercetools project with appropriate API scopes
 - Node.js (v14+) and npm
 
 ### Installation
@@ -140,6 +174,8 @@ Ensure you have the following scopes configured in your custom-application-confi
 - `view_customers`
 - `view_stores`
 - `manage_stores`
+- `view_product_selections`
+- `manage_product_selections`
 
 ## Development
 
