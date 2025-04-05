@@ -24,9 +24,8 @@
 
 .tableContainer {
   width: 100%;
-  overflow: auto;
-  max-height: 60vh;
   margin-top: 8px;
+  position: relative;
 }
 
 .tableSection {
