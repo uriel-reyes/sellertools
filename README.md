@@ -142,6 +142,44 @@ When using the fallback authentication method, this application requires a Custo
 
 This custom field is used as a fallback method to associate customers (sellers) with their respective stores when direct store references are not available.
 
+## Configuration Requirements
+
+### Store Setup
+
+This application requires a specific configuration for stores, channels, and product selections:
+
+1. **Store Creation**:
+   - Create a store in commercetools with a unique key (e.g., `seller-store-1`)
+   - The store key is used as the identifier for all seller-related operations
+
+2. **Channel Alignment**:
+   - Create a distribution channel with the same key as the store (e.g., `seller-store-1`)
+   - Associate this channel with the store
+
+3. **Product Selection Setup**:
+   - Create a product selection with the same key as the store (e.g., `seller-store-1`)
+   - This alignment of keys (store, channel, product selection) is essential for the application to function correctly
+
+### Customer Association
+
+Sellers (customers who manage stores) are not directly assigned to stores in this implementation. Instead:
+
+1. **Custom Type Requirements**:
+   - Create a custom type for customers named `seller-store-association` (or similar)
+   - Add a field named `store-key` of type String to this custom type
+   - Label: "Store Key"
+   - Required: No
+
+2. **Customer Configuration**:
+   - For each seller, apply the custom type to their customer record
+   - Set the `store-key` field value to match the store key they should have access to (e.g., `seller-store-1`)
+
+3. **Authentication Flow**:
+   - When a seller logs in, the application reads this custom field
+   - If the field exists and contains a valid store key, the seller is granted access to manage that store
+
+This indirect association provides flexibility and allows for easier management of store access permissions.
+
 ## Getting Started
 
 ### Prerequisites
