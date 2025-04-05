@@ -148,29 +148,34 @@
 .orderStatus {
   font-size: 12px;
   font-weight: bold;
-  padding: 2px 8px;
-  border-radius: 10px;
+  padding: 4px 8px;
+  border-radius: 4px;
   text-transform: uppercase;
+  display: inline-block;
 }
 
 .statusOpen {
-  background-color: var(--color-info-40);
-  color: var(--color-info);
+  background-color: #e6f7ff;
+  color: #0070cc;
+  border: 1px solid #0070cc;
 }
 
 .statusConfirmed {
-  background-color: var(--color-primary-40);
-  color: var(--color-primary);
+  background-color: #e6f7ee;
+  color: #00875a;
+  border: 1px solid #00875a;
 }
 
 .statusComplete {
-  background-color: var(--color-success-40);
-  color: var(--color-success);
+  background-color: #e3fcef;
+  color: #006644;
+  border: 1px solid #006644;
 }
 
 .statusCancelled {
-  background-color: var(--color-error-40);
-  color: var(--color-error);
+  background-color: #ffebe6;
+  color: #bf2600;
+  border: 1px solid #bf2600;
 }
 
 .centerLoading {

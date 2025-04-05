@@ -250,16 +250,8 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({
                     />
                   )}
                   <DetailItem 
-                    label="Email Verified" 
-                    value={customer.isEmailVerified ? 'Yes' : 'No'} 
-                  />
-                  <DetailItem 
                     label="Customer Group" 
                     value={getCustomerGroup()} 
-                  />
-                  <DetailItem 
-                    label="Stores" 
-                    value={getStores()} 
                   />
                 </div>
               </Spacings.Stack>
