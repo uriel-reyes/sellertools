@@ -21,11 +21,11 @@ This application addresses the need for store-specific management tools in a mul
 ## Features
 
 ### Store-Based Authentication
-- Secure login system that validates store association
-- Enhanced authentication flow using direct store references
-- Support for newer storesRef property on customers
-- Automatic redirect to products dashboard after authentication
-- Fallback to custom field approach for older API versions
+- Secure login system for sellers and store managers
+- Authentication through standard customerSignIn implementation
+- Store association verification after login
+- Support for detecting store references through customer's custom fields
+- Automatic redirect to dashboard after successful authentication
 
 ### Order Management
 - Comprehensive order listing with:
@@ -94,27 +94,23 @@ This application leverages:
 - UI Kit components for consistent design language
 
 ### Authentication Implementation
-The application implements customer authentication through enhanced commercetools customer sign-in:
+The application implements customer authentication through standard commercetools customer sign-in:
 
 ```graphql
-mutation CustomerSignMeIn($draft: CustomerSignMeInDraft!, $storeKey: KeyReferenceInput) {
-  customerSignMeIn(draft: $draft, storeKey: $storeKey) {
+mutation CustomerSignIn($draft: CustomerSignInDraft!) {
+  customerSignIn(draft: $draft) {
     customer {
       id
       email
       firstName
       lastName
       isEmailVerified
-      storesRef {
-        key
-        typeId
-      }
     }
   }
 }
 ```
 
-The application now supports the newer `storesRef` property on customers, which provides a direct reference to the stores a customer is associated with. For backward compatibility, it still supports the custom field approach as a fallback.
+After authentication, the application checks for a custom field in the customer record to determine store association. This custom field approach provides a simple but effective way to associate customers (sellers) with their respective stores.
 
 ### Product Selection Implementation
 The application uses Product Selections to manage which products are available in a store:
