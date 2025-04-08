@@ -183,6 +183,11 @@ interface ProductPriceData {
     value: number;
     currencyCode: string;
   };
+  masterPrice?: {
+    id: string;
+    value: number;
+    currencyCode: string;
+  };
 }
 
 // Define the hook interface
@@ -261,6 +266,18 @@ const usePriceManagement = (): UsePriceManagementResult => {
                   console.log(`Found price in staged data for product ${product.id}`);
                 }
               }
+              
+              // Find master store price
+              let masterStorePrice = currentMasterVariant.prices?.find(
+                (price) => price.channel?.key === "master-store"
+              );
+              
+              // If no master price found in current, check staged
+              if (!masterStorePrice && stagedMasterVariant?.prices) {
+                masterStorePrice = stagedMasterVariant.prices.find(
+                  (price) => price.channel?.key === "master-store"
+                );
+              }
 
               return {
                 id: product.id,
@@ -272,6 +289,11 @@ const usePriceManagement = (): UsePriceManagementResult => {
                   id: storePrice.id,
                   value: storePrice.value.centAmount / 100, // Convert cents to dollars
                   currencyCode: storePrice.value.currencyCode,
+                } : undefined,
+                masterPrice: masterStorePrice ? {
+                  id: masterStorePrice.id,
+                  value: masterStorePrice.value.centAmount / 100, // Convert cents to dollars
+                  currencyCode: masterStorePrice.value.currencyCode,
                 } : undefined,
               };
             }

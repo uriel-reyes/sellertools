@@ -28,7 +28,20 @@ interface ProductPriceData {
     value: number;
     currencyCode: string;
   };
+  masterPrice?: {
+    id: string;
+    value: number;
+    currencyCode: string;
+  };
 }
+
+// Calculate profit margin as a percentage
+const calculateProfitMargin = (storePrice?: number, masterPrice?: number): string => {
+  if (!storePrice || !masterPrice || masterPrice === 0) return 'N/A';
+  
+  const margin = ((storePrice - masterPrice) / masterPrice) * 100;
+  return `${margin.toFixed(2)}%`;
+};
 
 // Custom cell renderer for the image column
 const ImageCell = ({ value }: { value: string }) => (
@@ -165,21 +178,46 @@ const Prices: React.FC<PricesProps> = ({ storeKey, onBack }) => {
       key: 'image', 
       label: 'Image', 
       renderItem: (item: ProductPriceData) => <ImageCell value={item.image} />,
-      width: "80px"
+      width: "70px"
     },
-    { key: 'name', label: 'Product Name', width: "30%" },
-    { key: 'sku', label: 'SKU', width: "15%" },
+    { key: 'name', label: 'Product Name', width: "25%" },
+    { key: 'sku', label: 'SKU', width: "10%" },
+    { 
+      key: 'masterPrice', 
+      label: 'Master Price', 
+      renderItem: (item: ProductPriceData) => (
+        <Text.Body>
+          {item.masterPrice 
+            ? `$${item.masterPrice.value.toFixed(2)}`
+            : 'Not set'}
+        </Text.Body>
+      ),
+      width: "12%"
+    },
     { 
       key: 'currentPrice', 
-      label: 'Current Price', 
+      label: 'Store Price', 
       renderItem: (item: ProductPriceData) => (
         <Text.Body>
           {item.currentPrice 
-            ? `$${item.currentPrice.value.toFixed(2)} ${item.currentPrice.currencyCode}`
-            : 'Price not set'}
+            ? `$${item.currentPrice.value.toFixed(2)}`
+            : 'Not set'}
         </Text.Body>
       ),
-      width: "15%"
+      width: "12%"
+    },
+    {
+      key: 'profitMargin',
+      label: 'Profit',
+      renderItem: (item: ProductPriceData) => (
+        <Text.Body>
+          {calculateProfitMargin(
+            item.currentPrice?.value, 
+            item.masterPrice?.value
+          )}
+        </Text.Body>
+      ),
+      width: "12%"
     },
     { 
       key: 'newPrice', 
@@ -191,7 +229,7 @@ const Prices: React.FC<PricesProps> = ({ storeKey, onBack }) => {
           onPriceChange={handlePriceChange} 
         />
       ),
-      width: "20%"
+      width: "19%"
     },
   ];
 
@@ -241,6 +279,11 @@ const Prices: React.FC<PricesProps> = ({ storeKey, onBack }) => {
               maxHeight="70vh"
               maxWidth="100%"
             />
+            {products.length > 0 && (
+              <div className={styles.tableFooter}>
+                <Text.Detail>{products.length} products found</Text.Detail>
+              </div>
+            )}
           </div>
         )}
       </Spacings.Stack>
