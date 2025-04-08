@@ -70,6 +70,16 @@ This application addresses the need for store-specific management tools in a mul
 - Selection checkboxes with clear visual feedback
 - Table side-by-side layout for easy comparison
 
+### Price Management
+- Channel-specific pricing for products in a seller's store
+- Update prices for individual products with real-time validation
+- View both current (published) and staged (unpublished) prices
+- Clear visual indication of products with and without pricing
+- Automatically handles currency conversion and formatting
+- Secure pricing updates with optimistic UI feedback
+- Comprehensive error handling for duplicate price scopes and other validation issues
+- Support for both new price creation and existing price updates
+
 ### UI Improvements
 - Consistent card-based interfaces across the application
 - Enhanced typography with improved readability
@@ -129,6 +139,29 @@ This allows sellers to:
 2. Add selected products to their store's selection
 3. Remove products from their store's selection when needed
 
+### Price Management Implementation
+The application implements a robust two-step approach for managing channel-specific pricing:
+
+```graphql
+mutation UpdateProductPrice($id: String!, $version: Long!, $actions: [ProductUpdateAction!]!) {
+  updateProduct(id: $id, version: $version, actions: $actions) {
+    id
+    version
+  }
+}
+```
+
+The price management system:
+1. Queries both current and staged product data to find existing prices
+2. For price updates, uses a sequential approach:
+   - First removes any existing price with the same channel (avoiding duplicate price scope errors)
+   - Then adds the new price with updated values
+   - Finally publishes all changes with scope "All"
+3. Handles version conflicts by always fetching the latest product version before operations
+4. Provides comprehensive error handling with detailed logging for troubleshooting
+
+This implementation ensures reliable price updates even in concurrent editing scenarios and prevents common issues like duplicate price scopes.
+
 ### Required Custom Types
 
 When using the fallback authentication method, this application requires a Custom Type at the Customer level with the following configuration:
@@ -155,10 +188,18 @@ This application requires a specific configuration for stores, channels, and pro
 2. **Channel Alignment**:
    - Create a distribution channel with the same key as the store (e.g., `seller-store-1`)
    - Associate this channel with the store
+   - This channel is used for both inventory distribution and store-specific pricing
+   - Ensure the channel has roles of "InventorySupply" and "ProductDistribution"
 
 3. **Product Selection Setup**:
    - Create a product selection with the same key as the store (e.g., `seller-store-1`)
    - This alignment of keys (store, channel, product selection) is essential for the application to function correctly
+
+4. **Product Variant Configuration**:
+   - The application manages pricing exclusively through the master variant (variantId: 1) of each product
+   - All channel-specific prices are attached to the master variant
+   - No additional product variants need to be created for seller-specific pricing
+   - This approach simplifies price management while allowing seller-specific pricing through channels
 
 ### Customer Association
 
@@ -203,6 +244,7 @@ npm run build
 
 Ensure you have the following scopes configured in your custom-application-config.mjs:
 - `view_products`
+- `manage_products`
 - `view_orders`
 - `manage_orders`
 - `view_customers`
@@ -210,6 +252,7 @@ Ensure you have the following scopes configured in your custom-application-confi
 - `manage_stores`
 - `view_product_selections`
 - `manage_product_selections`
+- `view_published_products`
 
 ## Development
 

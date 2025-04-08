@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { useIntl } from 'react-intl';
 import Spacings from '@commercetools-uikit/spacings';
-import Text from '@commercetools-uikit/text';
 import Card from '@commercetools-uikit/card';
+import Text from '@commercetools-uikit/text';
 import Orders from '../orders/orders';
 import Customers from '../customers/customers';
 import Products from '../products/products';
-
+import Prices from '../prices/prices';
 import styles from './seller-dashboard.module.css';
 
 type DashboardCardProps = {
@@ -55,6 +55,10 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, storeKey 
   if (activeView === '/products') {
     console.log('Navigating to Products view with storeKey:', storeKey);
     return <Products storeKey={storeKey} onBack={goBackToDashboard} />;
+  }
+
+  if (activeView === '/prices') {
+    return <Prices storeKey={storeKey} onBack={goBackToDashboard} />;
   }
 
   // Otherwise show the dashboard
