@@ -40,12 +40,19 @@ const convertToCustomerDetails = (customer: TCustomer): CustomerDetails => {
     (field: any) => field.name === 'store-key'
   );
   
+  const storeKey = storeKeyField?.value?.toString();
+  console.log('Converting customer to details, found store key:', storeKey);
+  
+  if (!storeKey) {
+    console.warn('⚠️ WARNING: No store-key custom field found for customer:', customer.id);
+  }
+  
   return {
     id: customer.id,
     email: customer.email,
     firstName: customer.firstName,
     lastName: customer.lastName,
-    storeKey: storeKeyField?.value?.toString(),
+    storeKey: storeKey,
     stores: customer.stores?.map(store => store.key || '').filter(Boolean) || []
   };
 };
@@ -80,6 +87,7 @@ const Welcome: React.FC = () => {
           const convertedDetails = convertToCustomerDetails(details);
           setCustomerDetails(convertedDetails);
           console.log('Customer Details:', details);
+          console.log('Converted CustomerDetails:', convertedDetails);
           
           if (details.custom) {
             const customFieldsRaw = (details.custom as any).customFieldsRaw || [];
@@ -87,25 +95,20 @@ const Welcome: React.FC = () => {
             
             if (storeKeyField) {
               const customStoreKey = storeKeyField.value;
-              console.log('Found custom store key in customer:', customStoreKey);
+              console.log('Found custom store key in customer details:', customStoreKey);
               if (mounted) {
                 setStoreKey(customStoreKey);
                 try {
                   const exists = await checkStoreByKey(customStoreKey);
                   if (mounted) {
                     setStoreExists(exists);
+                    console.log('Store exists check result:', exists);
                   }
                 } catch (error) {
                   console.error('Failed to check store existence:', error);
                   if (mounted) {
                     setStoreExists(false);
                   }
-                }
-              } else {
-                console.log('No custom store key found in customer');
-                if (mounted) {
-                  setStoreKey(null);
-                  setStoreExists(null);
                 }
               }
             } else {
@@ -122,6 +125,12 @@ const Welcome: React.FC = () => {
               setStoreExists(null);
             }
           }
+          
+          // Additional safeguard: If we have a key in converted details but not in state, set it
+          if (convertedDetails.storeKey && !storeKey) {
+            console.log('Setting store key from converted details as backup:', convertedDetails.storeKey);
+            setStoreKey(convertedDetails.storeKey);
+          }
         }
       };
       getDetails();
@@ -130,18 +139,23 @@ const Welcome: React.FC = () => {
     return () => {
       mounted = false;
     };
-  }, [loggedInCustomer, customerDetails, fetchCustomer, checkStoreByKey]);
+  }, [loggedInCustomer, customerDetails, fetchCustomer, checkStoreByKey, storeKey]);
 
-  // Set up redirect to dashboard
+  // Set up redirect to dashboard with better logic
   useEffect(() => {
-    if (loggedInCustomer) {
+    if (loggedInCustomer && (customerDetails?.storeKey || storeKey)) {
+      console.log('Setting up redirect timer with: loggedInCustomer=', !!loggedInCustomer, 
+        'customerDetails?.storeKey=', customerDetails?.storeKey, 
+        'storeKey=', storeKey);
+      
       const timer = setTimeout(() => {
         setRedirectToDashboard(true);
-      }, 1000); // 1 second delay (reduced from 3 seconds)
+        console.log('Redirect timer completed - setting redirectToDashboard to true');
+      }, 1000); // 1 second delay
       
       return () => clearTimeout(timer);
     }
-  }, [loggedInCustomer]);
+  }, [loggedInCustomer, customerDetails, storeKey]);
   
   // Handle navigation in the dashboard
   const handleNavigation = (route: string) => {
@@ -150,10 +164,31 @@ const Welcome: React.FC = () => {
     // For now, just log the navigation
   };
   
+  // Log when customer details or store key changes
+  useEffect(() => {
+    if (customerDetails) {
+      console.log('CustomerDetails updated:', customerDetails);
+      console.log('Current storeKey in state:', storeKey);
+      console.log('StoreKey in customerDetails:', customerDetails.storeKey);
+    }
+  }, [customerDetails, storeKey]);
+  
+  // Modify the redirect check to log the state and use the most reliable store key source
   if (redirectToDashboard) {
+    // Determine which store key to use, with clear logging
+    const activeStoreKey = storeKey || customerDetails?.storeKey || 'default-store';
+    console.log('Redirecting to SellerDashboard with:');
+    console.log('- customerDetails?.storeKey:', customerDetails?.storeKey);
+    console.log('- storeKey from state:', storeKey);
+    console.log('- Using storeKey:', activeStoreKey);
+    
+    if (!activeStoreKey || activeStoreKey === 'default-store') {
+      console.warn('⚠️ WARNING: Using fallback store key. This may indicate a problem with authentication or data loading');
+    }
+    
     return <SellerDashboard 
       onNavigate={handleNavigation} 
-      storeKey={storeKey || 'default-store'} 
+      storeKey={activeStoreKey} 
     />;
   }
 
@@ -174,6 +209,21 @@ const Welcome: React.FC = () => {
           return;
         }
 
+        // Get store key from custom fields
+        const storeKeyField = result.customer.custom.customFieldsRaw.find(
+          (field: any) => field.name === 'store-key'
+        );
+        const customStoreKey = storeKeyField?.value?.toString();
+        console.log('Login - Found custom store key:', customStoreKey);
+        
+        // Directly set the store key in state as well
+        if (customStoreKey) {
+          setStoreKey(customStoreKey);
+          console.log('Setting storeKey state to:', customStoreKey);
+        } else {
+          console.error('Login - No store key value found in customer custom fields');
+        }
+
         // Helper function to handle Maybe type
         const getMaybeValue = <T,>(value: Maybe<T>): T | undefined => {
           return value === null ? undefined : value;
@@ -182,6 +232,7 @@ const Welcome: React.FC = () => {
         // Convert TCustomer to CustomerDetails
         const convertedDetails = convertToCustomerDetails(result.customer);
         setCustomerDetails(convertedDetails);
+        console.log('Customer details after login:', convertedDetails);
         
         // Set logged in customer
         const loggedInCustomerData: CustomerObj = {
