@@ -22,6 +22,12 @@ const CUSTOMER_SIGN_IN = gql`
         firstName
         lastName
         isEmailVerified
+        custom {
+          customFieldsRaw {
+            name
+            value
+          }
+        }
       }
     }
   }

@@ -14,6 +14,7 @@ import useStoreLookup from '../../hooks/use-store-lookup';
 import SellerDashboard from '../seller-dashboard/seller-dashboard';
 import messages from './messages';
 import styles from './welcome.module.css';
+import { Maybe, TStore, TCustomer } from '../../types/generated/ctp';
 
 type MessageKey = keyof typeof messages;
 
@@ -27,10 +28,26 @@ type CustomerObj = {
 type CustomerDetails = {
   id: string;
   email: string;
-  firstName?: string;
-  lastName?: string;
+  firstName?: string | null;
+  lastName?: string | null;
   storeKey?: string;
   stores?: string[];
+};
+
+// Helper function to convert TCustomer to CustomerDetails
+const convertToCustomerDetails = (customer: TCustomer): CustomerDetails => {
+  const storeKeyField = customer.custom?.customFieldsRaw?.find(
+    (field: any) => field.name === 'store-key'
+  );
+  
+  return {
+    id: customer.id,
+    email: customer.email,
+    firstName: customer.firstName,
+    lastName: customer.lastName,
+    storeKey: storeKeyField?.value?.toString(),
+    stores: customer.stores?.map(store => store.key || '').filter(Boolean) || []
+  };
 };
 
 const Welcome: React.FC = () => {
@@ -43,6 +60,7 @@ const Welcome: React.FC = () => {
   const [storeKey, setStoreKey] = useState<string | null>(null);
   const [storeExists, setStoreExists] = useState<boolean | null>(null);
   const [redirectToDashboard, setRedirectToDashboard] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { login, loading: authLoading, error: authError, errorCode } = useCustomerAuth();
   const { fetchCustomer, loading: customerLoading, error: detailsError } = useCustomerDetails();
@@ -50,48 +68,68 @@ const Welcome: React.FC = () => {
 
   // Fetch customer details when logged in
   useEffect(() => {
+    let mounted = true;
+    
     if (loggedInCustomer?.id && !customerDetails) {
       const getDetails = async () => {
         const details = await fetchCustomer(loggedInCustomer.id);
+        if (!mounted) return;
+        
         if (details) {
-          setCustomerDetails(details);
-          // Log the customer details to console
+          // Convert TCustomer to CustomerDetails
+          const convertedDetails = convertToCustomerDetails(details);
+          setCustomerDetails(convertedDetails);
           console.log('Customer Details:', details);
           
-          // Check for custom field with store key
           if (details.custom) {
-            // Access customFieldsRaw instead of fields
             const customFieldsRaw = (details.custom as any).customFieldsRaw || [];
-            // Find the store-key field
             const storeKeyField = customFieldsRaw.find((field: any) => field.name === 'store-key');
             
             if (storeKeyField) {
               const customStoreKey = storeKeyField.value;
               console.log('Found custom store key in customer:', customStoreKey);
-              setStoreKey(customStoreKey);
-              
-              // Check if store exists in the project
-              try {
-                const exists = await checkStoreByKey(customStoreKey);
-                setStoreExists(exists);
-              } catch (error) {
-                console.error('Failed to check store existence:', error);
-                setStoreExists(false);
+              if (mounted) {
+                setStoreKey(customStoreKey);
+                try {
+                  const exists = await checkStoreByKey(customStoreKey);
+                  if (mounted) {
+                    setStoreExists(exists);
+                  }
+                } catch (error) {
+                  console.error('Failed to check store existence:', error);
+                  if (mounted) {
+                    setStoreExists(false);
+                  }
+                }
+              } else {
+                console.log('No custom store key found in customer');
+                if (mounted) {
+                  setStoreKey(null);
+                  setStoreExists(null);
+                }
               }
             } else {
               console.log('No custom store key found in customer');
-              setStoreKey(null);
-              setStoreExists(null);
+              if (mounted) {
+                setStoreKey(null);
+                setStoreExists(null);
+              }
             }
           } else {
             console.log('No custom fields in customer');
-            setStoreKey(null);
-            setStoreExists(null);
+            if (mounted) {
+              setStoreKey(null);
+              setStoreExists(null);
+            }
           }
         }
       };
       getDetails();
     }
+    
+    return () => {
+      mounted = false;
+    };
   }, [loggedInCustomer, customerDetails, fetchCustomer, checkStoreByKey]);
 
   // Set up redirect to dashboard
@@ -119,55 +157,63 @@ const Welcome: React.FC = () => {
     />;
   }
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setErrorKey(null);
-    setLoggedInCustomer(null);
-    setCustomerDetails(null);
-    setStoreKey(null);
-    setStoreExists(null);
-
-    if (!email || !password) {
-      return;
-    }
+    setIsSubmitting(true);
 
     try {
-      // Simply authenticate with email and password
-      console.log('Authenticating with email and password');
       const result = await login(email, password);
-      
-      if (!result) {
-        console.log('Login failed, errorCode:', errorCode, 'authError:', authError?.message);
-        
-        // Handle different error types
-        if (errorCode === 'InvalidCredentials') {
-          setErrorKey('invalidCredentials');
-        } else if (authError?.message?.includes('customer_not_found')) {
-          setErrorKey('loginNotFound');
-        } else if (authError?.message?.includes('insufficient_scope')) {
-          setErrorKey('insufficientScope');
-          console.error('API Error: Insufficient scope, make sure manage_customers permission is added to custom-application-config.mjs');
-        } else {
-          setErrorKey('loginError');
+
+      if (result?.customer) {
+        // Check for required custom fields
+        if (!result.customer.custom?.customFieldsRaw || 
+            !result.customer.custom.customFieldsRaw.find((field: any) => field.name === 'store-key')) {
+          setErrorKey('accessDenied');
+          console.error('Customer missing required custom fields');
+          return;
         }
-      } else if (result.customer) {
-        console.log('Login successful, customer:', result.customer);
-        // Set logged in customer to display success message
-        setLoggedInCustomer({
+
+        // Helper function to handle Maybe type
+        const getMaybeValue = <T,>(value: Maybe<T>): T | undefined => {
+          return value === null ? undefined : value;
+        };
+
+        // Convert TCustomer to CustomerDetails
+        const convertedDetails = convertToCustomerDetails(result.customer);
+        setCustomerDetails(convertedDetails);
+        
+        // Set logged in customer
+        const loggedInCustomerData: CustomerObj = {
           id: result.customer.id,
           email: result.customer.email,
-          firstName: result.customer.firstName || undefined,
-          lastName: result.customer.lastName || undefined,
-        });
+          firstName: getMaybeValue(result.customer.firstName),
+          lastName: getMaybeValue(result.customer.lastName),
+        };
+        setLoggedInCustomer(loggedInCustomerData);
         
         // Clear form
         setEmail('');
         setPassword('');
+      } else {
+        setErrorKey('loginError');
       }
     } catch (error) {
-      console.error('Error during login process:', error);
+      console.error('Login error:', error);
       setErrorKey('loginError');
+    } finally {
+      setIsSubmitting(false);
     }
+  };
+
+  // Handle error display
+  const getErrorMessage = () => {
+    if (!errorKey) return null;
+    
+    return intl.formatMessage(messages[errorKey], {
+      id: errorKey,
+      defaultMessage: messages[errorKey].defaultMessage
+    });
   };
 
   const loading = authLoading || customerLoading || storeLoading;
@@ -193,40 +239,54 @@ const Welcome: React.FC = () => {
                 <div className={styles.successMessage}>
                   <Spacings.Inline alignItems="center" scale="xs">
                     <CheckActiveIcon color="primary" size="medium" />
-                    <Text.Body isBold>Login successful!</Text.Body>
+                    <Text.Body isBold>
+                      {intl.formatMessage(messages.loginSuccess)}
+                    </Text.Body>
                   </Spacings.Inline>
                 </div>
                 
                 {customerLoading ? (
-                  <Text.Body>Loading customer details...</Text.Body>
+                  <Text.Body>
+                    {intl.formatMessage(messages.loadingDetails)}
+                  </Text.Body>
                 ) : detailsError ? (
                   <div className={styles.errorMessage}>
                     <ErrorMessage>
-                      Error loading customer details: {detailsError.message}
+                      {intl.formatMessage(messages.detailsError, { error: detailsError.message })}
                     </ErrorMessage>
                   </div>
                 ) : (
                   <div className={styles.welcomeCard}>
                     <Spacings.Stack scale="m" alignItems="center">
-                      <Text.Headline as="h2">Welcome, {loggedInCustomer.firstName || loggedInCustomer.email}!</Text.Headline>
-                      <Text.Body tone="secondary">You are successfully authenticated.</Text.Body>
+                      <Text.Headline as="h2">
+                        {intl.formatMessage(messages.welcomeUser, {
+                          name: loggedInCustomer.firstName || loggedInCustomer.email
+                        })}
+                      </Text.Headline>
+                      <Text.Body tone="secondary">
+                        {intl.formatMessage(messages.authSuccess)}
+                      </Text.Body>
                       
                       {storeKey && (
                         <div className={styles.storeInfo}>
                           <Spacings.Stack scale="s" alignItems="center">
-                            <Text.Body intlMessage={{ id: 'Welcome.storeWelcome', defaultMessage: 'Welcome to your store:' }} />
-                            <Text.Subheadline as="h4" tone="primary">{storeKey}</Text.Subheadline>
+                            <Text.Body>
+                              {intl.formatMessage(messages.storeWelcome)}
+                            </Text.Body>
+                            <Text.Subheadline as="h4" tone="primary">
+                              {storeKey}
+                            </Text.Subheadline>
                           </Spacings.Stack>
                         </div>
                       )}
                       
                       <div className={styles.redirectingMessage}>
-                        Redirecting to Seller Dashboard...
+                        {intl.formatMessage(messages.redirecting)}
                       </div>
                       
                       <div className={styles.spacingTop}>
                         <PrimaryButton
-                          label="Sign Out"
+                          label={intl.formatMessage(messages.signOut)}
                           onClick={() => {
                             setLoggedInCustomer(null);
                             setCustomerDetails(null);
@@ -246,7 +306,7 @@ const Welcome: React.FC = () => {
                   {errorKey && (
                     <div className={styles.errorMessage}>
                       <ErrorMessage>
-                        {intl.formatMessage(messages[errorKey])}
+                        {getErrorMessage()}
                       </ErrorMessage>
                     </div>
                   )}
@@ -262,7 +322,6 @@ const Welcome: React.FC = () => {
                     horizontalConstraint="scale"
                   />
                   
-                  {/* Use a regular input for password - with manual styling to match uikit */}
                   <div>
                     <label htmlFor="password">
                       {intl.formatMessage(messages.passwordLabel)}{' '}

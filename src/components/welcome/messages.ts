@@ -50,6 +50,42 @@ export default defineMessages({
     id: 'Login.storeAccessError',
     defaultMessage: 'Cannot sign in because this account is associated with a store. Due to technical limitations, store-associated accounts cannot be accessed in this environment.',
   },
+  accessDenied: {
+    id: 'Login.accessDenied',
+    defaultMessage: 'Access denied. This account does not have the required store association.',
+  },
+  loginSuccess: {
+    id: 'Login.loginSuccess',
+    defaultMessage: 'Login successful!',
+  },
+  loadingDetails: {
+    id: 'Login.loadingDetails',
+    defaultMessage: 'Loading customer details...',
+  },
+  detailsError: {
+    id: 'Login.detailsError',
+    defaultMessage: 'Error loading customer details: {error}',
+  },
+  welcomeUser: {
+    id: 'Login.welcomeUser',
+    defaultMessage: 'Welcome, {name}!',
+  },
+  authSuccess: {
+    id: 'Login.authSuccess',
+    defaultMessage: 'You are successfully authenticated.',
+  },
+  redirecting: {
+    id: 'Login.redirecting',
+    defaultMessage: 'Redirecting to Seller Dashboard...',
+  },
+  signOut: {
+    id: 'Login.signOut',
+    defaultMessage: 'Sign Out',
+  },
+  storeWelcome: {
+    id: 'Welcome.storeWelcome',
+    defaultMessage: 'Welcome to your store:',
+  },
   cardDocumentationTitle: {
     id: 'Welcome.cardDocumentationTitle',
     defaultMessage: 'Documentation',
@@ -75,9 +111,5 @@ export default defineMessages({
     id: 'Welcome.cardChannelsContent',
     defaultMessage:
       'Demo example to fetch some data using GraphQL and displaying it in a paginated table.',
-  },
-  storeWelcome: {
-    id: 'Welcome.storeWelcome',
-    defaultMessage: 'Welcome to your store:',
   },
 });
