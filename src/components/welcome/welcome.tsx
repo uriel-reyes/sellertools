@@ -110,26 +110,26 @@ const Welcome: React.FC = () => {
                     setStoreExists(false);
                   }
                 }
+              } else {
+                console.log('No custom store key found in customer');
+                if (mounted) {
+                  setStoreKey(null);
+                  setStoreExists(null);
+                }
               }
             } else {
-              console.log('No custom store key found in customer');
+              console.log('No custom fields in customer');
               if (mounted) {
                 setStoreKey(null);
                 setStoreExists(null);
               }
             }
-          } else {
-            console.log('No custom fields in customer');
-            if (mounted) {
-              setStoreKey(null);
-              setStoreExists(null);
+            
+            // Additional safeguard: If we have a key in converted details but not in state, set it
+            if (convertedDetails.storeKey && !storeKey) {
+              console.log('Setting store key from converted details as backup:', convertedDetails.storeKey);
+              setStoreKey(convertedDetails.storeKey);
             }
-          }
-          
-          // Additional safeguard: If we have a key in converted details but not in state, set it
-          if (convertedDetails.storeKey && !storeKey) {
-            console.log('Setting store key from converted details as backup:', convertedDetails.storeKey);
-            setStoreKey(convertedDetails.storeKey);
           }
         }
       };
@@ -271,7 +271,7 @@ const Welcome: React.FC = () => {
 
   return (
     <div className={styles.pageContainer}>
-      <Constraints.Horizontal max={16}>
+    <Constraints.Horizontal max={16}>
         <Spacings.Stack scale="xl" alignItems="center">
           <div className={styles.logoContainer}>
             <img
@@ -414,12 +414,12 @@ const Welcome: React.FC = () => {
                       />
                     )}
                   </Spacings.Inline>
-                </Spacings.Stack>
+        </Spacings.Stack>
               </form>
             )}
           </div>
-        </Spacings.Stack>
-      </Constraints.Horizontal>
+      </Spacings.Stack>
+    </Constraints.Horizontal>
     </div>
   );
 };

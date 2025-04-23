@@ -7,6 +7,7 @@ import Orders from '../orders/orders';
 import Customers from '../customers/customers';
 import Products from '../products/products';
 import Prices from '../prices/prices';
+import Promotions from '../promotions/promotions';
 import styles from './seller-dashboard.module.css';
 
 type DashboardCardProps = {
@@ -59,6 +60,11 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, storeKey 
 
   if (activeView === '/prices') {
     return <Prices storeKey={storeKey} onBack={goBackToDashboard} />;
+  }
+
+  if (activeView === '/promotions') {
+    console.log('Navigating to Promotions view with storeKey:', storeKey);
+    return <Promotions storeKey={storeKey} onBack={goBackToDashboard} />;
   }
 
   // Otherwise show the dashboard
