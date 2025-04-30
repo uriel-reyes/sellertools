@@ -71,19 +71,19 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, storeKey 
   const dashboardItems = [
     {
       id: 'orders',
-      title: 'View Orders',
+      title: 'Manage Orders',
       emoji: '📋',
       onClick: () => handleNavigation('/orders'),
     },
     {
       id: 'customers',
-      title: 'Manage Customers',
+      title: 'View Customers',
       emoji: '👥',
       onClick: () => handleNavigation('/customers'),
     },
     {
       id: 'products',
-      title: 'Select Products',
+      title: 'Manage Products',
       emoji: '🛒',
       onClick: () => handleNavigation('/products'),
     },

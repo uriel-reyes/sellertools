@@ -7,15 +7,15 @@ export default defineMessages({
   },
   viewOrders: {
     id: 'SellerDashboard.viewOrders',
-    defaultMessage: 'View Orders',
+    defaultMessage: 'Manage Orders',
   },
   manageCustomers: {
     id: 'SellerDashboard.manageCustomers',
-    defaultMessage: 'Manage Customers',
+    defaultMessage: 'View Customers',
   },
   selectProducts: {
     id: 'SellerDashboard.selectProducts',
-    defaultMessage: 'Select Products',
+    defaultMessage: 'Manage Products',
   },
   managePrices: {
     id: 'SellerDashboard.managePrices',
