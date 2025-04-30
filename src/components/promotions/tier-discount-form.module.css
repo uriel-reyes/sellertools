@@ -101,4 +101,69 @@
   margin-top: 20px;
   width: 100%;
   max-width: 200px;
+}
+
+/* Add these styles at the end of the file */
+
+.conditionsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.conditionRow {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.conditionType {
+  flex: 2;
+}
+
+.conditionOperator {
+  flex: 2;
+}
+
+.conditionValue {
+  flex: 3;
+}
+
+.conditionRemove {
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: 8px;
+}
+
+.conditionConnector {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0;
+}
+
+/* Custom Money Input Styles */
+.customMoneyInput {
+  flex: 1;
+}
+
+.moneyInputField {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 16px;
+  background-color: #fff;
+  height: 34px;
+  transition: border-color 0.15s ease-in-out;
+}
+
+.moneyInputField:focus {
+  outline: none;
+  border-color: #0066cc;
+  box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.2);
+}
+
+.moneyInputField::placeholder {
+  color: #999;
 } 

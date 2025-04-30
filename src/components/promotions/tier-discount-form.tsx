@@ -17,7 +17,7 @@ import messages from './messages';
 import styles from './tier-discount-form.module.css';
 
 interface TierDiscountFormProps {
-  storeKey: string;
+  channelKey: string;
   onBack: () => void;
   onSubmit: (data: TierDiscountData) => void;
 }
@@ -42,12 +42,12 @@ interface TierDiscountData {
 }
 
 const TierDiscountForm: React.FC<TierDiscountFormProps> = ({ 
-  storeKey, 
+  channelKey, 
   onBack,
   onSubmit
 }) => {
   const intl = useIntl();
-  const { createCartDiscount, loading, error } = usePromotions();
+  const { createProductDiscount, loading, error } = usePromotions();
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   
@@ -119,26 +119,17 @@ const TierDiscountForm: React.FC<TierDiscountFormProps> = ({
     });
   };
 
-  const buildCartPredicate = (): string => {
-    // Build the cart predicate string based on the current conditions
+  const buildProductPredicate = (): string => {
+    // Build the product predicate string based on the current conditions
     const { variantSku, quantity } = discountData.conditions;
     
     // Handle variant SKU condition
-    const skuPredicate = `sku ${variantSku.operator === 'is' ? '=' : '!='} "${variantSku.value}"`;
+    const skuPredicate = `sku = "${variantSku.value}"`;
     
-    // Handle quantity condition
-    let quantityOperator = '=';
-    switch(quantity.operator) {
-      case 'isNot': quantityOperator = '!='; break;
-      case 'lessThanOrEqual': quantityOperator = '<='; break;
-      case 'greaterThan': quantityOperator = '>'; break;
-      case 'greaterThanOrEqual': quantityOperator = '>='; break;
-      default: quantityOperator = '=';
-    }
+    // Include the channel key condition
+    const channelPredicate = `channel.key = "${channelKey}"`;
     
-    const quantityPredicate = `quantity ${quantityOperator} ${quantity.value}`;
-    
-    return `${skuPredicate} and ${quantityPredicate}`;
+    return `${skuPredicate} and ${channelPredicate}`;
   };
 
   const handleSubmit = async () => {
@@ -146,8 +137,8 @@ const TierDiscountForm: React.FC<TierDiscountFormProps> = ({
     setSubmissionError(null);
     
     try {
-      // Create the line item predicate from our conditions
-      const lineItemPredicate = buildCartPredicate();
+      // Create the product predicate from our conditions
+      const predicate = buildProductPredicate();
       
       // Get the currency code for absolute discounts (using USD as default)
       const currencyCode = discountData.discountType === 'absolute' ? 'USD' : undefined;
@@ -156,9 +147,11 @@ const TierDiscountForm: React.FC<TierDiscountFormProps> = ({
       const input = {
         name: discountData.name,
         description: discountData.description,
-        storeKey: storeKey,
-        lineItemPredicate,
-        discountValue: discountData.discountValue,
+        channelKey: channelKey,
+        predicate,
+        discountValue: discountData.discountType === 'percentage' 
+          ? discountData.discountValue
+          : discountData.discountValue * 100, // Convert dollars to cents for absolute discounts
         discountType: discountData.discountType,
         currencyCode,
         isActive: discountData.isActive,
@@ -166,7 +159,7 @@ const TierDiscountForm: React.FC<TierDiscountFormProps> = ({
       };
       
       // Call the mutation
-      const result = await createCartDiscount(input);
+      const result = await createProductDiscount(input);
       
       if (result) {
         // Show success message

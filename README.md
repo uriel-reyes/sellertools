@@ -80,87 +80,73 @@ This application addresses the need for store-specific management tools in a mul
 - Comprehensive error handling for duplicate price scopes and other validation issues
 - Support for both new price creation and existing price updates
 
-### UI Improvements
-- Consistent card-based interfaces across the application
-- Enhanced typography with improved readability
-- Responsive layouts that work on various screen sizes
-- Visual indicators using color coding for statuses
-- Separate sections for different types of information
-- Clean navigation between dashboard, orders, and customer details
-- Side-by-side layouts for related information
+### Product Discount Management
+- Create and manage store-specific product discounts
+- Support for both percentage and fixed amount discount types
+- Decimal precision for both discount types (percentages and monetary values)
+- Apply discounts to all products or specific products based on various conditions
+- Multiple condition types:
+  - Product attributes (with various comparison operators)
+  - Product SKUs (exact match, contains, etc.)
+  - Category keys (with containment predicates)
+- Combine multiple conditions with AND logic
+- Intuitive user interface for building complex discount predicates
+- Automatic handling of channel-specific discounts for the seller's store
+- Sort order control to prioritize discounts
+- Support for all commercetools product discount predicate operators:
+  - Equality (=, !=)
+  - Containment (contains)
+  - Numeric comparisons (>, <)
+- Proper handling of category predicates through the contains operator
+- Real-time validation and feedback for discount creation
 
-### Error Handling
-- Detailed error messages for authentication failures
-- Loading indicators for data fetching operations
-- Graceful handling of missing data
-- Visual feedback for user actions (status updates, product selection, etc.)
-
-## Technical Implementation
-
-This application leverages:
-- commercetools API and Custom Applications framework
-- React and TypeScript for modern frontend development
-- GraphQL for efficient data fetching
-- UI Kit components for consistent design language
-
-### Authentication Implementation
-The application implements customer authentication through standard commercetools customer sign-in:
+### Product Discount Implementation
+The application provides a comprehensive interface for creating and managing product discounts:
 
 ```graphql
-mutation CustomerSignIn($draft: CustomerSignInDraft!) {
-  customerSignIn(draft: $draft) {
-    customer {
-      id
-      email
-      firstName
-      lastName
-      isEmailVerified
+mutation CreateProductDiscount($draft: ProductDiscountDraft!) {
+  createProductDiscount(draft: $draft) {
+    id
+    key
+    name(locale: "en-US")
+    description(locale: "en-US")
+    value {
+      ... on RelativeDiscountValue {
+        permyriad
+        type
+      }
+      ... on AbsoluteDiscountValue {
+        money {
+          centAmount
+          currencyCode
+        }
+        type
+      }
     }
+    predicate
+    sortOrder
+    isActive
   }
 }
 ```
 
-After authentication, the application checks for a custom field in the customer record to determine store association. This custom field approach provides a simple but effective way to associate customers (sellers) with their respective stores.
+The product discount system:
+1. Creates channel-specific discounts for each seller's store
+2. Supports both relative (percentage) and absolute (fixed amount) discount types:
+   - Percentage discounts use the permyriad value (10000 = 100%)
+   - Fixed amount discounts specify currency and cent amount
+3. Builds complex product predicates with support for:
+   - Channel-specific filtering (always included to limit to seller's products)
+   - Product attributes with various operators (=, !=, >, <, contains)
+   - SKU-based conditions with exact match or containment
+   - Category-based conditions using proper containment predicates
+4. Handles the different predicate operators required for different field types:
+   - Standard fields use equality operators (=, !=)
+   - Array fields like categories use containment operators (contains)
+5. Provides a user-friendly interface for building these complex predicates
+6. Implements proper validation and error handling for commercetools API requirements
 
-### Product Selection Implementation
-The application uses Product Selections to manage which products are available in a store:
-
-```graphql
-mutation UpdateProductSelection($id: String!, $version: Long!, $actions: [ProductSelectionUpdateAction!]!) {
-  updateProductSelection(id: $id, version: $version, actions: $actions) {
-    id
-    version
-  }
-}
-```
-
-This allows sellers to:
-1. View products from a master catalog
-2. Add selected products to their store's selection
-3. Remove products from their store's selection when needed
-
-### Price Management Implementation
-The application implements a robust two-step approach for managing channel-specific pricing:
-
-```graphql
-mutation UpdateProductPrice($id: String!, $version: Long!, $actions: [ProductUpdateAction!]!) {
-  updateProduct(id: $id, version: $version, actions: $actions) {
-    id
-    version
-  }
-}
-```
-
-The price management system:
-1. Queries both current and staged product data to find existing prices
-2. For price updates, uses a sequential approach:
-   - First removes any existing price with the same channel (avoiding duplicate price scope errors)
-   - Then adds the new price with updated values
-   - Finally publishes all changes with scope "All"
-3. Handles version conflicts by always fetching the latest product version before operations
-4. Provides comprehensive error handling with detailed logging for troubleshooting
-
-This implementation ensures reliable price updates even in concurrent editing scenarios and prevents common issues like duplicate price scopes.
+This implementation ensures store-specific discounts are correctly applied with properly formatted predicates that handle all the various field types and comparison operators supported by commercetools.
 
 ### Required Custom Types
 
@@ -253,6 +239,8 @@ Ensure you have the following scopes configured in your custom-application-confi
 - `view_product_selections`
 - `manage_product_selections`
 - `view_published_products`
+- `view_product_discounts`
+- `manage_product_discounts`
 
 ## Development
 

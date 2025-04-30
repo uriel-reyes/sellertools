@@ -10,12 +10,12 @@ import PrimaryButton from '@commercetools-uikit/primary-button';
 import { BackIcon, PlusBoldIcon, CloseIcon, RefreshIcon } from '@commercetools-uikit/icons';
 import Card from '@commercetools-uikit/card';
 import usePromotions from '../../hooks/use-promotions/use-promotions';
-import TierDiscountForm from './tier-discount-form';
+import ProductDiscountForm from './product-discount-form';
 import messages from './messages';
 import styles from './promotions.module.css';
 
 interface PromotionsProps {
-  storeKey: string;
+  channelKey: string;
   onBack: () => void;
 }
 
@@ -25,16 +25,16 @@ interface PromotionData {
   name: string;
   description: string;
   isActive: boolean;
-  cartPredicate: string;
-  targetType: string;
-  targetDetails: string;
+  predicate: string;
+  channelKey: string | null;
   valueAmount: string;
+  sortOrder: string;
 }
 
 // Type for the current view state
-type ViewState = 'list' | 'select-type' | 'tier-discount' | 'customer-group-discount';
+type ViewState = 'list' | 'add-product-discount';
 
-const Promotions: React.FC<PromotionsProps> = ({ storeKey, onBack }) => {
+const Promotions: React.FC<PromotionsProps> = ({ channelKey, onBack }) => {
   const intl = useIntl();
   const [promotions, setPromotions] = useState<PromotionData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -49,26 +49,26 @@ const Promotions: React.FC<PromotionsProps> = ({ storeKey, onBack }) => {
     setError(null);
     
     try {
-      console.log(`Fetching promotions for store: ${storeKey}`);
-      const result = await fetchPromotions(storeKey);
+      console.log(`Fetching product discounts for channel: ${channelKey}`);
+      const result = await fetchPromotions(channelKey);
       
       if (result && result.length > 0) {
-        console.log(`Fetched ${result.length} promotions for store ${storeKey}`);
+        console.log(`Fetched ${result.length} product discounts for channel ${channelKey}`);
         setPromotions(result);
       } else {
-        console.log(`No promotions found for store ${storeKey}`);
+        console.log(`No product discounts found for channel ${channelKey}`);
         setPromotions([]);
       }
       
       // Update last refreshed timestamp
       setLastRefreshed(new Date().toLocaleString());
     } catch (err) {
-      console.error(`Error fetching promotions for store ${storeKey}:`, err);
-      setError(err instanceof Error ? err : new Error('Unknown error fetching promotions'));
+      console.error(`Error fetching product discounts for channel ${channelKey}:`, err);
+      setError(err instanceof Error ? err : new Error('Unknown error fetching product discounts'));
     } finally {
       setIsLoading(false);
     }
-  }, [storeKey, fetchPromotions]);
+  }, [channelKey, fetchPromotions]);
   
   useEffect(() => {
     loadPromotions();
@@ -102,30 +102,21 @@ const Promotions: React.FC<PromotionsProps> = ({ storeKey, onBack }) => {
       )
     },
     { key: 'description', label: intl.formatMessage(messages.columnDescription) },
-    { key: 'targetDetails', label: intl.formatMessage(messages.columnTargetDetails) },
+    { key: 'predicate', label: intl.formatMessage(messages.columnPredicate) },
     { key: 'valueAmount', label: intl.formatMessage(messages.columnValueAmount) },
-    { key: 'targetType', label: intl.formatMessage(messages.columnTargetType) },
+    { key: 'sortOrder', label: intl.formatMessage(messages.columnSortOrder) },
   ];
 
   const handleAddPromotion = () => {
-    setViewState('select-type');
+    setViewState('add-product-discount');
   };
 
   const handleBackToList = () => {
     setViewState('list');
   };
 
-  const handleSelectPromotionType = (type: string) => {
-    console.log(`Selected promotion type: ${type}`);
-    if (type === 'tier') {
-      setViewState('tier-discount');
-    } else if (type === 'customerGroup') {
-      setViewState('customer-group-discount');
-    }
-  };
-
-  const handleSubmitTierDiscount = (formData: any) => {
-    console.log('Submitted tier discount form:', formData);
+  const handleSubmitPromotion = (formData: any) => {
+    console.log('Submitted product discount form:', formData);
     // After successful creation, go back to the list view and refresh promotions
     setViewState('list');
     loadPromotions(); // Refresh the promotions list
@@ -138,60 +129,6 @@ const Promotions: React.FC<PromotionsProps> = ({ storeKey, onBack }) => {
     }
   };
   
-  // Render the promotion type selection dialog
-  const renderPromotionTypeSelection = () => (
-    <div className={styles.dialogOverlay}>
-      <Card className={styles.dialogCard}>
-        <Spacings.Stack scale="m">
-          <Spacings.Inline alignItems="center" justifyContent="space-between">
-            <Text.Headline as="h3">
-              {intl.formatMessage(messages.selectPromotionType)}
-            </Text.Headline>
-            <SecondaryButton
-              onClick={handleBackToList}
-              iconLeft={<CloseIcon />}
-              label=""
-            />
-          </Spacings.Inline>
-          
-          <Text.Body>
-            {intl.formatMessage(messages.selectPromotionTypeDescription)}
-          </Text.Body>
-          
-          <Spacings.Inline scale="m" justifyContent="center">
-            <Card className={styles.promotionTypeCard} onClick={() => handleSelectPromotionType('tier')}>
-              <Spacings.Stack scale="s" alignItems="center">
-                <div className={styles.promotionTypeIcon}>
-                  <PlusBoldIcon size="big" />
-                </div>
-                <Text.Subheadline as="h4">
-                  {intl.formatMessage(messages.tierBasedPromotion)}
-                </Text.Subheadline>
-                <Text.Detail>
-                  {intl.formatMessage(messages.tierBasedPromotionDescription)}
-                </Text.Detail>
-              </Spacings.Stack>
-            </Card>
-            
-            <Card className={styles.promotionTypeCard} onClick={() => handleSelectPromotionType('customerGroup')}>
-              <Spacings.Stack scale="s" alignItems="center">
-                <div className={styles.promotionTypeIcon}>
-                  <PlusBoldIcon size="big" />
-                </div>
-                <Text.Subheadline as="h4">
-                  {intl.formatMessage(messages.customerGroupPromotion)}
-                </Text.Subheadline>
-                <Text.Detail>
-                  {intl.formatMessage(messages.customerGroupPromotionDescription)}
-                </Text.Detail>
-              </Spacings.Stack>
-            </Card>
-          </Spacings.Inline>
-        </Spacings.Stack>
-      </Card>
-    </div>
-  );
-  
   // Render the main promotions list view with table
   const renderPromotionsList = () => (
     <Spacings.Stack scale="l">
@@ -199,7 +136,7 @@ const Promotions: React.FC<PromotionsProps> = ({ storeKey, onBack }) => {
         <div>
           <Text.Headline as="h1">{intl.formatMessage(messages.title)}</Text.Headline>
           <Text.Subheadline>
-            Store: <span className={styles.storeKeyHighlight}>{storeKey}</span>
+            Channel: <span className={styles.storeKeyHighlight}>{channelKey}</span>
           </Text.Subheadline>
           {lastRefreshed && (
             <Text.Detail tone="secondary">
@@ -249,37 +186,34 @@ const Promotions: React.FC<PromotionsProps> = ({ storeKey, onBack }) => {
           <DataTable<PromotionData>
             columns={columns}
             rows={promotions}
+            maxHeight={600}
+            onRowClick={(row) => console.log('Row clicked:', row)}
           />
         </div>
       )}
     </Spacings.Stack>
   );
   
-  // Main render logic
+  // Determine which view to render
+  const renderView = () => {
+    switch (viewState) {
+      case 'add-product-discount':
+        return (
+          <ProductDiscountForm
+            channelKey={channelKey}
+            onBack={handleBackToList}
+            onSubmit={handleSubmitPromotion}
+          />
+        );
+      case 'list':
+      default:
+        return renderPromotionsList();
+    }
+  };
+  
   return (
     <div className={styles.container}>
-      {viewState === 'list' && renderPromotionsList()}
-      
-      {viewState === 'select-type' && renderPromotionTypeSelection()}
-      
-      {viewState === 'tier-discount' && (
-        <TierDiscountForm 
-          storeKey={storeKey}
-          onBack={handleBackToList}
-          onSubmit={handleSubmitTierDiscount}
-        />
-      )}
-      
-      {viewState === 'customer-group-discount' && (
-        <div>
-          {/* This would be replaced with a CustomerGroupDiscountForm component */}
-          <Text.Headline>Customer Group Discount Form</Text.Headline>
-          <SecondaryButton
-            label={intl.formatMessage(messages.backButton)}
-            onClick={handleBackToList}
-          />
-        </div>
-      )}
+      {renderView()}
     </div>
   );
 };

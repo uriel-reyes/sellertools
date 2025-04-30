@@ -63,8 +63,8 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, storeKey 
   }
 
   if (activeView === '/promotions') {
-    console.log('Navigating to Promotions view with storeKey:', storeKey);
-    return <Promotions storeKey={storeKey} onBack={goBackToDashboard} />;
+    console.log('Navigating to Promotions view with channelKey:', storeKey);
+    return <Promotions channelKey={storeKey} onBack={goBackToDashboard} />;
   }
 
   // Otherwise show the dashboard

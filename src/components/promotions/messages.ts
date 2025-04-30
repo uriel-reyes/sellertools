@@ -33,6 +33,10 @@ export default defineMessages({
     id: 'Promotions.columnCartPredicate',
     defaultMessage: 'Cart Predicate',
   },
+  columnPredicate: {
+    id: 'Promotions.columnPredicate',
+    defaultMessage: 'Predicate',
+  },
   columnTargetType: {
     id: 'Promotions.columnTargetType',
     defaultMessage: 'Target Type',
@@ -48,6 +52,10 @@ export default defineMessages({
   columnValueAmount: {
     id: 'Promotions.columnValueAmount',
     defaultMessage: 'Discount Value',
+  },
+  columnSortOrder: {
+    id: 'Promotions.columnSortOrder',
+    defaultMessage: 'Sort Order',
   },
   statusActive: {
     id: 'Promotions.statusActive',
@@ -94,6 +102,10 @@ export default defineMessages({
     id: 'Promotions.createTierDiscount',
     defaultMessage: 'Create Quantity Tier Discount',
   },
+  createProductDiscount: {
+    id: 'Promotions.createProductDiscount',
+    defaultMessage: 'Create Product Discount',
+  },
   basicInformation: {
     id: 'Promotions.basicInformation',
     defaultMessage: 'Basic Information',
@@ -102,6 +114,10 @@ export default defineMessages({
     id: 'Promotions.promotionName',
     defaultMessage: 'Promotion Name',
   },
+  nameHint: {
+    id: 'Promotions.nameHint',
+    defaultMessage: 'Enter a name for this product discount (EN-US)',
+  },
   promotionDescription: {
     id: 'Promotions.promotionDescription',
     defaultMessage: 'Description',
@@ -109,6 +125,14 @@ export default defineMessages({
   conditions: {
     id: 'Promotions.conditions',
     defaultMessage: 'Conditions',
+  },
+  discountPercentage: {
+    id: 'Promotions.discountPercentage',
+    defaultMessage: 'Percentage Value',
+  },
+  discountAbsolute: {
+    id: 'Promotions.discountAbsolute',
+    defaultMessage: 'Amount',
   },
   variantSku: {
     id: 'Promotions.variantSku',
@@ -205,5 +229,82 @@ export default defineMessages({
   refreshButton: {
     id: 'Promotions.refreshButton',
     defaultMessage: 'Refresh',
+  },
+  // Product Conditions
+  productConditions: {
+    id: 'Promotions.productConditions',
+    defaultMessage: 'Product Conditions',
+  },
+  applyTo: {
+    id: 'Promotions.applyTo',
+    defaultMessage: 'Apply discount to',
+  },
+  applyToAll: {
+    id: 'Promotions.applyToAll',
+    defaultMessage: 'All products',
+  },
+  applyToSpecific: {
+    id: 'Promotions.applyToSpecific',
+    defaultMessage: 'Specific products',
+  },
+  specificProductsDescription: {
+    id: 'Promotions.specificProductsDescription',
+    defaultMessage: 'Add conditions to select which products this discount applies to',
+  },
+  conditionType: {
+    id: 'Promotions.conditionType',
+    defaultMessage: 'Condition Type',
+  },
+  conditionTypeAttribute: {
+    id: 'Promotions.conditionTypeAttribute',
+    defaultMessage: 'Attribute',
+  },
+  conditionTypeSku: {
+    id: 'Promotions.conditionTypeSku',
+    defaultMessage: 'Variant SKU',
+  },
+  conditionTypeCategory: {
+    id: 'Promotions.conditionTypeCategory',
+    defaultMessage: 'Category Key',
+  },
+  conditionOperator: {
+    id: 'Promotions.conditionOperator',
+    defaultMessage: 'Operator',
+  },
+  conditionValue: {
+    id: 'Promotions.conditionValue',
+    defaultMessage: 'Value',
+  },
+  operatorContains: {
+    id: 'Promotions.operatorContains',
+    defaultMessage: 'contains',
+  },
+  operatorDoesNotContain: {
+    id: 'Promotions.operatorDoesNotContain',
+    defaultMessage: 'does not contain',
+  },
+  operatorLessThan: {
+    id: 'Promotions.operatorLessThan',
+    defaultMessage: 'is less than',
+  },
+  addCondition: {
+    id: 'Promotions.addCondition',
+    defaultMessage: 'Add Condition',
+  },
+  noConditionsWarning: {
+    id: 'Promotions.noConditionsWarning',
+    defaultMessage: 'Please add at least one condition or select "All products"',
+  },
+  attributePlaceholder: {
+    id: 'Promotions.attributePlaceholder',
+    defaultMessage: 'Format: attributeName:value',
+  },
+  skuPlaceholder: {
+    id: 'Promotions.skuPlaceholder',
+    defaultMessage: 'Enter SKU',
+  },
+  categoryPlaceholder: {
+    id: 'Promotions.categoryPlaceholder',
+    defaultMessage: 'Enter category key',
   },
 }); 
