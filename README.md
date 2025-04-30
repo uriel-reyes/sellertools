@@ -248,3 +248,215 @@ For more information about developing Custom Applications, please refer to:
 - [commercetools Custom Applications Documentation](https://docs.commercetools.com/merchant-center-customizations/custom-applications)
 - [commercetools UI Kit](https://uikit.commercetools.com/)
 - [commercetools Frontend SDK](https://docs.commercetools.com/merchant-center-customizations)
+
+### UI Components and Patterns
+
+#### Standard Header Pattern
+The application implements a consistent header pattern across all main section components (Products, Promotions, etc.) that should be followed when creating new sections:
+
+1. **Header Container Structure**:
+   ```jsx
+   <div className={styles.header}>
+     <div>
+       {/* Left content */}
+     </div>
+     <Spacings.Inline scale="s">
+       {/* Right content */}
+     </Spacings.Inline>
+   </div>
+   ```
+
+2. **Left Section Elements**:
+   - Primary title using `<Text.Headline as="h1">`
+   - Context information (store/channel key) using `<Text.Subheadline>`
+   - Optional "Last refreshed" timestamp using `<Text.Detail tone="secondary">`
+   - Optional action buttons specific to the section
+
+3. **Right Section Elements**:
+   - Utility buttons like "Refresh" using `<SecondaryButton>`
+   - Primary navigation button (usually "Back to Dashboard") using `<PrimaryButton>`
+
+4. **CSS Implementation**:
+   ```css
+   .header {
+     display: flex;
+     justify-content: space-between;
+     align-items: center;
+     margin-bottom: var(--spacing-l);
+     padding-bottom: var(--spacing-m);
+     border-bottom: 1px solid var(--color-neutral-60);
+   }
+
+   .storeKeyHighlight {
+     font-weight: bold;
+     color: var(--color-primary);
+     padding: 0 4px;
+   }
+   ```
+
+5. **Example Implementation**:
+   ```jsx
+   <div className={styles.header}>
+     <div>
+       <Text.Headline as="h1">{sectionTitle}</Text.Headline>
+       <Text.Subheadline>
+         Store: <span className={styles.storeKeyHighlight}>{storeKey}</span>
+       </Text.Subheadline>
+       {lastRefreshed && (
+         <Text.Detail tone="secondary">
+           Last refreshed: {lastRefreshed}
+         </Text.Detail>
+       )}
+     </div>
+     <Spacings.Inline scale="s">
+       <SecondaryButton
+         iconLeft={<RefreshIcon />}
+         label="Refresh"
+         onClick={handleRefresh}
+         isDisabled={isLoading}
+       />
+       <PrimaryButton
+         label="Back to Dashboard"
+         onClick={onBack}
+       />
+     </Spacings.Inline>
+   </div>
+   ```
+
+#### Form Sections Pattern
+The application uses a consistent pattern for form-based sections (like Product Discount Form) that should be followed when creating new forms:
+
+1. **Form Container Structure**:
+   ```jsx
+   <div className={styles.container}>
+     <Spacings.Stack scale="l">
+       <Spacings.Inline alignItems="center">
+         <SecondaryButton
+           label="Back"
+           onClick={onBack}
+           iconLeft={<BackIcon />}
+         />
+       </Spacings.Inline>
+       
+       <Text.Headline as="h2">{formTitle}</Text.Headline>
+       
+       {/* Notification area for success/error messages */}
+       {successMessage && (
+         <ContentNotification type="success">
+           <Text.Body>{successMessage}</Text.Body>
+         </ContentNotification>
+       )}
+       
+       {/* Form sections */}
+       <Card>
+         <Spacings.Stack scale="m">
+           <div className={styles.sectionTitle}>
+             <Text.Subheadline as="h4">{sectionTitle}</Text.Subheadline>
+           </div>
+           
+           <div className={styles.fieldGroup}>
+             {/* Form fields */}
+           </div>
+         </Spacings.Stack>
+       </Card>
+       
+       {/* Form action buttons */}
+       <Spacings.Inline justifyContent="flex-end">
+         <SecondaryButton
+           label="Cancel"
+           onClick={onBack}
+           isDisabled={isSubmitting}
+         />
+         
+         <PrimaryButton
+           label="Submit"
+           onClick={handleSubmit}
+           isDisabled={!isValid || isSubmitting}
+         />
+       </Spacings.Inline>
+     </Spacings.Stack>
+   </div>
+   ```
+
+2. **CSS for Form Components**:
+   ```css
+   .container {
+     padding: 1rem;
+     width: 100%;
+   }
+   
+   .sectionTitle {
+     margin-bottom: var(--spacing-s);
+   }
+   
+   .fieldGroup {
+     display: flex;
+     flex-direction: column;
+     gap: var(--spacing-m);
+   }
+   ```
+
+#### Data Table Layout Pattern
+For sections displaying tabular data (like Products or Promotions list), use the following pattern:
+
+1. **Table Container Structure**:
+   ```jsx
+   <div className={styles.tableContainer}>
+     {isLoading ? (
+       <div className={styles.loadingContainer}>
+         <LoadingSpinner scale="l" />
+         <Text.Body>Loading data...</Text.Body>
+       </div>
+     ) : error ? (
+       <ErrorMessage>
+         Error loading data: {error.message}
+       </ErrorMessage>
+     ) : data.length === 0 ? (
+       <div className={styles.emptyState}>
+         <Text.Headline as="h3">No data found</Text.Headline>
+         <Text.Body>Empty state message here.</Text.Body>
+       </div>
+     ) : (
+       <DataTable
+         columns={columns}
+         rows={data}
+         maxHeight="600px"
+       />
+     )}
+   </div>
+   ```
+
+2. **CSS for Table Layout**:
+   ```css
+   .tableContainer {
+     width: 100%;
+     border-radius: var(--border-radius-6);
+     overflow: hidden;
+     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+     margin-bottom: var(--spacing-m);
+     position: relative;
+   }
+   
+   .loadingContainer {
+     display: flex;
+     flex-direction: column;
+     align-items: center;
+     justify-content: center;
+     padding: 40px 0;
+     min-height: 300px;
+   }
+   
+   .emptyState {
+     display: flex;
+     flex-direction: column;
+     align-items: center;
+     justify-content: center;
+     padding: 40px 0;
+     min-height: 300px;
+     text-align: center;
+   }
+   ```
+
+These UI patterns ensure visual consistency across the application, provide a familiar experience to users regardless of which section they are viewing, and establish clear design guidelines for future development. When creating new components or sections, developers should follow these patterns to maintain a cohesive user experience throughout the application.
+
+### Error Handling

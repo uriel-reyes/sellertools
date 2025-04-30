@@ -40,14 +40,6 @@ const config = {
     labelAllLocales: [],
     permissions: [PERMISSIONS.View],
   },
-  submenuLinks: [
-    {
-      uriPath: 'channels',
-      defaultLabel: 'Channels',
-      labelAllLocales: [],
-      permissions: [PERMISSIONS.View],
-    },
-  ],
 };
 
 export default config;
