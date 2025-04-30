@@ -30,27 +30,18 @@ This application addresses the need for store-specific management tools in a mul
 ### Order Management
 - Comprehensive order listing with:
   - Date and time information
-  - Order numbers
-  - Customer details
-  - Order totals and status
+  - Order numbers and customer details
+  - Order totals and status indicators
 - Advanced filtering and sorting capabilities
 - Real-time refresh of order data
-- Reorganized order details view for improved readability
-- Enhanced line item display with product images
-
-### Detailed Order Information
-- Modal view with complete order details
-- Product images from the commercetools platform
-- Line item breakdown with pricing
-- Shipping and billing address information
-- Customer details associated with each order
-- Clean, organized sections with intuitive icons
-- Enhanced visual styling for different order statuses
-
-### Status Management
+- Enhanced order details view with:
+  - Product images from commercetools platform
+  - Line item breakdown with pricing
+  - Shipping and billing address information
+  - Customer details for each order
 - Interactive status dropdown for order state changes
-- Real-time status updates to the commercetools backend
-- Visual indicators for different order statuses, with improved readability
+- Visual indicators for different order statuses
+- Real-time updates to the commercetools backend
 
 ### Customer Management
 - View customers associated with the seller's store
@@ -60,142 +51,58 @@ This application addresses the need for store-specific management tools in a mul
 - Custom fields display for extended customer information
 - Streamlined account details for better focus on key information
 
-### Product Selection Management
-- Dual-table interface for managing product selections
-- View master catalog products and select items to add to your store
-- View your store's current product selection
-- Add products to your store with a single click
-- Remove products from your store's selection
-- Real-time updates and synchronization with the commercetools platform
-- Selection checkboxes with clear visual feedback
-- Table side-by-side layout for easy comparison
-- Create new products with a simple form interface:
-  - For proof of concept purposes, product creation uses a fixed product type
-  - In a production implementation, this would include selection from available product types
-  - Form supports basic product information, SKU, price (USD), and images
-  - Products are automatically created with the store's channel key for proper price scoping
+### Product Management
+- **Product Selection**:
+  - Dual-table interface for managing product selections
+  - View master catalog products and your store's current selection
+  - Add products to your store with a single click
+  - Remove products from your store's selection
+  - Real-time updates with synchronization to commercetools
+  - Selection checkboxes with clear visual feedback
 
-### Product Creation
-- Intuitive form-based interface for creating new products
-- Direct integration with commercetools GraphQL API
-- Comprehensive form with fields for:
-  - Product name
-  - Product description
-  - SKU (Stock Keeping Unit)
-  - Price (with automatic currency formatting)
-  - Product image URL with preview functionality
-- Proper locale handling for multi-language support (en-us)
-- Automatic product publishing with `publish: true` flag
-- Channel-specific pricing through the store's distribution channel
-- Automatic addition of newly created products to the store's product selection
-- Error handling with clear user feedback
-- Money handling with proper centPrecision format for the commercetools API
-- Image configuration with proper dimensions specification
-- Implementation of the commercetools ProductDraft GraphQL schema:
-  ```graphql
-  mutation CreateProduct($draft: ProductDraft!) {
-    createProduct(draft: $draft) {
-      id
-      version
-    }
-  }
-  ```
-- Careful alignment with the commercetools API requirements for:
-  - Money formatting with centPrecision
-  - Proper locale structure in localized fields
-  - Image dimensions specification
-  - Price mode configuration (Embedded)
-
-### Price Management
-- Channel-specific pricing for products in a seller's store
-- Update prices for individual products with real-time validation
-- View both current (published) and staged (unpublished) prices
-- Clear visual indication of products with and without pricing
-- Automatically handles currency conversion and formatting
-- Secure pricing updates with optimistic UI feedback
-- Comprehensive error handling for duplicate price scopes and other validation issues
-- Support for both new price creation and existing price updates
-
-### Product Discount Management
-- Create and manage store-specific product discounts
-- Support for both percentage and fixed amount discount types
-- Decimal precision for both discount types (percentages and monetary values)
-- Apply discounts to all products or specific products based on various conditions
-- Multiple condition types:
-  - Product attributes (with various comparison operators)
-  - Product SKUs (exact match, contains, etc.)
-  - Category keys (with containment predicates)
-- Combine multiple conditions with AND logic
-- Intuitive user interface for building complex discount predicates
-- Automatic handling of channel-specific discounts for the seller's store
-- Sort order control to prioritize discounts
-- Support for all commercetools product discount predicate operators:
-  - Equality (=, !=)
-  - Containment (contains)
-  - Numeric comparisons (>, <)
-- Proper handling of category predicates through the contains operator
-- Real-time validation and feedback for discount creation
-
-### Product Discount Implementation
-The application provides a comprehensive interface for creating and managing product discounts:
-
-```graphql
-mutation CreateProductDiscount($draft: ProductDiscountDraft!) {
-  createProductDiscount(draft: $draft) {
-    id
-    key
-    name(locale: "en-US")
-    description(locale: "en-US")
-    value {
-      ... on RelativeDiscountValue {
-        permyriad
-        type
-      }
-      ... on AbsoluteDiscountValue {
-        money {
-          centAmount
-          currencyCode
+- **Product Creation**:
+  - Form-based interface for creating new products
+  - Direct integration with commercetools GraphQL API
+  - Fields for name, description, SKU, price, and images
+  - Automatic currency formatting and validation
+  - Image URL preview functionality
+  - Proper locale handling for multi-language support (en-us)
+  - Automatic product publishing with `publish: true` flag
+  - Proper implementation of commercetools' money format:
+    ```graphql
+    prices: [{
+      value: {
+        centPrecision: {
+          currencyCode: "USD",
+          centAmount: 1000
         }
-        type
       }
-    }
-    predicate
-    sortOrder
-    isActive
-  }
-}
-```
+    }]
+    ```
+  - Automatic addition to the store's product selection
 
-The product discount system:
-1. Creates channel-specific discounts for each seller's store
-2. Supports both relative (percentage) and absolute (fixed amount) discount types:
-   - Percentage discounts use the permyriad value (10000 = 100%)
-   - Fixed amount discounts specify currency and cent amount
-3. Builds complex product predicates with support for:
-   - Channel-specific filtering (always included to limit to seller's products)
-   - Product attributes with various operators (=, !=, >, <, contains)
-   - SKU-based conditions with exact match or containment
-   - Category-based conditions using proper containment predicates
-4. Handles the different predicate operators required for different field types:
-   - Standard fields use equality operators (=, !=)
-   - Array fields like categories use containment operators (contains)
-5. Provides a user-friendly interface for building these complex predicates
-6. Implements proper validation and error handling for commercetools API requirements
+- **Price Management**:
+  - Channel-specific pricing for products in a seller's store
+  - Update prices for individual products with real-time validation
+  - View both current (published) and staged (unpublished) prices
+  - Clear visual indication of products with and without pricing
+  - Secure pricing updates with optimistic UI feedback
+  - Comprehensive validation for duplicate price scopes
 
-This implementation ensures store-specific discounts are correctly applied with properly formatted predicates that handle all the various field types and comparison operators supported by commercetools.
-
-### Required Custom Types
-
-When using the fallback authentication method, this application requires a Custom Type at the Customer level with the following configuration:
-
-1. **Custom Type Name**: `seller-store-association` (or similar)
-2. **Field Definition**:
-   - Field Name: `store-key`
-   - Type: String
-   - Required: No
-   - Label: "Store Key"
-
-This custom field is used as a fallback method to associate customers (sellers) with their respective stores when direct store references are not available.
+### Promotion Management
+- Create and manage store-specific product discounts
+- Support for both percentage and fixed amount discount types:
+  - Percentage discounts use permyriad value (10000 = 100%)
+  - Fixed amount discounts specify currency and cent amount
+- Apply discounts to all products or specific products based on conditions
+- Multiple condition types with operators:
+  - Product attributes (=, !=, >, <, contains)
+  - Product SKUs (exact match, contains)
+  - Category keys with containment predicates
+- Combine multiple conditions with AND logic
+- Channel-specific filtering for seller's products
+- Sort order control to prioritize discounts
+- Real-time validation and feedback
 
 ## Configuration Requirements
 
@@ -208,40 +115,36 @@ This application requires a specific configuration for stores, channels, and pro
    - The store key is used as the identifier for all seller-related operations
 
 2. **Channel Alignment**:
-   - Create a distribution channel with the same key as the store (e.g., `seller-store-1`)
+   - Create a distribution channel with the same key as the store
    - Associate this channel with the store
-   - This channel is used for both inventory distribution and store-specific pricing
    - Ensure the channel has roles of "InventorySupply" and "ProductDistribution"
+   - This alignment is essential for proper pricing and product distribution
 
 3. **Product Selection Setup**:
-   - Create a product selection with the same key as the store (e.g., `seller-store-1`)
-   - This alignment of keys (store, channel, product selection) is essential for the application to function correctly
+   - Create a product selection with the same key as the store
+   - This alignment of keys (store, channel, product selection) is essential
 
 4. **Product Variant Configuration**:
-   - The application manages pricing exclusively through the master variant (variantId: 1) of each product
+   - The application manages pricing exclusively through the master variant
    - All channel-specific prices are attached to the master variant
-   - No additional product variants need to be created for seller-specific pricing
-   - This approach simplifies price management while allowing seller-specific pricing through channels
+   - This approach simplifies price management while allowing seller-specific pricing
 
 ### Customer Association
 
 Sellers (customers who manage stores) are not directly assigned to stores in this implementation. Instead:
 
 1. **Custom Type Requirements**:
-   - Create a custom type for customers named `seller-store-association` (or similar)
+   - Create a custom type for customers named `seller-store-association`
    - Add a field named `store-key` of type String to this custom type
-   - Label: "Store Key"
-   - Required: No
+   - Label: "Store Key", Required: No
 
 2. **Customer Configuration**:
-   - For each seller, apply the custom type to their customer record
-   - Set the `store-key` field value to match the store key they should have access to (e.g., `seller-store-1`)
+   - Apply the custom type to seller customer records
+   - Set the `store-key` field to match the store key they should manage
 
 3. **Authentication Flow**:
    - When a seller logs in, the application reads this custom field
-   - If the field exists and contains a valid store key, the seller is granted access to manage that store
-
-This indirect association provides flexibility and allows for easier management of store access permissions.
+   - If valid, the seller is granted access to manage that store
 
 ## UI Design Patterns
 
@@ -253,22 +156,28 @@ All section headers follow a consistent structure with:
 - **Left Section**: Contains the title and navigation elements
   - Title (Text.Headline)
   - Back button (when applicable)
-  - Breadcrumb navigation (when applicable)
+  - Context information (store/channel key)
 - **Right Section**: Contains action buttons and controls
   - Primary actions (Add, Create, etc.)
   - Secondary actions (Refresh, Filter, etc.)
-  - View toggles (when applicable)
 
 Example header implementation:
 ```jsx
-<Spacings.Inline justifyContent="space-between" alignItems="center">
-  <Text.Headline as="h2">Section Title</Text.Headline>
-  <PrimaryButton
-    label="Action"
-    onClick={handleAction}
-    iconLeft={<PlusIcon />}
-  />
-</Spacings.Inline>
+<div className={styles.header}>
+  <div>
+    <Text.Headline as="h1">{sectionTitle}</Text.Headline>
+    <Text.Subheadline>
+      Store: <span className={styles.storeKeyHighlight}>{storeKey}</span>
+    </Text.Subheadline>
+  </div>
+  <Spacings.Inline scale="s">
+    <PrimaryButton
+      label="Action" 
+      onClick={handleAction}
+      iconLeft={<PlusIcon />}
+    />
+  </Spacings.Inline>
+</div>
 ```
 
 ### Form Patterns
@@ -295,7 +204,6 @@ Example form section:
         isRequired
         horizontalConstraint="scale"
       />
-      {/* Additional fields */}
     </Spacings.Stack>
   </Spacings.Stack>
 </Card>
@@ -318,17 +226,50 @@ Modals follow a consistent implementation:
 - Footer with consistently placed action buttons
 - Size appropriate to content (small, medium, large)
 
-### Product Management
+## Error Handling
 
-The product management components implement:
-- Dual-table layout for product selection
-- Form-based product creation with card sections
-- Consistent validation patterns
-- Optimistic UI updates with proper error handling
-- Preview functionality for image URLs
-- Standardized number formatting for prices
+The application implements a comprehensive error handling strategy across all components:
 
-These UI patterns ensure a consistent experience across all application features and make it easier to extend the application with new functionality while maintaining visual and interaction consistency.
+### API Error Handling
+- GraphQL error extraction and formatting for user-friendly display
+- Network error detection and appropriate messaging
+- Detailed error logging in the console for debugging
+
+### Form Validation
+- Field-level validation with immediate feedback
+- Form-level validation before submission
+- Clear error messages with actionable guidance
+
+### Optimistic UI Updates
+- Temporary state updates before API confirmation
+- Rollback on error with appropriate notifications
+- Loading indicators during async operations
+
+### Error Presentation
+- Consistent use of ContentNotification components for errors
+- Contextual error messages based on operation type
+- Different visual treatments for warnings vs. critical errors
+
+Example error handling implementation:
+```jsx
+try {
+  // API operation
+  const result = await apiCall();
+  setSuccessMessage("Operation completed successfully");
+} catch (error) {
+  // Error handling
+  if (error.graphQLErrors?.length > 0) {
+    const messages = error.graphQLErrors.map(err => err.message).join(", ");
+    setError(`API Error: ${messages}`);
+  } else if (error.networkError) {
+    setError("Network error. Please check your connection and try again.");
+  } else {
+    setError(`Unexpected error: ${error.message}`);
+  }
+} finally {
+  setLoading(false);
+}
+```
 
 ## Getting Started
 
@@ -349,237 +290,18 @@ npm start
 npm run build
 ```
 
-### Configuration
+### Required API Scopes
 
 Ensure you have the following scopes configured in your custom-application-config.mjs:
-- `view_products`
-- `manage_products`
-- `view_orders`
-- `manage_orders`
+- `view_products`, `manage_products`
+- `view_orders`, `manage_orders`
 - `view_customers`
-- `view_stores`
-- `manage_stores`
-- `view_product_selections`
-- `manage_product_selections`
+- `view_stores`, `manage_stores`
+- `view_product_selections`, `manage_product_selections`
 - `view_published_products`
-- `view_product_discounts`
-- `manage_product_discounts`
+- `view_product_discounts`, `manage_product_discounts`
 
-## Development
-
-For more information about developing Custom Applications, please refer to:
+## Development Resources
 - [commercetools Custom Applications Documentation](https://docs.commercetools.com/merchant-center-customizations/custom-applications)
 - [commercetools UI Kit](https://uikit.commercetools.com/)
 - [commercetools Frontend SDK](https://docs.commercetools.com/merchant-center-customizations)
-
-### UI Components and Patterns
-
-#### Standard Header Pattern
-The application implements a consistent header pattern across all main section components (Products, Promotions, etc.) that should be followed when creating new sections:
-
-1. **Header Container Structure**:
-   ```jsx
-   <div className={styles.header}>
-     <div>
-       {/* Left content */}
-     </div>
-     <Spacings.Inline scale="s">
-       {/* Right content */}
-     </Spacings.Inline>
-   </div>
-   ```
-
-2. **Left Section Elements**:
-   - Primary title using `<Text.Headline as="h1">`
-   - Context information (store/channel key) using `<Text.Subheadline>`
-   - Optional "Last refreshed" timestamp using `<Text.Detail tone="secondary">`
-   - Optional action buttons specific to the section
-
-3. **Right Section Elements**:
-   - Utility buttons like "Refresh" using `<SecondaryButton>`
-   - Primary navigation button (usually "Back to Dashboard") using `<PrimaryButton>`
-
-4. **CSS Implementation**:
-   ```css
-   .header {
-     display: flex;
-     justify-content: space-between;
-     align-items: center;
-     margin-bottom: var(--spacing-l);
-     padding-bottom: var(--spacing-m);
-     border-bottom: 1px solid var(--color-neutral-60);
-   }
-
-   .storeKeyHighlight {
-     font-weight: bold;
-     color: var(--color-primary);
-     padding: 0 4px;
-   }
-   ```
-
-5. **Example Implementation**:
-   ```jsx
-   <div className={styles.header}>
-     <div>
-       <Text.Headline as="h1">{sectionTitle}</Text.Headline>
-       <Text.Subheadline>
-         Store: <span className={styles.storeKeyHighlight}>{storeKey}</span>
-       </Text.Subheadline>
-       {lastRefreshed && (
-         <Text.Detail tone="secondary">
-           Last refreshed: {lastRefreshed}
-         </Text.Detail>
-       )}
-     </div>
-     <Spacings.Inline scale="s">
-       <SecondaryButton
-         iconLeft={<RefreshIcon />}
-         label="Refresh"
-         onClick={handleRefresh}
-         isDisabled={isLoading}
-       />
-       <PrimaryButton
-         label="Back to Dashboard"
-         onClick={onBack}
-       />
-     </Spacings.Inline>
-   </div>
-   ```
-
-#### Form Sections Pattern
-The application uses a consistent pattern for form-based sections (like Product Discount Form) that should be followed when creating new forms:
-
-1. **Form Container Structure**:
-   ```jsx
-   <div className={styles.container}>
-     <Spacings.Stack scale="l">
-       <Spacings.Inline alignItems="center">
-         <SecondaryButton
-           label="Back"
-           onClick={onBack}
-           iconLeft={<BackIcon />}
-         />
-       </Spacings.Inline>
-       
-       <Text.Headline as="h2">{formTitle}</Text.Headline>
-       
-       {/* Notification area for success/error messages */}
-       {successMessage && (
-         <ContentNotification type="success">
-           <Text.Body>{successMessage}</Text.Body>
-         </ContentNotification>
-       )}
-       
-       {/* Form sections */}
-       <Card>
-         <Spacings.Stack scale="m">
-           <div className={styles.sectionTitle}>
-             <Text.Subheadline as="h4">{sectionTitle}</Text.Subheadline>
-           </div>
-           
-           <div className={styles.fieldGroup}>
-             {/* Form fields */}
-           </div>
-         </Spacings.Stack>
-       </Card>
-       
-       {/* Form action buttons */}
-       <Spacings.Inline justifyContent="flex-end">
-         <SecondaryButton
-           label="Cancel"
-           onClick={onBack}
-           isDisabled={isSubmitting}
-         />
-         
-         <PrimaryButton
-           label="Submit"
-           onClick={handleSubmit}
-           isDisabled={!isValid || isSubmitting}
-         />
-       </Spacings.Inline>
-     </Spacings.Stack>
-   </div>
-   ```
-
-2. **CSS for Form Components**:
-   ```css
-   .container {
-     padding: 1rem;
-     width: 100%;
-   }
-   
-   .sectionTitle {
-     margin-bottom: var(--spacing-s);
-   }
-   
-   .fieldGroup {
-     display: flex;
-     flex-direction: column;
-     gap: var(--spacing-m);
-   }
-   ```
-
-#### Data Table Layout Pattern
-For sections displaying tabular data (like Products or Promotions list), use the following pattern:
-
-1. **Table Container Structure**:
-   ```jsx
-   <div className={styles.tableContainer}>
-     {isLoading ? (
-       <div className={styles.loadingContainer}>
-         <LoadingSpinner scale="l" />
-         <Text.Body>Loading data...</Text.Body>
-       </div>
-     ) : error ? (
-       <ErrorMessage>
-         Error loading data: {error.message}
-       </ErrorMessage>
-     ) : data.length === 0 ? (
-       <div className={styles.emptyState}>
-         <Text.Headline as="h3">No data found</Text.Headline>
-         <Text.Body>Empty state message here.</Text.Body>
-       </div>
-     ) : (
-       <DataTable
-         columns={columns}
-         rows={data}
-         maxHeight="600px"
-       />
-     )}
-   </div>
-   ```
-
-2. **CSS for Table Layout**:
-   ```css
-   .tableContainer {
-     width: 100%;
-     border-radius: var(--border-radius-6);
-     overflow: hidden;
-     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-     margin-bottom: var(--spacing-m);
-     position: relative;
-   }
-   
-   .loadingContainer {
-     display: flex;
-     flex-direction: column;
-     align-items: center;
-     justify-content: center;
-     padding: 40px 0;
-     min-height: 300px;
-   }
-   
-   .emptyState {
-     display: flex;
-     flex-direction: column;
-     align-items: center;
-     justify-content: center;
-     padding: 40px 0;
-     min-height: 300px;
-     text-align: center;
-   }
-   ```
-
-These UI patterns ensure visual consistency across the application, provide a familiar experience to users regardless of which section they are viewing, and establish clear design guidelines for future development. When creating new components or sections, developers should follow these patterns to maintain a cohesive user experience throughout the application.
-
-### Error Handling
