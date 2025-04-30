@@ -4,6 +4,37 @@ import { useMcQuery, useMcMutation } from '@commercetools-frontend/application-s
 import { GRAPHQL_TARGETS } from '@commercetools-frontend/constants';
 import gql from 'graphql-tag';
 
+// Define GraphQL response types
+interface ProductSelectionResponse {
+  productSelection?: {
+    id: string;
+    version: number;
+    productRefs?: {
+      results: Array<{
+        product: {
+          id: string;
+          masterData: {
+            current: {
+              name: string;
+              masterVariant: {
+                images?: Array<{ url: string }>;
+                sku?: string;
+              };
+            };
+          };
+        };
+      }>;
+    };
+  };
+}
+
+interface CreateProductResponse {
+  createProduct?: {
+    id: string;
+    version: number;
+  };
+}
+
 // GraphQL query to fetch products from product selection with dynamic key
 const GET_STORE_PRODUCTS_QUERY = gql`
   query GetProductSelection($storeKey: String!) {
@@ -51,6 +82,16 @@ const GET_PRODUCT_SELECTION_BY_KEY = gql`
   }
 `;
 
+// GraphQL mutation to create a product
+const CREATE_PRODUCT_MUTATION = gql`
+  mutation CreateProduct($draft: ProductDraft!) {
+    createProduct(draft: $draft) {
+      id
+      version
+    }
+  }
+`;
+
 // Product type definition
 interface ProductData {
   id: string;
@@ -64,6 +105,7 @@ interface UseStoreProductsResult {
   fetchStoreProducts: (storeKey: string) => Promise<ProductData[]>;
   addProductsToStore: (storeKey: string, productIds: string[]) => Promise<boolean>;
   removeProductsFromStore: (storeKey: string, productIds: string[]) => Promise<boolean>;
+  createProduct: (productDraft: any) => Promise<boolean>;
   loading: boolean;
   error: Error | null;
 }
@@ -72,7 +114,7 @@ const useStoreProducts = (): UseStoreProductsResult => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const { dataLocale } = useApplicationContext((context) => ({
-    dataLocale: context.dataLocale ?? 'en-US',
+    dataLocale: context.dataLocale ?? 'en-us',
   }));
 
   const { refetch } = useMcQuery(GET_STORE_PRODUCTS_QUERY, {
@@ -100,6 +142,12 @@ const useStoreProducts = (): UseStoreProductsResult => {
       target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
     },
   });
+  
+  const [createProductMutation] = useMcMutation(CREATE_PRODUCT_MUTATION, {
+    context: {
+      target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
+    },
+  });
 
   const fetchStoreProducts = useCallback(
     async (storeKey: string): Promise<ProductData[]> => {
@@ -110,14 +158,14 @@ const useStoreProducts = (): UseStoreProductsResult => {
         console.log(`Fetching products for store: ${storeKey}`);
         const { data } = await refetch({
           storeKey,
-        });
+        }) as { data: ProductSelectionResponse };
 
         if (
           data?.productSelection?.productRefs?.results &&
           Array.isArray(data.productSelection.productRefs.results)
         ) {
           const products = data.productSelection.productRefs.results.map(
-            (item: any) => {
+            (item) => {
               const product = item.product;
               return {
                 id: product.id,
@@ -161,7 +209,7 @@ const useStoreProducts = (): UseStoreProductsResult => {
         // Step 1: Get the product selection ID and version
         const { data: selectionData } = await getProductSelectionByKey({
           key: storeKey,
-        });
+        }) as { data: ProductSelectionResponse };
         
         if (!selectionData?.productSelection?.id) {
           throw new Error(`Product selection for store ${storeKey} not found`);
@@ -219,7 +267,7 @@ const useStoreProducts = (): UseStoreProductsResult => {
         // Step 1: Get the product selection ID and version
         const { data: selectionData } = await getProductSelectionByKey({
           key: storeKey,
-        });
+        }) as { data: ProductSelectionResponse };
         
         if (!selectionData?.productSelection?.id) {
           throw new Error(`Product selection for store ${storeKey} not found`);
@@ -261,10 +309,81 @@ const useStoreProducts = (): UseStoreProductsResult => {
     [getProductSelectionByKey, updateProductSelection]
   );
 
+  // Function to create a new product
+  const createProduct = async (productDraft: any) => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Add priceMode: Embedded to match the working example
+      const finalProductDraft = {
+        ...productDraft,
+        priceMode: "Embedded"
+      };
+      
+      console.log('Creating product with data:', JSON.stringify(finalProductDraft, null, 2));
+      
+      // Step 1: Create the product using the GraphQL mutation
+      const result = await createProductMutation({
+        variables: {
+          draft: finalProductDraft
+        }
+      }).catch((error) => {
+        // Extract GraphQL specific error details
+        const graphqlErrors = error.graphQLErrors || [];
+        
+        if (graphqlErrors.length > 0) {
+          const errorDetails = graphqlErrors.map((err: any) => {
+            console.error('GraphQL error details:', JSON.stringify(err, null, 2));
+            return `${err.message}${err.extensions?.code ? ` (${err.extensions.code})` : ''}`;
+          }).join('\n');
+          console.error('GraphQL errors:', errorDetails);
+          throw new Error(`Failed to create product: ${errorDetails}`);
+        } else if (error.networkError) {
+          console.error('Network error:', error.networkError);
+          throw new Error('Network error when creating product. Please try again.');
+        } else {
+          console.error('Unexpected error:', error);
+          throw error;
+        }
+      });
+      
+      // Type assertion to handle TypeScript type safety
+      const data = result.data as CreateProductResponse;
+      
+      if (!data?.createProduct?.id) {
+        throw new Error('Failed to create product: No product ID returned');
+      }
+      
+      const productId = data.createProduct.id;
+      console.log('Product created successfully with ID:', productId);
+      
+      // Step 2: Add the product to the store's product selection if a channel key is provided
+      if (productDraft.masterVariant.prices?.[0]?.channel?.key) {
+        const storeKey = productDraft.masterVariant.prices[0].channel.key;
+        
+        // Add the newly created product to the store's product selection
+        await addProductsToStore(storeKey, [productId]);
+        console.log(`Product ${productId} added to store ${storeKey}`);
+      } else {
+        console.warn('No channel key found in product draft, skipping add to product selection');
+      }
+      
+      return true;
+    } catch (err) {
+      console.error('Error creating product:', err);
+      setError(err instanceof Error ? err : new Error('Unknown error creating product'));
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     fetchStoreProducts,
     addProductsToStore,
     removeProductsFromStore,
+    createProduct,
     loading,
     error,
   };

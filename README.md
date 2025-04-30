@@ -69,6 +69,42 @@ This application addresses the need for store-specific management tools in a mul
 - Real-time updates and synchronization with the commercetools platform
 - Selection checkboxes with clear visual feedback
 - Table side-by-side layout for easy comparison
+- Create new products with a simple form interface:
+  - For proof of concept purposes, product creation uses a fixed product type
+  - In a production implementation, this would include selection from available product types
+  - Form supports basic product information, SKU, price (USD), and images
+  - Products are automatically created with the store's channel key for proper price scoping
+
+### Product Creation
+- Intuitive form-based interface for creating new products
+- Direct integration with commercetools GraphQL API
+- Comprehensive form with fields for:
+  - Product name
+  - Product description
+  - SKU (Stock Keeping Unit)
+  - Price (with automatic currency formatting)
+  - Product image URL with preview functionality
+- Proper locale handling for multi-language support (en-us)
+- Automatic product publishing with `publish: true` flag
+- Channel-specific pricing through the store's distribution channel
+- Automatic addition of newly created products to the store's product selection
+- Error handling with clear user feedback
+- Money handling with proper centPrecision format for the commercetools API
+- Image configuration with proper dimensions specification
+- Implementation of the commercetools ProductDraft GraphQL schema:
+  ```graphql
+  mutation CreateProduct($draft: ProductDraft!) {
+    createProduct(draft: $draft) {
+      id
+      version
+    }
+  }
+  ```
+- Careful alignment with the commercetools API requirements for:
+  - Money formatting with centPrecision
+  - Proper locale structure in localized fields
+  - Image dimensions specification
+  - Price mode configuration (Embedded)
 
 ### Price Management
 - Channel-specific pricing for products in a seller's store
@@ -206,6 +242,93 @@ Sellers (customers who manage stores) are not directly assigned to stores in thi
    - If the field exists and contains a valid store key, the seller is granted access to manage that store
 
 This indirect association provides flexibility and allows for easier management of store access permissions.
+
+## UI Design Patterns
+
+The application implements consistent UI patterns across all features to ensure a cohesive user experience:
+
+### Header Components
+
+All section headers follow a consistent structure with:
+- **Left Section**: Contains the title and navigation elements
+  - Title (Text.Headline)
+  - Back button (when applicable)
+  - Breadcrumb navigation (when applicable)
+- **Right Section**: Contains action buttons and controls
+  - Primary actions (Add, Create, etc.)
+  - Secondary actions (Refresh, Filter, etc.)
+  - View toggles (when applicable)
+
+Example header implementation:
+```jsx
+<Spacings.Inline justifyContent="space-between" alignItems="center">
+  <Text.Headline as="h2">Section Title</Text.Headline>
+  <PrimaryButton
+    label="Action"
+    onClick={handleAction}
+    iconLeft={<PlusIcon />}
+  />
+</Spacings.Inline>
+```
+
+### Form Patterns
+
+Forms follow a card-based sectional layout:
+- Each logical group of fields is contained in a separate Card component
+- Section titles use consistent Text.Subheadline styling
+- Consistent spacing (scale="m" for sections, scale="s" for fields)
+- Standard field validation patterns with clear error messages
+- Consistent button placement (Cancel on left, Submit on right)
+
+Example form section:
+```jsx
+<Card>
+  <Spacings.Stack scale="m">
+    <div className={styles.sectionTitle}>
+      <Text.Subheadline as="h4">Section Title</Text.Subheadline>
+    </div>
+    <Spacings.Stack scale="s">
+      <TextField
+        title="Field Label"
+        value={value}
+        onChange={handleChange}
+        isRequired
+        horizontalConstraint="scale"
+      />
+      {/* Additional fields */}
+    </Spacings.Stack>
+  </Spacings.Stack>
+</Card>
+```
+
+### Data Tables
+
+All data tables follow these patterns:
+- Consistent column definitions with standardized cell formatters
+- Unified selection behavior (checkbox in first column)
+- Standard actions placement (right-aligned in the last column)
+- Consistent loading and empty states
+- Standardized pagination controls
+
+### Modal Patterns
+
+Modals follow a consistent implementation:
+- Standardized header with title and close button
+- Content area with proper padding and scrolling behavior
+- Footer with consistently placed action buttons
+- Size appropriate to content (small, medium, large)
+
+### Product Management
+
+The product management components implement:
+- Dual-table layout for product selection
+- Form-based product creation with card sections
+- Consistent validation patterns
+- Optimistic UI updates with proper error handling
+- Preview functionality for image URLs
+- Standardized number formatting for prices
+
+These UI patterns ensure a consistent experience across all application features and make it easier to extend the application with new functionality while maintaining visual and interaction consistency.
 
 ## Getting Started
 

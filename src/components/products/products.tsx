@@ -6,10 +6,12 @@ import Text from '@commercetools-uikit/text';
 import Spacings from '@commercetools-uikit/spacings';
 import PrimaryButton from '@commercetools-uikit/primary-button';
 import SecondaryButton from '@commercetools-uikit/secondary-button';
-import { RefreshIcon } from '@commercetools-uikit/icons';
+import { RefreshIcon, PlusBoldIcon } from '@commercetools-uikit/icons';
 import { ErrorMessage } from '@commercetools-uikit/messages';
 import useStoreProducts from '../../hooks/use-store-products/use-store-products';
+import messages from './messages';
 import styles from './products.module.css';
+import ProductForm from './product-form';
 
 interface ProductsProps {
   storeKey: string;
@@ -76,8 +78,11 @@ const Products: React.FC<ProductsProps> = ({ storeKey, onBack }) => {
   const [selectedStoreProducts, setSelectedStoreProducts] = useState<string[]>([]);
   const [isAddingProducts, setIsAddingProducts] = useState(false);
   const [isRemovingProducts, setIsRemovingProducts] = useState(false);
+  const [view, setView] = useState<'list' | 'form'>('list');
   
-  const { fetchStoreProducts, addProductsToStore, removeProductsFromStore } = useStoreProducts();
+  const { fetchStoreProducts, addProductsToStore, removeProductsFromStore, createProduct } = useStoreProducts();
+  
+  const intl = useIntl();
   
   const fetchMasterProducts = async () => {
     setIsLoading(true);
@@ -248,150 +253,192 @@ const Products: React.FC<ProductsProps> = ({ storeKey, onBack }) => {
   return (
     <div className={styles.container}>
       <Spacings.Stack scale="l">
-        <div className={styles.header}>
-          <div>
-            <Text.Headline as="h1">Products</Text.Headline>
-            <Text.Subheadline as="h4">
-              Store: <span className={styles.storeKeyHighlight}>{storeKey}</span>
-            </Text.Subheadline>
-          </div>
-          <Spacings.Inline scale="s">
-            <SecondaryButton
-              iconLeft={<RefreshIcon />}
-              label="Refresh"
-              onClick={() => {
+        {view === 'form' ? (
+          <ProductForm 
+            channelKey={storeKey}
+            onBack={() => setView('list')}
+            onSubmit={async (productData) => {
+              const success = await createProduct(productData);
+              if (success) {
+                // Refresh product lists after creating a new product
                 fetchMasterProducts();
                 fetchUserStoreProducts();
-              }}
-              isDisabled={isLoading || isStoreProductsLoading}
-            />
-            <PrimaryButton
-              label="Back to Dashboard"
-              onClick={onBack}
-            />
-          </Spacings.Inline>
-        </div>
+                setView('list');
+              }
+            }}
+          />
+        ) : (
+          <>
+            <div className={styles.header}>
+              <div>
+                <Text.Headline as="h1">{intl.formatMessage(messages.title)}</Text.Headline>
+                <Text.Subheadline as="h4">
+                  Store: <span className={styles.storeKeyHighlight}>{storeKey}</span>
+                </Text.Subheadline>
+                <div className={styles.actionButtonContainer}>
+                  <PrimaryButton
+                    label={intl.formatMessage(messages.addProduct)}
+                    onClick={() => setView('form')}
+                    iconLeft={<PlusBoldIcon />}
+                    size="small"
+                  />
+                </div>
+              </div>
+              <Spacings.Inline scale="s">
+                <SecondaryButton
+                  iconLeft={<RefreshIcon />}
+                  label={intl.formatMessage(messages.refreshButton)}
+                  onClick={() => {
+                    fetchMasterProducts();
+                    fetchUserStoreProducts();
+                  }}
+                  isDisabled={isLoading || isStoreProductsLoading}
+                />
+                <PrimaryButton
+                  label={intl.formatMessage(messages.backButton)}
+                  onClick={onBack}
+                />
+              </Spacings.Inline>
+            </div>
 
-        {/* Side-by-side tables layout */}
-        <Spacings.Inline alignItems="stretch" scale="m">
-          {/* Master Store Products Section */}
-          <div className={styles.tableSection}>
-            <Spacings.Stack scale="l">
-              <Text.Subheadline as="h4">Master Store Products</Text.Subheadline>
-              <Text.Body>Select products to add to your store</Text.Body>
-              
-              <Spacings.Inline justifyContent="space-between" alignItems="center">
-                <Text.Body>Showing {masterProducts.length} products from master catalog</Text.Body>
-                
-                {selectedProducts.length > 0 && (
-                  <Spacings.Inline scale="s" alignItems="center">
-                    <Text.Body tone="secondary">
-                      {selectedProducts.length} product{selectedProducts.length !== 1 ? 's' : ''} selected
+            {/* Side-by-side tables layout */}
+            <Spacings.Inline alignItems="stretch" scale="m">
+              {/* Master Store Products Section */}
+              <div className={styles.tableSection}>
+                <Spacings.Stack scale="l">
+                  <Text.Subheadline as="h4">{intl.formatMessage(messages.masterProductsTitle)}</Text.Subheadline>
+                  <Text.Body>{intl.formatMessage(messages.masterProductsDescription)}</Text.Body>
+                  
+                  <Spacings.Inline justifyContent="space-between" alignItems="center">
+                    <Text.Body>
+                      {intl.formatMessage(messages.masterProductsCount, { count: masterProducts.length })}
                     </Text.Body>
-                    <PrimaryButton
-                      label={isAddingProducts ? "Adding..." : "Add to Store"}
-                      onClick={async () => {
-                        if (selectedProducts.length === 0) return;
-                        
-                        setIsAddingProducts(true);
-                        try {
-                          const success = await addProductsToStore(storeKey, selectedProducts);
-                          
-                          if (success) {
-                            // Refresh the store products to show the newly added items
-                            await fetchUserStoreProducts();
-                            // Clear selections after successful addition
-                            setSelectedProducts([]);
+                    
+                    {selectedProducts.length > 0 && (
+                      <Spacings.Inline scale="s" alignItems="center">
+                        <Text.Body tone="secondary">
+                          {intl.formatMessage(messages.selectedProducts, {
+                            count: selectedProducts.length,
+                            plural: selectedProducts.length !== 1 ? 's' : ''
+                          })}
+                        </Text.Body>
+                        <PrimaryButton
+                          label={isAddingProducts 
+                            ? intl.formatMessage(messages.adding) 
+                            : intl.formatMessage(messages.addToStore)
                           }
-                        } catch (err) {
-                          console.error('Error adding products to store:', err);
-                        } finally {
-                          setIsAddingProducts(false);
-                        }
-                      }}
-                      isDisabled={isAddingProducts}
-                    />
+                          onClick={async () => {
+                            if (selectedProducts.length === 0) return;
+                            
+                            setIsAddingProducts(true);
+                            try {
+                              const success = await addProductsToStore(storeKey, selectedProducts);
+                              
+                              if (success) {
+                                // Refresh the store products to show the newly added items
+                                await fetchUserStoreProducts();
+                                // Clear selections after successful addition
+                                setSelectedProducts([]);
+                              }
+                            } catch (err) {
+                              console.error('Error adding products to store:', err);
+                            } finally {
+                              setIsAddingProducts(false);
+                            }
+                          }}
+                          isDisabled={isAddingProducts}
+                        />
+                      </Spacings.Inline>
+                    )}
                   </Spacings.Inline>
-                )}
-              </Spacings.Inline>
 
-              {isLoading ? (
-                <div className={styles.loadingContainer}>
-                  <LoadingSpinner scale="l" />
-                  <Text.Body>Loading master products...</Text.Body>
-                </div>
-              ) : error ? (
-                <ErrorMessage>
-                  Error loading master products: {error.message}
-                </ErrorMessage>
-              ) : masterProducts.length === 0 ? (
-                <div className={styles.emptyState}>
-                  <Text.Headline as="h3">No master products found</Text.Headline>
-                  <Text.Body>There are no products in the master catalog.</Text.Body>
-                </div>
-              ) : (
-                <div className={styles.tableContainer}>
-                  <DataTable
-                    columns={columns}
-                    rows={masterProducts}
-                    maxHeight="60vh"
-                    maxWidth="100%"
-                  />
-                </div>
-              )}
-            </Spacings.Stack>
-          </div>
-          
-          {/* Store Products Section */}
-          <div className={styles.tableSection}>
-            <Spacings.Stack scale="l">
-              <Text.Subheadline as="h4">Your Store Products</Text.Subheadline>
-              <Text.Body>Products currently in your store's catalog</Text.Body>
+                  {isLoading ? (
+                    <div className={styles.loadingContainer}>
+                      <LoadingSpinner scale="l" />
+                      <Text.Body>{intl.formatMessage(messages.loadingMasterProducts)}</Text.Body>
+                    </div>
+                  ) : error ? (
+                    <ErrorMessage>
+                      {intl.formatMessage(messages.errorMasterProducts, { error: error.message })}
+                    </ErrorMessage>
+                  ) : masterProducts.length === 0 ? (
+                    <div className={styles.emptyState}>
+                      <Text.Headline as="h3">{intl.formatMessage(messages.noMasterProducts)}</Text.Headline>
+                      <Text.Body>{intl.formatMessage(messages.noMasterProductsDesc)}</Text.Body>
+                    </div>
+                  ) : (
+                    <div className={styles.tableContainer}>
+                      <DataTable
+                        columns={columns}
+                        rows={masterProducts}
+                        maxHeight="60vh"
+                        maxWidth="100%"
+                      />
+                    </div>
+                  )}
+                </Spacings.Stack>
+              </div>
               
-              <Spacings.Inline justifyContent="space-between" alignItems="center">
-                <Text.Body>Showing {storeProducts.length} products from your store</Text.Body>
-                
-                {selectedStoreProducts.length > 0 && (
-                  <Spacings.Inline scale="s" alignItems="center">
-                    <Text.Body tone="secondary">
-                      {selectedStoreProducts.length} product{selectedStoreProducts.length !== 1 ? 's' : ''} selected
+              {/* Store Products Section */}
+              <div className={styles.tableSection}>
+                <Spacings.Stack scale="l">
+                  <Text.Subheadline as="h4">{intl.formatMessage(messages.storeProductsTitle)}</Text.Subheadline>
+                  <Text.Body>{intl.formatMessage(messages.storeProductsDescription)}</Text.Body>
+                  
+                  <Spacings.Inline justifyContent="space-between" alignItems="center">
+                    <Text.Body>
+                      {intl.formatMessage(messages.storeProductsCount, { count: storeProducts.length })}
                     </Text.Body>
-                    <SecondaryButton
-                      label={isRemovingProducts ? "Removing..." : "Remove from Store"}
-                      onClick={handleRemoveProductsFromStore}
-                      isDisabled={isRemovingProducts}
-                    />
+                    
+                    {selectedStoreProducts.length > 0 && (
+                      <Spacings.Inline scale="s" alignItems="center">
+                        <Text.Body tone="secondary">
+                          {intl.formatMessage(messages.selectedProducts, {
+                            count: selectedStoreProducts.length,
+                            plural: selectedStoreProducts.length !== 1 ? 's' : ''
+                          })}
+                        </Text.Body>
+                        <SecondaryButton
+                          label={isRemovingProducts 
+                            ? intl.formatMessage(messages.removing) 
+                            : intl.formatMessage(messages.removeFromStore)
+                          }
+                          onClick={handleRemoveProductsFromStore}
+                          isDisabled={isRemovingProducts}
+                        />
+                      </Spacings.Inline>
+                    )}
                   </Spacings.Inline>
-                )}
-              </Spacings.Inline>
 
-              {isStoreProductsLoading ? (
-                <div className={styles.loadingContainer}>
-                  <LoadingSpinner scale="l" />
-                  <Text.Body>Loading store products...</Text.Body>
-                </div>
-              ) : storeProductsError ? (
-                <ErrorMessage>
-                  Error loading store products: {storeProductsError.message}
-                </ErrorMessage>
-              ) : storeProducts.length === 0 ? (
-                <div className={styles.emptyState}>
-                  <Text.Headline as="h3">No store products</Text.Headline>
-                  <Text.Body>Select products from the master catalog to add them here.</Text.Body>
-                </div>
-              ) : (
-                <div className={styles.tableContainer}>
-                  <DataTable
-                    columns={storeProductColumns}
-                    rows={storeProducts}
-                    maxHeight="60vh"
-                    maxWidth="100%"
-                  />
-                </div>
-              )}
-            </Spacings.Stack>
-          </div>
-        </Spacings.Inline>
+                  {isStoreProductsLoading ? (
+                    <div className={styles.loadingContainer}>
+                      <LoadingSpinner scale="l" />
+                      <Text.Body>{intl.formatMessage(messages.loadingStoreProducts)}</Text.Body>
+                    </div>
+                  ) : storeProductsError ? (
+                    <ErrorMessage>
+                      {intl.formatMessage(messages.errorStoreProducts, { error: storeProductsError.message })}
+                    </ErrorMessage>
+                  ) : storeProducts.length === 0 ? (
+                    <div className={styles.emptyState}>
+                      <Text.Headline as="h3">{intl.formatMessage(messages.noStoreProducts)}</Text.Headline>
+                      <Text.Body>{intl.formatMessage(messages.noStoreProductsDesc)}</Text.Body>
+                    </div>
+                  ) : (
+                    <div className={styles.tableContainer}>
+                      <DataTable
+                        columns={storeProductColumns}
+                        rows={storeProducts}
+                        maxHeight="60vh"
+                        maxWidth="100%"
+                      />
+                    </div>
+                  )}
+                </Spacings.Stack>
+              </div>
+            </Spacings.Inline>
+          </>
+        )}
       </Spacings.Stack>
     </div>
   );
