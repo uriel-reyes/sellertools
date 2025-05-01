@@ -79,6 +79,17 @@ const CREATE_PRODUCT_DISCOUNT_MUTATION = gql`
   }
 `;
 
+// GraphQL mutation to update a product discount's active status
+const UPDATE_PRODUCT_DISCOUNT_ACTIVE_STATUS_MUTATION = gql`
+  mutation UpdateProductDiscountActiveStatus($id: String!, $version: Long!, $actions: [ProductDiscountUpdateAction!]!) {
+    updateProductDiscount(id: $id, version: $version, actions: $actions) {
+      id
+      version
+      isActive
+    }
+  }
+`;
+
 // Define the interface for the promotion data structure
 interface PromotionData {
   id: string;
@@ -90,6 +101,7 @@ interface PromotionData {
   valueAmount: string;
   sortOrder: string;
   key: string | null;
+  version: number; // Add version for updates
 }
 
 // Define the interface for creating a new product discount
@@ -106,6 +118,13 @@ interface CreateProductDiscountInput {
   isActive?: boolean;
   sortOrder?: string;
   key?: string;
+}
+
+// Define the interface for updating a product discount's active status
+interface UpdateProductDiscountActiveStatusInput {
+  id: string;
+  version: number;
+  isActive: boolean;
 }
 
 // GraphQL response types
@@ -126,6 +145,7 @@ interface ProductDiscountResult {
   };
   sortOrder: string;
   key: string | null;
+  version: number;
 }
 
 interface ProductDiscountsResponse {
@@ -145,10 +165,20 @@ interface CreateProductDiscountResult {
   createProductDiscount: ProductDiscountResult;
 }
 
+// Define interface for the mutation response
+interface UpdateProductDiscountResult {
+  updateProductDiscount: {
+    id: string;
+    version: number;
+    isActive: boolean;
+  };
+}
+
 // Define the hook result interface
 interface UsePromotionsResult {
   fetchPromotions: (channelKey: string) => Promise<PromotionData[]>;
   createProductDiscount: (input: CreateProductDiscountInput) => Promise<ProductDiscountResult | null>;
+  updatePromotionActiveStatus: (input: UpdateProductDiscountActiveStatusInput) => Promise<boolean>;
   loading: boolean;
   error: Error | null;
 }
@@ -167,6 +197,15 @@ const usePromotions = (): UsePromotionsResult => {
 
   const [runCreateMutation] = useMcMutation<CreateProductDiscountResult>(
     CREATE_PRODUCT_DISCOUNT_MUTATION,
+    {
+      context: {
+        target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
+      },
+    }
+  );
+
+  const [runUpdateActiveMutation] = useMcMutation(
+    UPDATE_PRODUCT_DISCOUNT_ACTIVE_STATUS_MUTATION,
     {
       context: {
         target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
@@ -242,6 +281,7 @@ const usePromotions = (): UsePromotionsResult => {
               valueAmount,
               sortOrder: item.sortOrder || '0',
               key: item.key,
+              version: item.version || 1, // Add version to the mapped results
             };
           });
 
@@ -337,6 +377,49 @@ const usePromotions = (): UsePromotionsResult => {
     [runCreateMutation]
   );
 
+  const updatePromotionActiveStatus = async (
+    input: UpdateProductDiscountActiveStatusInput
+  ): Promise<boolean> => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { id, version, isActive } = input;
+      
+      // Structure the actions according to the correct format
+      const actions = [
+        {
+          changeIsActive: {
+            isActive
+          }
+        }
+      ];
+
+      // Execute the mutation
+      const result = await runUpdateActiveMutation({
+        variables: {
+          id,
+          version, // Version should remain a number for Long! type
+          actions,
+        },
+      });
+
+      // Check if the mutation was successful and use type assertion
+      const data = result?.data as UpdateProductDiscountResult | null | undefined;
+      if (data?.updateProductDiscount) {
+        return true;
+      }
+      
+      return false;
+    } catch (err) {
+      console.error('Error updating product discount active status:', err);
+      setError(err instanceof Error ? err : new Error('Failed to update promotion status'));
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const formatCurrency = (centAmount: number, currencyCode: string): string => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -352,6 +435,7 @@ const usePromotions = (): UsePromotionsResult => {
   return {
     fetchPromotions,
     createProductDiscount,
+    updatePromotionActiveStatus,
     loading,
     error,
   };

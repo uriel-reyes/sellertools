@@ -9,6 +9,8 @@ import SecondaryButton from '@commercetools-uikit/secondary-button';
 import PrimaryButton from '@commercetools-uikit/primary-button';
 import { BackIcon, PlusBoldIcon, CloseIcon, RefreshIcon } from '@commercetools-uikit/icons';
 import Card from '@commercetools-uikit/card';
+import ToggleInput from '@commercetools-uikit/toggle-input';
+import { ContentNotification } from '@commercetools-uikit/notifications';
 import usePromotions from '../../hooks/use-promotions/use-promotions';
 import ProductDiscountForm from './product-discount-form';
 import messages from './messages';
@@ -29,6 +31,7 @@ interface PromotionData {
   channelKey: string | null;
   valueAmount: string;
   sortOrder: string;
+  version: number;
 }
 
 // Type for the current view state
@@ -41,8 +44,10 @@ const Promotions: React.FC<PromotionsProps> = ({ channelKey, onBack }) => {
   const [error, setError] = useState<Error | null>(null);
   const [viewState, setViewState] = useState<ViewState>('list');
   const [lastRefreshed, setLastRefreshed] = useState<string | null>(null);
+  const [toggleError, setToggleError] = useState<string | null>(null);
+  const [togglingPromotions, setTogglingPromotions] = useState<Record<string, boolean>>({});
   
-  const { fetchPromotions } = usePromotions();
+  const { fetchPromotions, updatePromotionActiveStatus } = usePromotions();
   
   const loadPromotions = useCallback(async () => {
     setIsLoading(true);
@@ -87,8 +92,81 @@ const Promotions: React.FC<PromotionsProps> = ({ channelKey, onBack }) => {
     return `${(permyriad / 100).toFixed(2)}%`; // Convert permyriad to percentage
   };
   
+  const handleToggleActive = async (id: string, version: number, currentStatus: boolean) => {
+    // Prevent toggling if this promotion is already being toggled
+    if (togglingPromotions[id]) {
+      return;
+    }
+    
+    try {
+      setToggleError(null);
+      
+      // Track that this promotion is being toggled
+      setTogglingPromotions(prev => ({ ...prev, [id]: true }));
+      
+      // Optimistically update UI for better user experience
+      setPromotions(prev => 
+        prev.map(promotion => 
+          promotion.id === id ? { ...promotion, isActive: !currentStatus } : promotion
+        )
+      );
+      
+      // Call the mutation to update the promotion's active status
+      const result = await updatePromotionActiveStatus({
+        id,
+        version,
+        isActive: !currentStatus
+      });
+      
+      if (result) {
+        // Refresh the entire list to ensure all data is in sync
+        await loadPromotions();
+      } else {
+        // Revert the optimistic update if the operation failed
+        setPromotions(prev => 
+          prev.map(promotion => 
+            promotion.id === id ? { ...promotion, isActive: currentStatus } : promotion
+          )
+        );
+        
+        // Show error message
+        setToggleError(intl.formatMessage(messages.errorToggleActiveStatus));
+      }
+    } catch (err) {
+      console.error('Error updating promotion active status:', err);
+      
+      // Revert the optimistic update
+      setPromotions(prev => 
+        prev.map(promotion => 
+          promotion.id === id ? { ...promotion, isActive: currentStatus } : promotion
+        )
+      );
+      
+      setToggleError(intl.formatMessage(messages.errorToggleActiveStatus));
+    } finally {
+      // Clear the toggling state for this promotion
+      setTogglingPromotions(prev => {
+        const updated = { ...prev };
+        delete updated[id];
+        return updated;
+      });
+    }
+  };
+  
   // Define the column structure for the DataTable
   const columns: TColumn<PromotionData>[] = [
+    { 
+      key: 'active', 
+      label: intl.formatMessage(messages.columnActive),
+      renderItem: (row: PromotionData): ReactNode => (
+        <ToggleInput
+          isDisabled={isLoading || togglingPromotions[row.id]}
+          isChecked={row.isActive}
+          onChange={() => handleToggleActive(row.id, Number(row.version), row.isActive)}
+          size="small"
+        />
+      )
+    },
     { key: 'name', label: intl.formatMessage(messages.columnName) },
     { 
       key: 'isActive', 
@@ -165,6 +243,12 @@ const Promotions: React.FC<PromotionsProps> = ({ channelKey, onBack }) => {
           />
         </Spacings.Inline>
       </div>
+      
+      {toggleError && (
+        <ContentNotification type="error">
+          <Text.Body>{toggleError}</Text.Body>
+        </ContentNotification>
+      )}
       
       {isLoading ? (
         <div className={styles.loadingContainer}>

@@ -21,7 +21,7 @@ interface ProductDiscountFormProps {
   onSubmit: (data: ProductDiscountData) => void;
 }
 
-type ConditionType = 'attribute' | 'sku' | 'category';
+type ConditionType = 'sku' | 'category';
 type OperatorType = 'is' | 'isNot' | 'contains' | 'doesNotContain' | 'isGreaterThan' | 'isLessThan';
 
 interface Condition {
@@ -81,7 +81,6 @@ const ProductDiscountForm: React.FC<ProductDiscountFormProps> = ({
   ];
 
   const conditionTypeOptions = [
-    { value: 'attribute', label: intl.formatMessage(messages.conditionTypeAttribute) },
     { value: 'sku', label: intl.formatMessage(messages.conditionTypeSku) },
     { value: 'category', label: intl.formatMessage(messages.conditionTypeCategory) },
   ];
@@ -182,9 +181,6 @@ const ProductDiscountForm: React.FC<ProductDiscountFormProps> = ({
       
       // Map condition type to appropriate attribute
       switch (condition.type) {
-        case 'attribute':
-          attributeKey = `attributes.${condition.value.split(':')[0]}`;
-          break;
         case 'sku':
           attributeKey = 'sku';
           break;
@@ -223,12 +219,6 @@ const ProductDiscountForm: React.FC<ProductDiscountFormProps> = ({
           break;
         default:
           operator = '=';
-      }
-      
-      // In case of attribute, we need to handle the value specially
-      if (condition.type === 'attribute' && condition.value.includes(':')) {
-        const [name, value] = condition.value.split(':');
-        return `${attributeKey} ${operator} "${value}"`;
       }
       
       return `${attributeKey} ${operator} "${condition.value}"`;
@@ -425,9 +415,7 @@ const ProductDiscountForm: React.FC<ProductDiscountFormProps> = ({
                                 onChange={(event) => updateCondition(condition.id, 'value', event.target.value)}
                                 horizontalConstraint="scale"
                                 placeholder={
-                                  condition.type === 'attribute'
-                                    ? intl.formatMessage(messages.attributePlaceholder)
-                                    : condition.type === 'sku'
+                                  condition.type === 'sku'
                                     ? intl.formatMessage(messages.skuPlaceholder)
                                     : intl.formatMessage(messages.categoryPlaceholder)
                                 }

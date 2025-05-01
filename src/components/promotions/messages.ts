@@ -307,4 +307,13 @@ export default defineMessages({
     id: 'Promotions.categoryPlaceholder',
     defaultMessage: 'Enter category key',
   },
+  // Active toggle column
+  columnActive: {
+    id: 'Promotions.columnActive',
+    defaultMessage: 'Active',
+  },
+  errorToggleActiveStatus: {
+    id: 'Promotions.errorToggleActiveStatus',
+    defaultMessage: 'Error updating promotion status. Please try again.',
+  },
 }); 

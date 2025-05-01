@@ -57,6 +57,7 @@
     "@commercetools-uikit/text": "^19.22.3",
     "@commercetools-uikit/text-field": "^19.22.3",
     "@commercetools-uikit/text-input": "^19.22.3",
+    "@commercetools-uikit/toggle-input": "^19.24.0",
     "@commercetools/sync-actions": "^5.14.0",
     "@emotion/react": "^11.14.0",
     "@formatjs/cli": "6.2.12",
