@@ -109,6 +109,18 @@ This application addresses the need for store-specific management tools in a mul
   - Prevention of race conditions through toggle state tracking
   - Automatic data refresh after status changes
   - Real-time error handling with clear user feedback
+- **Promotion Editing**:
+  - Edit existing promotions by clicking on their row in the table
+  - All fields are available for modification including name, description, and conditions
+  - Pre-populated form with existing promotion values
+  - Intelligent comparison to only send changed fields to the API
+  - Proper handling of different discount types (percentage vs. fixed amount)
+- **Enhanced User Experience**:
+  - Improved money input field for fixed amount discounts
+  - Native number input controls with proper decimal handling
+  - Support for entering precise dollar amounts (e.g., $12.25)
+  - Proper conversion between dollars and cents for the commercetools API
+  - Consistent formatting and input validation
 
 ## Configuration Requirements
 

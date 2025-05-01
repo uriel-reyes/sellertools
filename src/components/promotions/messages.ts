@@ -316,4 +316,21 @@ export default defineMessages({
     id: 'Promotions.errorToggleActiveStatus',
     defaultMessage: 'Error updating promotion status. Please try again.',
   },
+  // Edit promotion messages
+  editProductDiscount: {
+    id: 'Promotions.editProductDiscount',
+    defaultMessage: 'Edit Product Discount',
+  },
+  updatePromotion: {
+    id: 'Promotions.updatePromotion',
+    defaultMessage: 'Update Promotion',
+  },
+  promotionUpdateSuccess: {
+    id: 'Promotions.promotionUpdateSuccess',
+    defaultMessage: 'Promotion "{name}" updated successfully.',
+  },
+  promotionUpdateError: {
+    id: 'Promotions.promotionUpdateError',
+    defaultMessage: 'Error updating promotion. Please try again.',
+  },
 }); 

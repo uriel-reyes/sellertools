@@ -15,10 +15,15 @@ import usePromotions from '../../hooks/use-promotions/use-promotions';
 import messages from './messages';
 import styles from './tier-discount-form.module.css'; // Reusing the existing styles
 
+// Import the PromotionData type to fix the error
+import { PromotionData } from '../../hooks/use-promotions/use-promotions';
+
 interface ProductDiscountFormProps {
   channelKey: string;
   onBack: () => void;
   onSubmit: (data: ProductDiscountData) => void;
+  promotion?: PromotionData;
+  isEditing?: boolean;
 }
 
 type ConditionType = 'sku' | 'category';
@@ -32,6 +37,8 @@ interface Condition {
 }
 
 interface ProductDiscountData {
+  id?: string;
+  version?: number;
   name: string;
   description: string;
   isActive: boolean;
@@ -45,35 +52,156 @@ interface ProductDiscountData {
 const ProductDiscountForm: React.FC<ProductDiscountFormProps> = ({ 
   channelKey, 
   onBack,
-  onSubmit
+  onSubmit,
+  promotion,
+  isEditing = false
 }) => {
   const intl = useIntl();
-  const { createProductDiscount, loading, error } = usePromotions();
+  const { createProductDiscount, updateProductDiscount, loading, error } = usePromotions();
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   
-  const [discountData, setDiscountData] = useState<ProductDiscountData>({
-    name: '',
-    description: '',
-    isActive: true,
-    discountValue: 10,
-    discountType: 'percentage',
-    sortOrder: '0.5',
-    applyTo: 'all',
-    conditions: [],
-  });
+  // Parse conditions from existing promotion predicate if in edit mode
+  const parseConditionsFromPredicate = (predicate: string): Condition[] => {
+    // Skip if predicate only contains channel key condition
+    if (predicate.trim() === `channel.key = "${channelKey}"`) {
+      return [];
+    }
+    
+    const conditions: Condition[] = [];
+    
+    try {
+      // Extract the conditions part (remove channel.key condition)
+      const cleanPredicate = predicate.replace(`channel.key = "${channelKey}" and `, '').replace(` and channel.key = "${channelKey}"`, '');
+      
+      // Simple parsing for now - can be enhanced for more complex predicates
+      // Split by " and " to get individual conditions
+      const conditionStrings = cleanPredicate.split(' and ');
+      
+      conditionStrings.forEach((condString, index) => {
+        const skuMatch = condString.match(/sku\s+(=|!=)\s+"([^"]+)"/);
+        const skuContainsMatch = condString.match(/sku\s+contains\s+"([^"]+)"/);
+        const skuNotContainsMatch = condString.match(/not\(sku\s+contains\s+"([^"]+)"\)/);
+        const categoryMatch = condString.match(/categories\.key\s+contains\s+"([^"]+)"/);
+        const categoryNotMatch = condString.match(/not\(categories\.key\s+contains\s+"([^"]+)"\)/);
+        
+        let condition: Condition | null = null;
+        
+        if (skuMatch) {
+          condition = {
+            id: `condition-${index}`,
+            type: 'sku',
+            operator: skuMatch[1] === '=' ? 'is' : 'isNot',
+            value: skuMatch[2]
+          };
+        } else if (skuContainsMatch) {
+          condition = {
+            id: `condition-${index}`,
+            type: 'sku',
+            operator: 'contains',
+            value: skuContainsMatch[1]
+          };
+        } else if (skuNotContainsMatch) {
+          condition = {
+            id: `condition-${index}`,
+            type: 'sku',
+            operator: 'doesNotContain',
+            value: skuNotContainsMatch[1]
+          };
+        } else if (categoryMatch) {
+          condition = {
+            id: `condition-${index}`,
+            type: 'category',
+            operator: 'contains',
+            value: categoryMatch[1]
+          };
+        } else if (categoryNotMatch) {
+          condition = {
+            id: `condition-${index}`,
+            type: 'category',
+            operator: 'doesNotContain',
+            value: categoryNotMatch[1]
+          };
+        }
+        
+        if (condition) {
+          conditions.push(condition);
+        }
+      });
+    } catch (err) {
+      console.error('Error parsing predicate conditions:', err);
+    }
+    
+    return conditions.length > 0 ? conditions : [];
+  };
+  
+  // Parse discount value from promotion
+  const parseDiscountValue = (promotion: PromotionData): { 
+    discountValue: number; 
+    discountType: 'percentage' | 'absolute';
+  } => {
+    const valueAmount = promotion.valueAmount || '';
+    
+    if (valueAmount.includes('%')) {
+      // It's a percentage discount
+      const percentage = parseFloat(valueAmount.replace('%', ''));
+      return {
+        discountValue: percentage,
+        discountType: 'percentage'
+      };
+    } else {
+      // It's an absolute discount
+      // Remove currency symbol and parse
+      const amount = parseFloat(valueAmount.replace(/[^0-9.]/g, ''));
+      return {
+        discountValue: amount,
+        discountType: 'absolute'
+      };
+    }
+  };
+  
+  // Initialize form data based on if we're editing or creating
+  const initialFormData = isEditing && promotion 
+    ? {
+        id: promotion.id,
+        version: promotion.version,
+        name: promotion.name,
+        description: promotion.description || '',
+        isActive: promotion.isActive,
+        ...parseDiscountValue(promotion),
+        sortOrder: promotion.sortOrder,
+        applyTo: parseConditionsFromPredicate(promotion.predicate).length > 0 ? 'specific' as const : 'all' as const,
+        conditions: parseConditionsFromPredicate(promotion.predicate)
+      }
+    : {
+        name: '',
+        description: '',
+        isActive: true,
+        discountValue: 10,
+        discountType: 'percentage' as const,
+        sortOrder: '0.5',
+        applyTo: 'all' as const,
+        conditions: [],
+      };
+  
+  const [discountData, setDiscountData] = useState<ProductDiscountData>(initialFormData);
 
   // Add additional state for current input value
   const [moneyInputValue, setMoneyInputValue] = useState<string>(
-    discountData.discountValue.toFixed(2)
+    discountData.discountType === 'absolute' 
+      ? discountData.discountValue.toFixed(2)
+      : discountData.discountValue.toString()
   );
 
-  // Update money input value when discount type changes
+  // Only update money input when discount type changes, not when discountValue changes
   useEffect(() => {
+    // Only update the display value when switching between percentage and absolute
     if (discountData.discountType === 'absolute') {
       setMoneyInputValue(discountData.discountValue.toFixed(2));
+    } else {
+      setMoneyInputValue(discountData.discountValue.toString());
     }
-  }, [discountData.discountType]);
+  }, [discountData.discountType]); // Remove discountData.discountValue dependency
 
   const discountTypeOptions = [
     { value: 'percentage', label: intl.formatMessage(messages.discountTypePercentage) },
@@ -243,28 +371,40 @@ const ProductDiscountForm: React.FC<ProductDiscountFormProps> = ({
       const currencyCode = discountData.discountType === 'absolute' ? 'USD' : undefined;
       
       // Prepare the input for the mutation
-      const input = {
+      const baseInput = {
         name: discountData.name,
         description: discountData.description,
         channelKey: channelKey,
         predicate,
-        discountValue: discountData.discountType === 'percentage' 
-          ? discountData.discountValue
-          : Math.round(discountData.discountValue * 100), // Convert dollars to cents for absolute discounts
+        discountValue: discountData.discountValue, // Pass the plain dollar/percentage value - hook handles conversion
         discountType: discountData.discountType,
         currencyCode,
         isActive: discountData.isActive,
         sortOrder: discountData.sortOrder,
       };
       
-      console.log('Submitting product discount with input:', input);
+      // Log the value being sent
+      console.log(`${isEditing ? 'Updating' : 'Creating'} product discount with value: ${discountData.discountValue} ${discountData.discountType === 'percentage' ? '%' : 'dollars'}`);
+      console.log(`${isEditing ? 'Updating' : 'Creating'} product discount with input:`, isEditing ? {...baseInput, id: discountData.id!, version: discountData.version!} : baseInput);
       
-      // Call the mutation
-      const result = await createProductDiscount(input);
+      // Call the appropriate mutation based on isEditing
+      let result;
+      if (isEditing && discountData.id && discountData.version) {
+        result = await updateProductDiscount({
+          ...baseInput,
+          id: discountData.id,
+          version: discountData.version,
+        });
+      } else {
+        result = await createProductDiscount(baseInput);
+      }
       
       if (result) {
         // Show success message
-        setSuccessMessage(intl.formatMessage(messages.promotionCreateSuccess, { name: discountData.name }));
+        setSuccessMessage(intl.formatMessage(
+          isEditing ? messages.promotionUpdateSuccess : messages.promotionCreateSuccess, 
+          { name: discountData.name }
+        ));
         
         // Immediately call the onSubmit callback to refresh the promotions list
         onSubmit(discountData);
@@ -274,11 +414,15 @@ const ProductDiscountForm: React.FC<ProductDiscountFormProps> = ({
           onBack();
         }, 2000);
       } else {
-        setSubmissionError(intl.formatMessage(messages.promotionCreateError));
+        setSubmissionError(intl.formatMessage(
+          isEditing ? messages.promotionUpdateError : messages.promotionCreateError
+        ));
       }
     } catch (err) {
-      console.error('Error submitting product discount:', err);
-      setSubmissionError(err instanceof Error ? err.message : intl.formatMessage(messages.promotionCreateError));
+      console.error(`Error ${isEditing ? 'updating' : 'submitting'} product discount:`, err);
+      setSubmissionError(err instanceof Error ? err.message : intl.formatMessage(
+        isEditing ? messages.promotionUpdateError : messages.promotionCreateError
+      ));
     }
   };
   
@@ -302,7 +446,7 @@ const ProductDiscountForm: React.FC<ProductDiscountFormProps> = ({
         </Spacings.Inline>
         
         <Text.Headline as="h2">
-          {intl.formatMessage(messages.createProductDiscount)}
+          {intl.formatMessage(isEditing ? messages.editProductDiscount : messages.createProductDiscount)}
         </Text.Headline>
         
         {successMessage && (
@@ -508,45 +652,25 @@ const ProductDiscountForm: React.FC<ProductDiscountFormProps> = ({
                           <Text.Body>$</Text.Body>
                           <div className={styles.customMoneyInput}>
                             <input
-                              type="text"
+                              type="number"
                               value={moneyInputValue}
                               onChange={(event) => {
-                                const input = event.target.value;
+                                // Get the raw input value
+                                const inputValue = event.target.value;
                                 
-                                // First, update the displayed input immediately
-                                setMoneyInputValue(input);
+                                // Update the display value immediately
+                                setMoneyInputValue(inputValue);
                                 
-                                // Then process the value for the actual data
-                                const validInput = input.replace(/[^\d.]/g, '');
-                                
-                                // Handle special cases for incomplete inputs
-                                if (validInput === '' || validInput === '.') {
+                                // Update the actual discount value
+                                const numValue = parseFloat(inputValue);
+                                if (!isNaN(numValue)) {
+                                  handleInputChange('discountValue', numValue);
+                                } else {
                                   handleInputChange('discountValue', 0);
-                                  return;
-                                }
-                                
-                                // Ensure only one decimal point
-                                const parts = validInput.split('.');
-                                let formattedValue = validInput;
-                                if (parts.length > 2) {
-                                  formattedValue = parts[0] + '.' + parts.slice(1).join('');
-                                }
-                                
-                                // Parse the value and update if it's a valid number
-                                const parsedValue = parseFloat(formattedValue);
-                                if (!isNaN(parsedValue)) {
-                                  handleInputChange('discountValue', parsedValue);
                                 }
                               }}
-                              onBlur={() => {
-                                // When the field loses focus, format the value properly
-                                const value = Math.max(0, discountData.discountValue);
-                                setMoneyInputValue(value.toFixed(2));
-                                setDiscountData({
-                                  ...discountData,
-                                  discountValue: value
-                                });
-                              }}
+                              step="0.01"
+                              min="0"
                               placeholder="0.00"
                               className={styles.moneyInputField}
                             />
@@ -585,7 +709,7 @@ const ProductDiscountForm: React.FC<ProductDiscountFormProps> = ({
           />
           
           <PrimaryButton
-            label={intl.formatMessage(messages.createPromotion)}
+            label={intl.formatMessage(isEditing ? messages.updatePromotion : messages.createPromotion)}
             onClick={handleSubmit}
             isDisabled={
               !discountData.name || 

@@ -35,7 +35,7 @@ interface PromotionData {
 }
 
 // Type for the current view state
-type ViewState = 'list' | 'add-product-discount';
+type ViewState = 'list' | 'add-product-discount' | 'edit-product-discount';
 
 const Promotions: React.FC<PromotionsProps> = ({ channelKey, onBack }) => {
   const intl = useIntl();
@@ -46,6 +46,7 @@ const Promotions: React.FC<PromotionsProps> = ({ channelKey, onBack }) => {
   const [lastRefreshed, setLastRefreshed] = useState<string | null>(null);
   const [toggleError, setToggleError] = useState<string | null>(null);
   const [togglingPromotions, setTogglingPromotions] = useState<Record<string, boolean>>({});
+  const [selectedPromotion, setSelectedPromotion] = useState<PromotionData | null>(null);
   
   const { fetchPromotions, updatePromotionActiveStatus } = usePromotions();
   
@@ -153,6 +154,12 @@ const Promotions: React.FC<PromotionsProps> = ({ channelKey, onBack }) => {
     }
   };
   
+  // Handle promotion row click to open edit form
+  const handleRowClick = (promotion: PromotionData) => {
+    setSelectedPromotion(promotion);
+    setViewState('edit-product-discount');
+  };
+  
   // Define the column structure for the DataTable
   const columns: TColumn<PromotionData>[] = [
     { 
@@ -186,17 +193,20 @@ const Promotions: React.FC<PromotionsProps> = ({ channelKey, onBack }) => {
   ];
 
   const handleAddPromotion = () => {
+    setSelectedPromotion(null);
     setViewState('add-product-discount');
   };
 
   const handleBackToList = () => {
     setViewState('list');
+    setSelectedPromotion(null);
   };
 
   const handleSubmitPromotion = (formData: any) => {
     console.log('Submitted product discount form:', formData);
-    // After successful creation, go back to the list view and refresh promotions
+    // After successful creation or update, go back to the list view and refresh promotions
     setViewState('list');
+    setSelectedPromotion(null);
     loadPromotions(); // Refresh the promotions list
   };
   
@@ -271,7 +281,7 @@ const Promotions: React.FC<PromotionsProps> = ({ channelKey, onBack }) => {
             columns={columns}
             rows={promotions}
             maxHeight={600}
-            onRowClick={(row) => console.log('Row clicked:', row)}
+            onRowClick={handleRowClick}
           />
         </div>
       )}
@@ -287,6 +297,19 @@ const Promotions: React.FC<PromotionsProps> = ({ channelKey, onBack }) => {
             channelKey={channelKey}
             onBack={handleBackToList}
             onSubmit={handleSubmitPromotion}
+          />
+        );
+      case 'edit-product-discount':
+        if (!selectedPromotion) {
+          return renderPromotionsList();
+        }
+        return (
+          <ProductDiscountForm
+            channelKey={channelKey}
+            onBack={handleBackToList}
+            onSubmit={handleSubmitPromotion}
+            promotion={selectedPromotion}
+            isEditing={true}
           />
         );
       case 'list':

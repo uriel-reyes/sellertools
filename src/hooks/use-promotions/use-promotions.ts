@@ -90,8 +90,44 @@ const UPDATE_PRODUCT_DISCOUNT_ACTIVE_STATUS_MUTATION = gql`
   }
 `;
 
-// Define the interface for the promotion data structure
-interface PromotionData {
+// GraphQL mutation to update a product discount (beyond just active status)
+const UPDATE_PRODUCT_DISCOUNT_MUTATION = gql`
+  mutation UpdateProductDiscount($id: String!, $version: Long!, $actions: [ProductDiscountUpdateAction!]!) {
+    updateProductDiscount(id: $id, version: $version, actions: $actions) {
+      id
+      version
+      createdAt
+      lastModifiedAt
+      name(locale: "en-US")
+      description(locale: "en-US")
+      isActive
+      predicate
+      validFrom
+      validUntil
+      sortOrder
+      value {
+        ... on RelativeDiscountValue {
+          __typename
+          permyriad
+          type
+        }
+        ... on AbsoluteDiscountValue {
+          __typename
+          money {
+            centAmount
+            currencyCode
+            fractionDigits
+            type
+          }
+          type
+        }
+      }
+    }
+  }
+`;
+
+// Define the interface for the promotion data structure - export for use in other components
+export interface PromotionData {
   id: string;
   name: string;
   description: string;
@@ -125,6 +161,21 @@ interface UpdateProductDiscountActiveStatusInput {
   id: string;
   version: number;
   isActive: boolean;
+}
+
+// Define the interface for updating a product discount (full update, not just active status)
+interface UpdateProductDiscountInput {
+  id: string;
+  version: number;
+  name: string;
+  description?: string;
+  channelKey: string;
+  predicate: string;
+  discountValue: number;
+  discountType: 'percentage' | 'absolute';
+  currencyCode?: string;
+  isActive?: boolean;
+  sortOrder?: string;
 }
 
 // GraphQL response types
@@ -179,6 +230,7 @@ interface UsePromotionsResult {
   fetchPromotions: (channelKey: string) => Promise<PromotionData[]>;
   createProductDiscount: (input: CreateProductDiscountInput) => Promise<ProductDiscountResult | null>;
   updatePromotionActiveStatus: (input: UpdateProductDiscountActiveStatusInput) => Promise<boolean>;
+  updateProductDiscount: (input: UpdateProductDiscountInput) => Promise<ProductDiscountResult | null>;
   loading: boolean;
   error: Error | null;
 }
@@ -206,6 +258,15 @@ const usePromotions = (): UsePromotionsResult => {
 
   const [runUpdateActiveMutation] = useMcMutation(
     UPDATE_PRODUCT_DISCOUNT_ACTIVE_STATUS_MUTATION,
+    {
+      context: {
+        target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
+      },
+    }
+  );
+
+  const [runUpdateMutation] = useMcMutation<{ updateProductDiscount: ProductDiscountResult }>(
+    UPDATE_PRODUCT_DISCOUNT_MUTATION,
     {
       context: {
         target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
@@ -366,9 +427,16 @@ const usePromotions = (): UsePromotionsResult => {
         });
         
         return response.data?.createProductDiscount || null;
-      } catch (err) {
-        console.error('Error creating product discount:', err);
-        setError(err instanceof Error ? err : new Error('Unknown error occurred'));
+      } catch (error: unknown) {
+        console.error('Error creating product discount:', error);
+        
+        // Log detailed error information for debugging
+        const typedError = error as any;
+        if (typedError.graphQLErrors) {
+          console.error('GraphQL errors:', JSON.stringify(typedError.graphQLErrors, null, 2));
+        }
+        
+        setError(error instanceof Error ? error : new Error('Unknown error occurred'));
         return null;
       } finally {
         setLoading(false);
@@ -411,14 +479,209 @@ const usePromotions = (): UsePromotionsResult => {
       }
       
       return false;
-    } catch (err) {
-      console.error('Error updating product discount active status:', err);
-      setError(err instanceof Error ? err : new Error('Failed to update promotion status'));
+    } catch (error: unknown) {
+      console.error('Error updating product discount active status:', error);
+      
+      // Log detailed error information for debugging
+      const typedError = error as any;
+      if (typedError.graphQLErrors) {
+        console.error('GraphQL errors:', JSON.stringify(typedError.graphQLErrors, null, 2));
+      }
+      
+      setError(error instanceof Error ? error : new Error('Failed to update promotion status'));
       return false;
     } finally {
       setLoading(false);
     }
   };
+
+  const updateProductDiscount = useCallback(
+    async (input: UpdateProductDiscountInput): Promise<ProductDiscountResult | null> => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const { 
+          id, 
+          version, 
+          name, 
+          description, 
+          predicate,
+          discountValue,
+          discountType,
+          currencyCode,
+          isActive,
+          sortOrder 
+        } = input;
+        
+        // First, fetch the current promotion to compare values
+        // We'll use the query that already exists for fetching all promotions
+        const response = await refetch();
+        if (!response?.data?.productDiscounts?.results) {
+          throw new Error('Failed to fetch current promotion data');
+        }
+        
+        // Find the current promotion by ID
+        const currentPromotion = response.data.productDiscounts.results.find(
+          (p: ProductDiscountResult) => p.id === id
+        );
+        
+        if (!currentPromotion) {
+          throw new Error('Promotion not found');
+        }
+        
+        // Build the actions array for updating the product discount
+        const actions = [];
+        
+        // Set name - only if changed
+        const currentName = currentPromotion.name || '';
+        if (name !== currentName) {
+          actions.push({
+            changeName: {
+              name: [{
+                locale: "en-US",
+                value: name
+              }]
+            }
+          });
+        }
+        
+        // Set description - only if changed
+        const currentDescription = currentPromotion.description || '';
+        if (description !== currentDescription) {
+          actions.push({
+            setDescription: {
+              description: description ? [{
+                locale: "en-US",
+                value: description
+              }] : []
+            }
+          });
+        }
+        
+        // Set predicate - only if changed
+        if (predicate !== currentPromotion.predicate) {
+          actions.push({
+            changePredicate: {
+              predicate
+            }
+          });
+        }
+        
+        // Check if the discount value or type has changed
+        // This requires more complex comparison as the data structures differ
+        let valueChanged = false;
+        
+        if (discountType === 'percentage') {
+          // Check if the current value is also a percentage and if the value has changed
+          const currentPermyriad = currentPromotion.value?.__typename === 'RelativeDiscountValue' 
+            ? currentPromotion.value.permyriad 
+            : null;
+          
+          if (
+            currentPromotion.value?.__typename !== 'RelativeDiscountValue' || 
+            currentPermyriad === null || 
+            Math.abs(currentPermyriad / 100 - discountValue) > 0.001 // Account for floating point precision
+          ) {
+            valueChanged = true;
+          }
+        } else if (discountType === 'absolute' && currencyCode) {
+          // Check if the current value is also absolute and in the same currency with the same amount
+          const currentMoney = currentPromotion.value?.__typename === 'AbsoluteDiscountValue' 
+            ? currentPromotion.value.money?.find(m => m.currencyCode === currencyCode) 
+            : null;
+          
+          const targetCentAmount = Math.round(discountValue * 100);
+          if (
+            currentPromotion.value?.__typename !== 'AbsoluteDiscountValue' ||
+            !currentMoney ||
+            currentMoney.centAmount !== targetCentAmount
+          ) {
+            valueChanged = true;
+          }
+        }
+        
+        // Add changeValue action if needed
+        if (valueChanged) {
+          if (discountType === 'percentage') {
+            actions.push({
+              changeValue: {
+                value: {
+                  relative: {
+                    permyriad: discountValue * 100 // Convert percentage to permyriad
+                  }
+                }
+              }
+            });
+          } else if (discountType === 'absolute' && currencyCode) {
+            actions.push({
+              changeValue: {
+                value: {
+                  absolute: {
+                    money: [{
+                      currencyCode,
+                      centAmount: Math.round(discountValue * 100) // Convert dollars to cents
+                    }]
+                  }
+                }
+              }
+            });
+          }
+        }
+        
+        // Set sortOrder - only if changed
+        if (sortOrder !== undefined && sortOrder !== currentPromotion.sortOrder) {
+          actions.push({
+            changeSortOrder: {
+              sortOrder
+            }
+          });
+        }
+        
+        // Set isActive - only if changed
+        if (isActive !== undefined && isActive !== currentPromotion.isActive) {
+          actions.push({
+            changeIsActive: {
+              isActive
+            }
+          });
+        }
+        
+        // Don't send the request if there are no changes
+        if (actions.length === 0) {
+          console.log('No changes detected, skipping update');
+          return currentPromotion; // Return the current promotion as if it was updated
+        }
+        
+        console.log('Updating product discount with actions:', actions);
+        
+        // Execute the mutation
+        const updateResponse = await runUpdateMutation({
+          variables: {
+            id,
+            version,
+            actions,
+          },
+        });
+        
+        return updateResponse.data?.updateProductDiscount || null;
+      } catch (error: unknown) {
+        console.error('Error updating product discount:', error);
+        
+        // Log detailed error information for debugging
+        const typedError = error as any; // Type assertion for accessing GraphQL errors
+        if (typedError.graphQLErrors) {
+          console.error('GraphQL errors:', JSON.stringify(typedError.graphQLErrors, null, 2));
+        }
+        
+        setError(error instanceof Error ? error : new Error('Unknown error occurred'));
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [refetch, runUpdateMutation]
+  );
 
   const formatCurrency = (centAmount: number, currencyCode: string): string => {
     return new Intl.NumberFormat('en-US', {
@@ -436,6 +699,7 @@ const usePromotions = (): UsePromotionsResult => {
     fetchPromotions,
     createProductDiscount,
     updatePromotionActiveStatus,
+    updateProductDiscount,
     loading,
     error,
   };
