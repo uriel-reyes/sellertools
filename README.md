@@ -96,13 +96,19 @@ This application addresses the need for store-specific management tools in a mul
   - Fixed amount discounts specify currency and cent amount
 - Apply discounts to all products or specific products based on conditions
 - Multiple condition types with operators:
-  - Product attributes (=, !=, >, <, contains)
-  - Product SKUs (exact match, contains)
+  - Product SKUs with various operators (is, is not, contains, does not contain)
   - Category keys with containment predicates
 - Combine multiple conditions with AND logic
 - Channel-specific filtering for seller's products
 - Sort order control to prioritize discounts
 - Real-time validation and feedback
+- **Active Status Management**:
+  - Interactive toggle controls to immediately activate or deactivate promotions
+  - Visual status indicators showing current state (active/inactive)
+  - Optimistic UI updates with backend synchronization
+  - Prevention of race conditions through toggle state tracking
+  - Automatic data refresh after status changes
+  - Real-time error handling with clear user feedback
 
 ## Configuration Requirements
 
