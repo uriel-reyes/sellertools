@@ -333,4 +333,97 @@ export default defineMessages({
     id: 'Promotions.promotionUpdateError',
     defaultMessage: 'Error updating promotion. Please try again.',
   },
+  // Bulk actions messages
+  selectedItems: {
+    id: 'Promotions.selectedItems',
+    defaultMessage: 'Selected: {count}',
+  },
+  bulkActionSelect: {
+    id: 'Promotions.bulkActionSelect',
+    defaultMessage: 'Bulk Actions...',
+  },
+  bulkActionActivate: {
+    id: 'Promotions.bulkActionActivate',
+    defaultMessage: 'Activate',
+  },
+  bulkActionDeactivate: {
+    id: 'Promotions.bulkActionDeactivate',
+    defaultMessage: 'Deactivate',
+  },
+  bulkActionDelete: {
+    id: 'Promotions.bulkActionDelete',
+    defaultMessage: 'Delete',
+  },
+  bulkActivateConfirmTitle: {
+    id: 'Promotions.bulkActivateConfirmTitle',
+    defaultMessage: 'Activate Promotions',
+  },
+  bulkDeactivateConfirmTitle: {
+    id: 'Promotions.bulkDeactivateConfirmTitle',
+    defaultMessage: 'Deactivate Promotions',
+  },
+  bulkDeleteConfirmTitle: {
+    id: 'Promotions.bulkDeleteConfirmTitle',
+    defaultMessage: 'Delete Promotions',
+  },
+  bulkActivateConfirmMessage: {
+    id: 'Promotions.bulkActivateConfirmMessage',
+    defaultMessage: 'Are you sure you want to activate {count, plural, one {# promotion} other {# promotions}}?',
+  },
+  bulkDeactivateConfirmMessage: {
+    id: 'Promotions.bulkDeactivateConfirmMessage',
+    defaultMessage: 'Are you sure you want to deactivate {count, plural, one {# promotion} other {# promotions}}?',
+  },
+  bulkDeleteConfirmMessage: {
+    id: 'Promotions.bulkDeleteConfirmMessage',
+    defaultMessage: 'Are you sure you want to delete {count, plural, one {# promotion} other {# promotions}}? This action cannot be undone.',
+  },
+  bulkActivateSuccess: {
+    id: 'Promotions.bulkActivateSuccess',
+    defaultMessage: 'Successfully activated {count, plural, one {# promotion} other {# promotions}}.',
+  },
+  bulkDeactivateSuccess: {
+    id: 'Promotions.bulkDeactivateSuccess',
+    defaultMessage: 'Successfully deactivated {count, plural, one {# promotion} other {# promotions}}.',
+  },
+  bulkDeleteSuccess: {
+    id: 'Promotions.bulkDeleteSuccess',
+    defaultMessage: 'Successfully deleted {count, plural, one {# promotion} other {# promotions}}.',
+  },
+  bulkActivatePartialError: {
+    id: 'Promotions.bulkActivatePartialError',
+    defaultMessage: 'Failed to activate {count, plural, one {# promotion} other {# promotions}}.',
+  },
+  bulkDeactivatePartialError: {
+    id: 'Promotions.bulkDeactivatePartialError',
+    defaultMessage: 'Failed to deactivate {count, plural, one {# promotion} other {# promotions}}.',
+  },
+  bulkDeletePartialError: {
+    id: 'Promotions.bulkDeletePartialError',
+    defaultMessage: 'Failed to delete {count, plural, one {# promotion} other {# promotions}}.',
+  },
+  bulkActionInProgress: {
+    id: 'Promotions.bulkActionInProgress',
+    defaultMessage: 'Processing selected promotions...',
+  },
+  bulkActionError: {
+    id: 'Promotions.bulkActionError',
+    defaultMessage: 'An error occurred while processing the bulk action.',
+  },
+  bulkActivateNoChanges: {
+    id: 'Promotions.bulkActivateNoChanges',
+    defaultMessage: 'All selected promotions are already active.',
+  },
+  bulkDeactivateNoChanges: {
+    id: 'Promotions.bulkDeactivateNoChanges',
+    defaultMessage: 'All selected promotions are already inactive.',
+  },
+  bulkDeleteNotImplemented: {
+    id: 'Promotions.bulkDeleteNotImplemented',
+    defaultMessage: 'Bulk deletion is not yet available.',
+  },
+  actions: {
+    id: 'Promotions.actions',
+    defaultMessage: 'Actions',
+  },
 }); 

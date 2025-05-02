@@ -7,10 +7,12 @@ import LoadingSpinner from '@commercetools-uikit/loading-spinner';
 import { ErrorMessage } from '@commercetools-uikit/messages';
 import SecondaryButton from '@commercetools-uikit/secondary-button';
 import PrimaryButton from '@commercetools-uikit/primary-button';
-import { BackIcon, PlusBoldIcon, CloseIcon, RefreshIcon } from '@commercetools-uikit/icons';
+import { BackIcon, PlusBoldIcon, CloseIcon, RefreshIcon, BinLinearIcon } from '@commercetools-uikit/icons';
 import Card from '@commercetools-uikit/card';
-import ToggleInput from '@commercetools-uikit/toggle-input';
 import { ContentNotification } from '@commercetools-uikit/notifications';
+import Checkbox from '@commercetools-uikit/checkbox-input';
+import SelectField from '@commercetools-uikit/select-field';
+import { ConfirmationDialog } from '@commercetools-frontend/application-components';
 import usePromotions from '../../hooks/use-promotions/use-promotions';
 import ProductDiscountForm from './product-discount-form';
 import messages from './messages';
@@ -38,6 +40,9 @@ interface PromotionData {
 // Type for the current view state
 type ViewState = 'list' | 'add-product-discount' | 'edit-product-discount';
 
+// Type for bulk actions
+type BulkAction = 'activate' | 'deactivate' | 'delete' | '';
+
 const Promotions: React.FC<PromotionsProps> = ({ channelKey, onBack }) => {
   const intl = useIntl();
   const [promotions, setPromotions] = useState<PromotionData[]>([]);
@@ -45,9 +50,15 @@ const Promotions: React.FC<PromotionsProps> = ({ channelKey, onBack }) => {
   const [error, setError] = useState<Error | null>(null);
   const [viewState, setViewState] = useState<ViewState>('list');
   const [lastRefreshed, setLastRefreshed] = useState<string | null>(null);
-  const [toggleError, setToggleError] = useState<string | null>(null);
-  const [togglingPromotions, setTogglingPromotions] = useState<Record<string, boolean>>({});
   const [selectedPromotion, setSelectedPromotion] = useState<PromotionData | null>(null);
+  
+  // Multi-select and bulk action states
+  const [selectedPromotionIds, setSelectedPromotionIds] = useState<string[]>([]);
+  const [bulkAction, setBulkAction] = useState<BulkAction>('');
+  const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
+  const [bulkActionInProgress, setBulkActionInProgress] = useState(false);
+  const [bulkActionError, setBulkActionError] = useState<string | null>(null);
+  const [bulkActionSuccess, setBulkActionSuccess] = useState<string | null>(null);
   
   const { fetchPromotions, updatePromotionActiveStatus } = usePromotions();
   
@@ -94,91 +105,165 @@ const Promotions: React.FC<PromotionsProps> = ({ channelKey, onBack }) => {
     return `${(permyriad / 100).toFixed(2)}%`; // Convert permyriad to percentage
   };
   
-  const handleToggleActive = async (id: string, version: number, currentStatus: boolean) => {
-    // Prevent toggling if this promotion is already being toggled
-    if (togglingPromotions[id]) {
-      return;
-    }
-    
-    try {
-      setToggleError(null);
-      
-      // Track that this promotion is being toggled
-      setTogglingPromotions(prev => ({ ...prev, [id]: true }));
-      
-      // Optimistically update UI for better user experience
-      setPromotions(prev => 
-        prev.map(promotion => 
-          promotion.id === id ? { ...promotion, isActive: !currentStatus } : promotion
-        )
-      );
-      
-      // Call the mutation to update the promotion's active status
-      const result = await updatePromotionActiveStatus({
-        id,
-        version,
-        isActive: !currentStatus
-      });
-      
-      if (result) {
-        // Refresh the entire list to ensure all data is in sync
-        await loadPromotions();
-      } else {
-        // Revert the optimistic update if the operation failed
-        setPromotions(prev => 
-          prev.map(promotion => 
-            promotion.id === id ? { ...promotion, isActive: currentStatus } : promotion
-          )
-        );
-        
-        // Show error message
-        setToggleError(intl.formatMessage(messages.errorToggleActiveStatus));
-      }
-    } catch (err) {
-      console.error('Error updating promotion active status:', err);
-      
-      // Revert the optimistic update
-      setPromotions(prev => 
-        prev.map(promotion => 
-          promotion.id === id ? { ...promotion, isActive: currentStatus } : promotion
-        )
-      );
-      
-      setToggleError(intl.formatMessage(messages.errorToggleActiveStatus));
-    } finally {
-      // Clear the toggling state for this promotion
-      setTogglingPromotions(prev => {
-        const updated = { ...prev };
-        delete updated[id];
-        return updated;
-      });
-    }
-  };
-  
   // Handle promotion row click to open edit form
   const handleRowClick = (promotion: PromotionData) => {
     setSelectedPromotion(promotion);
     setViewState('edit-product-discount');
   };
   
+  // Handle checkbox selection
+  const handleSelectPromotion = (id: string, isSelected: boolean) => {
+    if (isSelected) {
+      setSelectedPromotionIds(prev => [...prev, id]);
+    } else {
+      setSelectedPromotionIds(prev => prev.filter(promotionId => promotionId !== id));
+    }
+  };
+  
+  // Handle select all checkbox
+  const handleSelectAll = (isSelected: boolean) => {
+    if (isSelected) {
+      const allIds = promotions.map(promotion => promotion.id);
+      setSelectedPromotionIds(allIds);
+    } else {
+      setSelectedPromotionIds([]);
+    }
+  };
+  
+  // Handle bulk action change
+  const handleBulkActionChange = (event: any) => {
+    // Safely handle the SelectField onChange event
+    if (event && event.target && typeof event.target.value === 'string') {
+      const action = event.target.value as BulkAction;
+      setBulkAction(action);
+      
+      if (action) {
+        setIsConfirmationOpen(true);
+      }
+    }
+  };
+  
+  // Execute bulk action after confirmation
+  const executeBulkAction = async () => {
+    if (!bulkAction || selectedPromotionIds.length === 0) {
+      return;
+    }
+    
+    setBulkActionInProgress(true);
+    setBulkActionError(null);
+    setBulkActionSuccess(null);
+    
+    try {
+      const selectedPromotions = promotions.filter(p => selectedPromotionIds.includes(p.id));
+      
+      if (bulkAction === 'activate' || bulkAction === 'deactivate') {
+        const targetActiveState = bulkAction === 'activate';
+        
+        // Only process promotions that need to change state
+        const promotionsToUpdate = selectedPromotions.filter(p => p.isActive !== targetActiveState);
+        
+        if (promotionsToUpdate.length === 0) {
+          setBulkActionSuccess(intl.formatMessage(
+            bulkAction === 'activate' 
+              ? messages.bulkActivateNoChanges 
+              : messages.bulkDeactivateNoChanges
+          ));
+          setBulkActionInProgress(false);
+          setIsConfirmationOpen(false);
+          setBulkAction('');
+          return;
+        }
+        
+        // Track successes and failures
+        let successCount = 0;
+        let failureCount = 0;
+        
+        // Process each promotion sequentially
+        for (const promotion of promotionsToUpdate) {
+          try {
+            const result = await updatePromotionActiveStatus({
+              id: promotion.id,
+              version: Number(promotion.version),
+              isActive: targetActiveState,
+            });
+            
+            if (result) {
+              successCount++;
+            } else {
+              failureCount++;
+            }
+          } catch (err) {
+            console.error(`Error updating promotion ${promotion.id}:`, err);
+            failureCount++;
+          }
+        }
+        
+        // Set success message
+        if (successCount > 0) {
+          setBulkActionSuccess(
+            intl.formatMessage(
+              bulkAction === 'activate' 
+                ? messages.bulkActivateSuccess 
+                : messages.bulkDeactivateSuccess,
+              { count: successCount }
+            )
+          );
+        }
+        
+        // Set error message if some failed
+        if (failureCount > 0) {
+          setBulkActionError(
+            intl.formatMessage(
+              bulkAction === 'activate' 
+                ? messages.bulkActivatePartialError 
+                : messages.bulkDeactivatePartialError,
+              { count: failureCount }
+            )
+          );
+        }
+        
+        // Refresh the promotions list
+        await loadPromotions();
+      } else if (bulkAction === 'delete') {
+        // Note: Implement delete functionality when needed
+        // For now, just show a message that this is not implemented
+        setBulkActionError(intl.formatMessage(messages.bulkDeleteNotImplemented));
+      }
+    } catch (err) {
+      console.error('Error executing bulk action:', err);
+      setBulkActionError(intl.formatMessage(messages.bulkActionError));
+    } finally {
+      setBulkActionInProgress(false);
+      setIsConfirmationOpen(false);
+      setBulkAction('');
+      // Clear selection after action
+      setSelectedPromotionIds([]);
+    }
+  };
+  
   // Define the column structure for the DataTable
-  // Note: sortOrder column is intentionally hidden since it's now auto-generated
   const columns: TColumn<PromotionData>[] = [
     { 
-      key: 'active', 
-      label: intl.formatMessage(messages.columnActive),
-      renderItem: (row: PromotionData): ReactNode => (
-        <ToggleInput
-          isDisabled={isLoading || togglingPromotions[row.id]}
-          isChecked={row.isActive}
-          onChange={() => handleToggleActive(row.id, Number(row.version), row.isActive)}
-          size="small"
+      key: 'selection', 
+      label: (
+        <Checkbox
+          isChecked={selectedPromotionIds.length > 0 && selectedPromotionIds.length === promotions.length}
+          isIndeterminate={selectedPromotionIds.length > 0 && selectedPromotionIds.length < promotions.length}
+          onChange={(event) => handleSelectAll(event.target.checked)}
         />
+      ),
+      renderItem: (row: PromotionData): ReactNode => (
+        <div onClick={(event) => event.stopPropagation()}>
+          <Checkbox
+            isChecked={selectedPromotionIds.includes(row.id)}
+            onChange={(event) => handleSelectPromotion(row.id, event.target.checked)}
+          />
+        </div>
       )
     },
     { key: 'name', label: intl.formatMessage(messages.columnName) },
     { 
-      key: 'isActive', 
+      key: 'statusDisplay', 
       label: intl.formatMessage(messages.columnStatus),
       renderItem: (row: PromotionData): ReactNode => (
         <div className={row.isActive ? styles.statusActive : styles.statusInactive}>
@@ -218,6 +303,26 @@ const Promotions: React.FC<PromotionsProps> = ({ channelKey, onBack }) => {
     }
   };
   
+  // Render the bulk action controls
+  const renderBulkActionControls = () => {
+    return (
+      <Spacings.Inline alignItems="center" scale="s">
+        <SelectField
+          horizontalConstraint="auto"
+          value={bulkAction}
+          onChange={handleBulkActionChange}
+          title="Actions"
+          options={[
+            { value: 'activate', label: intl.formatMessage(messages.bulkActionActivate) },
+            { value: 'deactivate', label: intl.formatMessage(messages.bulkActionDeactivate) },
+            { value: 'delete', label: intl.formatMessage(messages.bulkActionDelete) },
+          ]}
+          isDisabled={selectedPromotionIds.length === 0}
+        />
+      </Spacings.Inline>
+    );
+  };
+  
   // Render the main promotions list view with table
   const renderPromotionsList = () => (
     <Spacings.Stack scale="l">
@@ -237,7 +342,6 @@ const Promotions: React.FC<PromotionsProps> = ({ channelKey, onBack }) => {
               label={intl.formatMessage(messages.addPromotion)}
               onClick={handleAddPromotion}
               iconLeft={<PlusBoldIcon />}
-              size="small"
             />
           </div>
         </div>
@@ -246,26 +350,38 @@ const Promotions: React.FC<PromotionsProps> = ({ channelKey, onBack }) => {
             iconLeft={<RefreshIcon />}
             label={intl.formatMessage(messages.refreshButton)}
             onClick={handleRefresh}
-            isDisabled={isLoading}
+            isDisabled={isLoading || bulkActionInProgress}
           />
-          <PrimaryButton
+          <SecondaryButton
             label={intl.formatMessage(messages.backButton)}
             onClick={onBack}
+            iconLeft={<BackIcon />}
           />
         </Spacings.Inline>
       </div>
       
-      {toggleError && (
-        <ContentNotification type="error">
-          <Text.Body>{toggleError}</Text.Body>
+      {renderBulkActionControls()}
+      
+      {bulkActionSuccess && (
+        <ContentNotification type="success">
+          <Text.Body>{bulkActionSuccess}</Text.Body>
         </ContentNotification>
       )}
       
-      {isLoading ? (
+      {bulkActionError && (
+        <ContentNotification type="error">
+          <Text.Body>{bulkActionError}</Text.Body>
+        </ContentNotification>
+      )}
+      
+      {isLoading || bulkActionInProgress ? (
         <div className={styles.loadingContainer}>
           <LoadingSpinner scale="l" />
           <Text.Body>
-            {intl.formatMessage(messages.loadingPromotions)}
+            {bulkActionInProgress
+              ? intl.formatMessage(messages.bulkActionInProgress)
+              : intl.formatMessage(messages.loadingPromotions)
+            }
           </Text.Body>
         </div>
       ) : error ? (
@@ -285,6 +401,39 @@ const Promotions: React.FC<PromotionsProps> = ({ channelKey, onBack }) => {
             onRowClick={handleRowClick}
           />
         </div>
+      )}
+      
+      {isConfirmationOpen && (
+        <ConfirmationDialog
+          title={intl.formatMessage(
+            bulkAction === 'activate'
+              ? messages.bulkActivateConfirmTitle
+              : bulkAction === 'deactivate'
+              ? messages.bulkDeactivateConfirmTitle
+              : messages.bulkDeleteConfirmTitle
+          )}
+          isOpen={isConfirmationOpen}
+          onClose={() => {
+            setIsConfirmationOpen(false);
+            setBulkAction('');
+          }}
+          onCancel={() => {
+            setIsConfirmationOpen(false);
+            setBulkAction('');
+          }}
+          onConfirm={executeBulkAction}
+        >
+          <Text.Body>
+            {intl.formatMessage(
+              bulkAction === 'activate'
+                ? messages.bulkActivateConfirmMessage
+                : bulkAction === 'deactivate'
+                ? messages.bulkDeactivateConfirmMessage
+                : messages.bulkDeleteConfirmMessage,
+              { count: selectedPromotionIds.length }
+            )}
+          </Text.Body>
+        </ConfirmationDialog>
       )}
     </Spacings.Stack>
   );
