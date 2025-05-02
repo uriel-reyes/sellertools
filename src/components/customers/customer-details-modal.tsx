@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { FormModalPage } from '@commercetools-frontend/application-components';
+import { InfoModalPage } from '@commercetools-frontend/application-components';
 import Text from '@commercetools-uikit/text';
 import Spacings from '@commercetools-uikit/spacings';
 import Card from '@commercetools-uikit/card';
@@ -12,11 +12,12 @@ import {
   GearIcon,
   TagIcon,
   CartIcon,
-  CloseIcon
+  CloseIcon,
 } from '@commercetools-uikit/icons';
 import useStoreCustomers from '../../hooks/use-store-customers';
 import styles from './customers.module.css';
-
+import { Link, useParams } from 'react-router-dom';
+import { useClassNames } from '../../utils/use-classnames';
 // Define the Order interface
 interface Order {
   id: string;
@@ -29,121 +30,113 @@ interface Order {
   orderState: string;
 }
 
-interface CustomerDetailsModalProps {
-  customer: {
+interface Customer {
+  id: string;
+  version: number;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  customerNumber?: string;
+  createdAt: string;
+  lastModifiedAt?: string;
+  isEmailVerified: boolean;
+  customerGroup?: {
     id: string;
-    version: number;
-    email: string;
+    name?: string;
+  };
+  stores?: Array<{
+    key: string;
+  }>;
+  addresses?: Array<{
+    id: string;
     firstName?: string;
     lastName?: string;
-    customerNumber?: string;
-    createdAt: string;
-    lastModifiedAt?: string;
-    isEmailVerified: boolean;
-    customerGroup?: {
-      id: string;
-      name?: string;
-    };
-    stores?: Array<{
-      key: string;
+    streetName?: string;
+    streetNumber?: string;
+    postalCode?: string;
+    city?: string;
+    country?: string;
+    phone?: string;
+    email?: string;
+  }>;
+  defaultShippingAddressId?: string;
+  defaultBillingAddressId?: string;
+  custom?: {
+    customFieldsRaw: Array<{
+      name: string;
+      value: string;
     }>;
-    addresses?: Array<{
-      id: string;
-      firstName?: string;
-      lastName?: string;
-      streetName?: string;
-      streetNumber?: string;
-      postalCode?: string;
-      city?: string;
-      country?: string;
-      phone?: string;
-      email?: string;
-    }>;
-    defaultShippingAddressId?: string;
-    defaultBillingAddressId?: string;
-    custom?: {
-      customFieldsRaw: Array<{
-        name: string;
-        value: string;
-      }>;
-    };
   };
-  isOpen: boolean;
-  onClose: () => void;
+}
+
+interface CustomerDetailsModalProps {
+  linkToWelcome: string;
+  onBack: () => void;
 }
 
 const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({
-  customer,
-  isOpen,
-  onClose,
+  linkToWelcome,
+  onBack,
 }) => {
-  const { fetchCustomerOrders } = useStoreCustomers();
+  const { customerId } = useParams<{ customerId: string }>();
+  const { fetchCustomerOrders, fetchCustomerById } = useStoreCustomers();
   const [customerOrders, setCustomerOrders] = useState<Order[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
-
+  const [customer, setCustomer] = useState<Customer | null>(null);
   // Fetch customer orders when modal opens
   useEffect(() => {
-    if (isOpen && customer.id) {
+    if (customerId) {
       setLoadingOrders(true);
-      fetchCustomerOrders(customer.id)
-        .then(orders => {
+      fetchCustomerById(customerId).then((customer) => {
+        setCustomer(customer);
+      });
+      fetchCustomerOrders(customerId)
+        .then((orders) => {
           setCustomerOrders(orders);
         })
         .finally(() => {
           setLoadingOrders(false);
         });
     }
-  }, [isOpen, customer.id, fetchCustomerOrders]);
+  }, [customerId, fetchCustomerOrders]);
 
   const formatAddress = (address: any) => {
     if (!address) return 'Not available';
-    
+
     const parts = [];
     if (address.firstName || address.lastName) {
       parts.push(`${address.firstName || ''} ${address.lastName || ''}`.trim());
     }
-    
+
     if (address.streetName) {
       let street = address.streetName;
       if (address.streetNumber) street += ` ${address.streetNumber}`;
       parts.push(street);
     }
-    
+
     if (address.city || address.postalCode) {
       parts.push(`${address.city || ''} ${address.postalCode || ''}`.trim());
     }
-    
+
     if (address.country) {
       parts.push(address.country);
     }
-    
+
     return parts.join(', ') || 'Not available';
   };
 
-  const getCustomField = (name: string) => {
-    if (!customer.custom || !customer.custom.customFieldsRaw) return null;
-    
-    const field = customer.custom.customFieldsRaw.find(f => f.name === name);
-    return field ? field.value : null;
-  };
-
   const getDefaultAddress = (addressId?: string) => {
-    if (!addressId || !customer.addresses) return 'None set';
-    
-    const address = customer.addresses.find(addr => addr.id === addressId);
+    if (!addressId || !customer?.addresses) return 'None set';
+
+    const address = customer.addresses.find((addr) => addr.id === addressId);
     return address ? formatAddress(address) : 'Address not found';
   };
 
-  const getStores = () => {
-    if (!customer.stores || customer.stores.length === 0) return 'None';
-    return customer.stores.map(store => store.key).join(', ');
-  };
-
   const getCustomerGroup = () => {
-    if (customer.customerGroup?.name) {
+    if (customer?.customerGroup?.name) {
       return customer.customerGroup.name;
     }
-    if (customer.customerGroup?.id) {
+    if (customer?.customerGroup?.id) {
       return `ID: ${customer.customerGroup.id}`;
     }
     return 'N/A';
@@ -152,14 +145,20 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({
   // Format price for display
   const formatPrice = (cents: number, currency: string) => {
     const amount = cents / 100;
-    return new Intl.NumberFormat('en-US', { 
-      style: 'currency', 
-      currency 
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency,
     }).format(amount);
   };
 
   // Define a detail item component for consistent styling
-  const DetailItem = ({ label, value }: { label: string; value: React.ReactNode }) => (
+  const DetailItem = ({
+    label,
+    value,
+  }: {
+    label: string;
+    value: React.ReactNode;
+  }) => (
     <div className={styles.detailItem}>
       <div className={styles.detailLabel}>
         <Text.Body isBold>{label}</Text.Body>
@@ -172,30 +171,29 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({
 
   // Get order status class based on state
   const getOrderStatusClass = (state: string) => {
-    const statusMap: {[key: string]: string} = {
-      'Open': styles.statusOpen,
-      'Confirmed': styles.statusConfirmed,
-      'Complete': styles.statusComplete,
-      'Cancelled': styles.statusCancelled
+    const statusMap: { [key: string]: string } = {
+      Open: styles.statusOpen,
+      Confirmed: styles.statusConfirmed,
+      Complete: styles.statusComplete,
+      Cancelled: styles.statusCancelled,
     };
     return statusMap[state] || '';
   };
 
   return (
     <div data-testid="customer-details-modal">
-      <FormModalPage
-        title={`Customer: ${customer.firstName || customer.lastName ? `${customer.firstName || ''} ${customer.lastName || ''}`.trim() : customer.email}`}
-        isOpen={isOpen}
-        onClose={onClose}
-        isPrimaryButtonDisabled={true}
-        isSecondaryButtonDisabled={true}
-        labelPrimaryButton=""
-        labelSecondaryButton=""
-        onPrimaryButtonClick={() => {}}
-        onSecondaryButtonClick={() => {}}
+      <InfoModalPage
+        title={`Customer: ${
+          customer?.firstName || customer?.lastName
+            ? `${customer?.firstName || ''} ${customer?.lastName || ''}`.trim()
+            : customer?.email
+        }`}
+        onClose={onBack}
+        isOpen={true}
+        
       >
         {/* Remove the custom close button */}
-        
+
         <Constraints.Horizontal max="scale">
           <Spacings.Stack scale="m">
             {/* Customer Information Section */}
@@ -205,22 +203,29 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({
                   <Spacings.Inline alignItems="center" scale="xs">
                     <InformationIcon size="medium" color="neutral60" />
                     <div className={styles.sectionHeader}>
-                      <Text.Subheadline isBold>Customer Information</Text.Subheadline>
+                      <Text.Subheadline isBold>
+                        Customer Information
+                      </Text.Subheadline>
                     </div>
                   </Spacings.Inline>
                 </div>
 
                 <div className={styles.detailGrid}>
-                  <DetailItem label="Customer ID" value={customer.id} />
-                  <DetailItem label="Email" value={customer.email} />
-                  {(customer.firstName || customer.lastName) && (
-                    <DetailItem 
-                      label="Name" 
-                      value={`${customer.firstName || ''} ${customer.lastName || ''}`.trim()} 
+                  <DetailItem label="Customer ID" value={customer?.id} />
+                  <DetailItem label="Email" value={customer?.email} />
+                  {(customer?.firstName || customer?.lastName) && (
+                    <DetailItem
+                      label="Name"
+                      value={`${customer?.firstName || ''} ${
+                        customer?.lastName || ''
+                      }`.trim()}
                     />
                   )}
-                  {customer.customerNumber && (
-                    <DetailItem label="Customer Number" value={customer.customerNumber} />
+                  {customer?.customerNumber && (
+                    <DetailItem
+                      label="Customer Number"
+                      value={customer?.customerNumber}
+                    />
                   )}
                 </div>
               </Spacings.Stack>
@@ -233,32 +238,42 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({
                   <Spacings.Inline alignItems="center" scale="xs">
                     <GearIcon size="medium" color="neutral60" />
                     <div className={styles.sectionHeader}>
-                      <Text.Subheadline isBold>Account Details</Text.Subheadline>
+                      <Text.Subheadline isBold>
+                        Account Details
+                      </Text.Subheadline>
                     </div>
                   </Spacings.Inline>
                 </div>
-                
+
                 <div className={styles.detailGrid}>
-                  <DetailItem 
-                    label="Created At" 
-                    value={new Date(customer.createdAt).toLocaleString()} 
+                  <DetailItem
+                    label="Created At"
+                    value={
+                      customer?.createdAt
+                        ? new Date(customer?.createdAt).toLocaleString()
+                        : 'N/A'
+                    }
                   />
-                  {customer.lastModifiedAt && (
-                    <DetailItem 
-                      label="Last Modified" 
-                      value={new Date(customer.lastModifiedAt).toLocaleString()} 
+                  {customer?.lastModifiedAt && (
+                    <DetailItem
+                      label="Last Modified"
+                      value={
+                        customer?.lastModifiedAt
+                          ? new Date(customer?.lastModifiedAt).toLocaleString()
+                          : 'N/A'
+                      }
                     />
                   )}
-                  <DetailItem 
-                    label="Customer Group" 
-                    value={getCustomerGroup()} 
+                  <DetailItem
+                    label="Customer Group"
+                    value={getCustomerGroup()}
                   />
                 </div>
               </Spacings.Stack>
             </Card>
 
             {/* Addresses Section */}
-            {customer.addresses && customer.addresses.length > 0 && (
+            {customer?.addresses && customer?.addresses.length > 0 && (
               <Card>
                 <Spacings.Stack scale="m">
                   <div className={styles.sectionDivider}>
@@ -271,21 +286,30 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({
                   </div>
 
                   <div className={styles.detailGrid}>
-                    <DetailItem 
-                      label="Default Shipping" 
-                      value={getDefaultAddress(customer.defaultShippingAddressId)} 
+                    <DetailItem
+                      label="Default Shipping"
+                      value={getDefaultAddress(
+                        customer?.defaultShippingAddressId
+                      )}
                     />
-                    <DetailItem 
-                      label="Default Billing" 
-                      value={getDefaultAddress(customer.defaultBillingAddressId)} 
+                    <DetailItem
+                      label="Default Billing"
+                      value={getDefaultAddress(
+                        customer.defaultBillingAddressId
+                      )}
                     />
                   </div>
-                  
+
                   <div className={styles.addressesGrid}>
                     {customer.addresses.map((address, index) => (
-                      <Card key={address.id || index} className={styles.addressCard}>
+                      <Card
+                        key={address.id || index}
+                        className={styles.addressCard}
+                      >
                         <Spacings.Stack scale="xs">
-                          <Text.Subheadline>Address {index + 1}</Text.Subheadline>
+                          <Text.Subheadline>
+                            Address {index + 1}
+                          </Text.Subheadline>
                           <Text.Body>{formatAddress(address)}</Text.Body>
                         </Spacings.Stack>
                       </Card>
@@ -296,30 +320,34 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({
             )}
 
             {/* Custom Fields Section */}
-            {customer.custom && customer.custom.customFieldsRaw && customer.custom.customFieldsRaw.length > 0 && (
-              <Card>
-                <Spacings.Stack scale="m">
-                  <div className={styles.sectionDivider}>
-                    <Spacings.Inline alignItems="center" scale="xs">
-                      <TagIcon size="medium" color="neutral60" />
-                      <div className={styles.sectionHeader}>
-                        <Text.Subheadline isBold>Custom Fields</Text.Subheadline>
-                      </div>
-                    </Spacings.Inline>
-                  </div>
+            {customer?.custom &&
+              customer?.custom?.customFieldsRaw &&
+              customer?.custom?.customFieldsRaw?.length > 0 && (
+                <Card>
+                  <Spacings.Stack scale="m">
+                    <div className={styles.sectionDivider}>
+                      <Spacings.Inline alignItems="center" scale="xs">
+                        <TagIcon size="medium" color="neutral60" />
+                        <div className={styles.sectionHeader}>
+                          <Text.Subheadline isBold>
+                            Custom Fields
+                          </Text.Subheadline>
+                        </div>
+                      </Spacings.Inline>
+                    </div>
 
-                  <div className={styles.detailGrid}>
-                    {customer.custom.customFieldsRaw.map(field => (
-                      <DetailItem 
-                        key={field.name}
-                        label={field.name} 
-                        value={field.value} 
-                      />
-                    ))}
-                  </div>
-                </Spacings.Stack>
-              </Card>
-            )}
+                    <div className={styles.detailGrid}>
+                      {customer.custom.customFieldsRaw.map((field) => (
+                        <DetailItem
+                          key={field.name}
+                          label={field.name}
+                          value={field.value}
+                        />
+                      ))}
+                    </div>
+                  </Spacings.Stack>
+                </Card>
+              )}
 
             {/* Customer Orders Section */}
             <Card>
@@ -343,25 +371,38 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({
                   </div>
                 ) : (
                   <div className={styles.addressesGrid}>
-                    {customerOrders.slice(0, 5).map(order => (
-                      <Card key={order.id} className={styles.addressCard}>
-                        <Spacings.Stack scale="s">
-                          <Spacings.Inline justifyContent="space-between" alignItems="center">
-                            <Text.Subheadline>
-                              {order.orderNumber || order.id.slice(0, 8)}
-                            </Text.Subheadline>
-                            <div className={`${styles.orderStatus} ${getOrderStatusClass(order.orderState)}`}>
-                              {order.orderState}
-                            </div>
-                          </Spacings.Inline>
-                          <Text.Detail tone="secondary">
-                            Created: {new Date(order.createdAt).toLocaleString()}
-                          </Text.Detail>
-                          <Text.Body isBold>
-                            {formatPrice(order.totalPrice.centAmount, order.totalPrice.currencyCode)}
-                          </Text.Body>
-                        </Spacings.Stack>
-                      </Card>
+                    {customerOrders.slice(0, 5).map((order) => (
+                      <Link to={`${linkToWelcome}/orders/${order.id}`} >
+                        <Card key={order.id} className={useClassNames(styles.addressCard, styles.link)}>
+                          <Spacings.Stack scale="s">
+                            <Spacings.Inline
+                              justifyContent="space-between"
+                              alignItems="center"
+                            >
+                              <Text.Subheadline>
+                                {order.orderNumber || order.id.slice(0, 8)}
+                              </Text.Subheadline>
+                              <div
+                                className={`${
+                                  styles.orderStatus
+                                } ${getOrderStatusClass(order.orderState)}`}
+                              >
+                                {order.orderState}
+                              </div>
+                            </Spacings.Inline>
+                            <Text.Detail tone="secondary">
+                              Created:{' '}
+                              {new Date(order.createdAt).toLocaleString()}
+                            </Text.Detail>
+                            <Text.Body isBold>
+                              {formatPrice(
+                                order.totalPrice.centAmount,
+                                order.totalPrice.currencyCode
+                              )}
+                            </Text.Body>
+                          </Spacings.Stack>
+                        </Card>
+                      </Link>
                     ))}
                   </div>
                 )}
@@ -369,9 +410,9 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({
             </Card>
           </Spacings.Stack>
         </Constraints.Horizontal>
-      </FormModalPage>
+      </InfoModalPage>
     </div>
   );
 };
 
-export default CustomerDetailsModal; 
+export default CustomerDetailsModal;

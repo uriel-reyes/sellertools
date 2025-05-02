@@ -12,10 +12,11 @@ import useStoreProducts from '../../hooks/use-store-products/use-store-products'
 import messages from './messages';
 import styles from './products.module.css';
 import ProductForm from './product-form';
+import { useAuthContext } from '../../contexts/auth-context';
 
 interface ProductsProps {
-  storeKey: string;
   onBack: () => void;
+  linkToWelcome: string;
 }
 
 // Product type definition
@@ -67,7 +68,8 @@ const CheckboxCell = ({
   </div>
 );
 
-const Products: React.FC<ProductsProps> = ({ storeKey, onBack }) => {
+const Products: React.FC<ProductsProps> = ({ linkToWelcome, onBack }) => {
+  const { storeKey } = useAuthContext();
   const [isLoading, setIsLoading] = useState(false);
   const [isStoreProductsLoading, setIsStoreProductsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -187,7 +189,7 @@ const Products: React.FC<ProductsProps> = ({ storeKey, onBack }) => {
     
     setIsRemovingProducts(true);
     try {
-      const success = await removeProductsFromStore(storeKey, selectedStoreProducts);
+      const success = await removeProductsFromStore(storeKey!, selectedStoreProducts);
       
       if (success) {
         // Refresh the store products to show the updated list
@@ -255,7 +257,7 @@ const Products: React.FC<ProductsProps> = ({ storeKey, onBack }) => {
       <Spacings.Stack scale="l">
         {view === 'form' ? (
           <ProductForm 
-            channelKey={storeKey}
+            channelKey={storeKey!}
             onBack={() => setView('list')}
             onSubmit={async (productData) => {
               const success = await createProduct(productData);
@@ -332,7 +334,7 @@ const Products: React.FC<ProductsProps> = ({ storeKey, onBack }) => {
                             
                             setIsAddingProducts(true);
                             try {
-                              const success = await addProductsToStore(storeKey, selectedProducts);
+                              const success = await addProductsToStore(storeKey!, selectedProducts);
                               
                               if (success) {
                                 // Refresh the store products to show the newly added items
