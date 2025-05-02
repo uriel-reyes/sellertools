@@ -115,12 +115,26 @@ This application addresses the need for store-specific management tools in a mul
   - Pre-populated form with existing promotion values
   - Intelligent comparison to only send changed fields to the API
   - Proper handling of different discount types (percentage vs. fixed amount)
+  - Support for parsing and editing existing promotion predicates
+- **Multi-select and Bulk Actions**:
+  - Select multiple promotions using checkboxes in the table
+  - Bulk action dropdown with options to Activate, Deactivate, or Delete multiple promotions
+  - Confirmation dialogs to prevent accidental bulk operations
+  - Efficient batch processing of multiple promotions
+  - Clear feedback on bulk operation results
+- **Delete Functionality**:
+  - Individual promotion deletion via actions menu
+  - Bulk deletion of multiple selected promotions
+  - Confirmation dialogs to prevent accidental deletion
+  - Proper cleanup of promotion resources in commercetools
 - **Enhanced User Experience**:
   - Improved money input field for fixed amount discounts
   - Native number input controls with proper decimal handling
   - Support for entering precise dollar amounts (e.g., $12.25)
   - Proper conversion between dollars and cents for the commercetools API
   - Consistent formatting and input validation
+  - Simplified and streamlined UI with improved visual hierarchy
+  - Automatic retry mechanism for handling sort order conflicts
 
 ## Configuration Requirements
 

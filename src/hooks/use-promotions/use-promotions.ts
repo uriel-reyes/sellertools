@@ -126,6 +126,15 @@ const UPDATE_PRODUCT_DISCOUNT_MUTATION = gql`
   }
 `;
 
+// GraphQL mutation to delete a product discount
+const DELETE_PRODUCT_DISCOUNT_MUTATION = gql`
+  mutation DeleteProductDiscount($id: String!, $version: Long!) {
+    deleteProductDiscount(id: $id, version: $version) {
+      id
+    }
+  }
+`;
+
 // Define the interface for the promotion data structure - export for use in other components
 export interface PromotionData {
   id: string;
@@ -178,6 +187,12 @@ interface UpdateProductDiscountInput {
   sortOrder?: string;
 }
 
+// Define interface for deleting a product discount
+interface DeleteProductDiscountInput {
+  id: string;
+  version: number;
+}
+
 // GraphQL response types
 interface ProductDiscountResult {
   id: string;
@@ -225,12 +240,20 @@ interface UpdateProductDiscountResult {
   };
 }
 
+// Define interface for the delete mutation response
+interface DeleteProductDiscountResult {
+  deleteProductDiscount: {
+    id: string;
+  };
+}
+
 // Define the hook result interface
 interface UsePromotionsResult {
   fetchPromotions: (channelKey: string) => Promise<PromotionData[]>;
   createProductDiscount: (input: CreateProductDiscountInput) => Promise<ProductDiscountResult | null>;
   updatePromotionActiveStatus: (input: UpdateProductDiscountActiveStatusInput) => Promise<boolean>;
   updateProductDiscount: (input: UpdateProductDiscountInput) => Promise<ProductDiscountResult | null>;
+  deleteProductDiscount: (input: DeleteProductDiscountInput) => Promise<boolean>;
   loading: boolean;
   error: Error | null;
 }
@@ -267,6 +290,15 @@ const usePromotions = (): UsePromotionsResult => {
 
   const [runUpdateMutation] = useMcMutation<{ updateProductDiscount: ProductDiscountResult }>(
     UPDATE_PRODUCT_DISCOUNT_MUTATION,
+    {
+      context: {
+        target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
+      },
+    }
+  );
+
+  const [runDeleteMutation] = useMcMutation<DeleteProductDiscountResult>(
+    DELETE_PRODUCT_DISCOUNT_MUTATION,
     {
       context: {
         target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
@@ -390,7 +422,7 @@ const usePromotions = (): UsePromotionsResult => {
             absolute: {
               money: [{
                 currencyCode: input.currencyCode,
-                centAmount: input.discountValue,
+                centAmount: Math.round(input.discountValue * 100), // Convert dollars to cents
               }]
             }
           };
@@ -581,7 +613,8 @@ const usePromotions = (): UsePromotionsResult => {
           if (
             currentPromotion.value?.__typename !== 'RelativeDiscountValue' || 
             currentPermyriad === null || 
-            Math.abs(currentPermyriad / 100 - discountValue) > 0.001 // Account for floating point precision
+            currentPermyriad === undefined ||
+            Math.abs((currentPermyriad || 0) / 100 - discountValue) > 0.001 // Account for floating point precision
           ) {
             valueChanged = true;
           }
@@ -683,6 +716,37 @@ const usePromotions = (): UsePromotionsResult => {
     [refetch, runUpdateMutation]
   );
 
+  const deleteProductDiscount = async (
+    input: DeleteProductDiscountInput
+  ): Promise<boolean> => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const response = await runDeleteMutation({
+        variables: {
+          id: input.id,
+          version: input.version,
+        },
+      });
+      
+      return !!response.data?.deleteProductDiscount?.id;
+    } catch (error: unknown) {
+      console.error('Error deleting product discount:', error);
+      
+      // Log detailed error information for debugging
+      const typedError = error as any;
+      if (typedError.graphQLErrors) {
+        console.error('GraphQL errors:', JSON.stringify(typedError.graphQLErrors, null, 2));
+      }
+      
+      setError(error instanceof Error ? error : new Error('Unknown error occurred'));
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const formatCurrency = (centAmount: number, currencyCode: string): string => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -700,6 +764,7 @@ const usePromotions = (): UsePromotionsResult => {
     createProductDiscount,
     updatePromotionActiveStatus,
     updateProductDiscount,
+    deleteProductDiscount,
     loading,
     error,
   };

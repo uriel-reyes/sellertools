@@ -60,7 +60,7 @@ const Promotions: React.FC<PromotionsProps> = ({ channelKey, onBack }) => {
   const [bulkActionError, setBulkActionError] = useState<string | null>(null);
   const [bulkActionSuccess, setBulkActionSuccess] = useState<string | null>(null);
   
-  const { fetchPromotions, updatePromotionActiveStatus } = usePromotions();
+  const { fetchPromotions, updatePromotionActiveStatus, deleteProductDiscount } = usePromotions();
   
   const loadPromotions = useCallback(async () => {
     setIsLoading(true);
@@ -225,9 +225,51 @@ const Promotions: React.FC<PromotionsProps> = ({ channelKey, onBack }) => {
         // Refresh the promotions list
         await loadPromotions();
       } else if (bulkAction === 'delete') {
-        // Note: Implement delete functionality when needed
-        // For now, just show a message that this is not implemented
-        setBulkActionError(intl.formatMessage(messages.bulkDeleteNotImplemented));
+        // Track successes and failures
+        let successCount = 0;
+        let failureCount = 0;
+        
+        // Process each promotion sequentially
+        for (const promotion of selectedPromotions) {
+          try {
+            const result = await deleteProductDiscount({
+              id: promotion.id,
+              version: Number(promotion.version),
+            });
+            
+            if (result) {
+              successCount++;
+            } else {
+              failureCount++;
+            }
+          } catch (err) {
+            console.error(`Error deleting promotion ${promotion.id}:`, err);
+            failureCount++;
+          }
+        }
+        
+        // Set success message
+        if (successCount > 0) {
+          setBulkActionSuccess(
+            intl.formatMessage(
+              messages.bulkDeleteSuccess,
+              { count: successCount }
+            )
+          );
+        }
+        
+        // Set error message if some failed
+        if (failureCount > 0) {
+          setBulkActionError(
+            intl.formatMessage(
+              messages.bulkDeletePartialError,
+              { count: failureCount }
+            )
+          );
+        }
+        
+        // Refresh the promotions list
+        await loadPromotions();
       }
     } catch (err) {
       console.error('Error executing bulk action:', err);
@@ -352,10 +394,9 @@ const Promotions: React.FC<PromotionsProps> = ({ channelKey, onBack }) => {
             onClick={handleRefresh}
             isDisabled={isLoading || bulkActionInProgress}
           />
-          <SecondaryButton
+          <PrimaryButton
             label={intl.formatMessage(messages.backButton)}
             onClick={onBack}
-            iconLeft={<BackIcon />}
           />
         </Spacings.Inline>
       </div>

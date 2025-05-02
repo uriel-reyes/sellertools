@@ -162,8 +162,19 @@ const ProductDiscountForm: React.FC<ProductDiscountFormProps> = ({
   
   // Function to generate a random sort order value between 0 and 1
   const generateRandomSortOrder = (): string => {
-    // Generate a random number between 0 and 0.999999
-    return Math.random().toFixed(6);
+    // Generate a random number between 0 and 1 (non-inclusive)
+    let random = Math.random();
+    
+    // Convert to string with 6 decimals
+    let result = random.toFixed(6);
+    
+    // Check if it ends with 0 and replace if needed
+    while (result.endsWith('0')) {
+      // Replace the last character with a random non-zero digit
+      result = result.slice(0, -1) + (Math.floor(Math.random() * 9) + 1);
+    }
+    
+    return result;
   };
 
   // Maximum number of retries for sort order conflicts
