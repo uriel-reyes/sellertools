@@ -1,8 +1,8 @@
-import type { ReactNode } from 'react';
-import { Switch, Route, useRouteMatch } from 'react-router-dom';
 import Spacings from '@commercetools-uikit/spacings';
-import Welcome from './components/welcome';
-
+import type { ReactNode } from 'react';
+import { useRouteMatch } from 'react-router-dom';
+import App from './components/app';
+import { AuthProvider } from './contexts/auth-context';
 type ApplicationRoutesProps = {
   children?: ReactNode;
 };
@@ -21,13 +21,11 @@ const ApplicationRoutes = (_props: ApplicationRoutesProps) => {
    */
 
   return (
-    <Spacings.Inset scale="l">
-      <Switch>
-        <Route>
-          <Welcome />
-        </Route>
-      </Switch>
-    </Spacings.Inset>
+    <AuthProvider>
+      <Spacings.Inset scale="l">
+        <App />
+      </Spacings.Inset>
+    </AuthProvider>
   );
 };
 ApplicationRoutes.displayName = 'ApplicationRoutes';
