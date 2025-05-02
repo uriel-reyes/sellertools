@@ -29,4 +29,8 @@ export default defineMessages({
     id: 'SellerDashboard.managePromotions',
     defaultMessage: 'Manage Promotions',
   },
+  manageContent: {
+    id: 'SellerDashboard.manageContent',
+    defaultMessage: 'contentools',
+  },
 }); 

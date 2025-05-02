@@ -9,6 +9,7 @@ import Products from '../products/products';
 import Prices from '../prices/prices';
 import Promotions from '../promotions/promotions';
 import styles from './seller-dashboard.module.css';
+import messages from './messages';
 
 type DashboardCardProps = {
   title: string;
@@ -33,6 +34,7 @@ type SellerDashboardProps = {
 };
 
 const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, storeKey }) => {
+  const intl = useIntl();
   const [activeView, setActiveView] = useState<string | null>(null);
 
   const handleNavigation = (route: string) => {
@@ -67,43 +69,60 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, storeKey 
     return <Promotions channelKey={storeKey} onBack={goBackToDashboard} />;
   }
 
+  if (activeView === '/content') {
+    console.log('Navigating to Content view with storeKey:', storeKey);
+    // TODO: Replace with actual content component when created
+    return (
+      <div>
+        <h1>Content Management</h1>
+        <button onClick={goBackToDashboard}>Back to Dashboard</button>
+      </div>
+    );
+  }
+
   // Otherwise show the dashboard
   const dashboardItems = [
     {
       id: 'orders',
-      title: 'Manage Orders',
+      title: intl.formatMessage(messages.viewOrders),
       emoji: '📋',
       onClick: () => handleNavigation('/orders'),
     },
     {
       id: 'customers',
-      title: 'View Customers',
+      title: intl.formatMessage(messages.manageCustomers),
       emoji: '👥',
       onClick: () => handleNavigation('/customers'),
     },
     {
       id: 'products',
-      title: 'Manage Products',
+      title: intl.formatMessage(messages.selectProducts),
       emoji: '🛒',
       onClick: () => handleNavigation('/products'),
     },
     {
       id: 'prices',
-      title: 'Manage Prices',
+      title: intl.formatMessage(messages.managePrices),
       emoji: '💰',
       onClick: () => handleNavigation('/prices'),
     },
     {
       id: 'pricelists',
-      title: 'Manage Price Lists',
+      title: intl.formatMessage(messages.managePriceLists),
       emoji: '📊',
       onClick: () => handleNavigation('/price-lists'),
     },
     {
       id: 'promotions',
-      title: 'Manage Promotions',
+      title: intl.formatMessage(messages.managePromotions),
       emoji: '🏷️',
       onClick: () => handleNavigation('/promotions'),
+    },
+    {
+      id: 'content',
+      title: intl.formatMessage(messages.manageContent),
+      emoji: '📝',
+      onClick: () => handleNavigation('/content'),
     },
   ];
 
@@ -111,7 +130,7 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, storeKey 
     <div className={styles.dashboardContainer}>
       <Spacings.Stack scale="xl">
         <div className={styles.dashboardTitle}>
-          <Text.Headline as="h1">Seller Dashboard</Text.Headline>
+          <Text.Headline as="h1">{intl.formatMessage(messages.title)}</Text.Headline>
         </div>
         
         <div className={styles.dashboardGrid}>
