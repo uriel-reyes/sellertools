@@ -32,6 +32,7 @@ interface PromotionData {
   valueAmount: string;
   sortOrder: string;
   version: number;
+  key: string | null;
 }
 
 // Type for the current view state
@@ -161,6 +162,7 @@ const Promotions: React.FC<PromotionsProps> = ({ channelKey, onBack }) => {
   };
   
   // Define the column structure for the DataTable
+  // Note: sortOrder column is intentionally hidden since it's now auto-generated
   const columns: TColumn<PromotionData>[] = [
     { 
       key: 'active', 
@@ -189,7 +191,6 @@ const Promotions: React.FC<PromotionsProps> = ({ channelKey, onBack }) => {
     { key: 'description', label: intl.formatMessage(messages.columnDescription) },
     { key: 'predicate', label: intl.formatMessage(messages.columnPredicate) },
     { key: 'valueAmount', label: intl.formatMessage(messages.columnValueAmount) },
-    { key: 'sortOrder', label: intl.formatMessage(messages.columnSortOrder) },
   ];
 
   const handleAddPromotion = () => {

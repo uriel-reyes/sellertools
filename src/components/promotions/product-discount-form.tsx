@@ -160,6 +160,15 @@ const ProductDiscountForm: React.FC<ProductDiscountFormProps> = ({
     }
   };
   
+  // Function to generate a random sort order value between 0 and 1
+  const generateRandomSortOrder = (): string => {
+    // Generate a random number between 0 and 0.999999
+    return Math.random().toFixed(6);
+  };
+
+  // Maximum number of retries for sort order conflicts
+  const MAX_RETRIES = 5;
+  
   // Initialize form data based on if we're editing or creating
   const initialFormData = isEditing && promotion 
     ? {
@@ -179,7 +188,7 @@ const ProductDiscountForm: React.FC<ProductDiscountFormProps> = ({
         isActive: true,
         discountValue: 10,
         discountType: 'percentage' as const,
-        sortOrder: '0.5',
+        sortOrder: generateRandomSortOrder(),
         applyTo: 'all' as const,
         conditions: [],
       };
@@ -223,22 +232,7 @@ const ProductDiscountForm: React.FC<ProductDiscountFormProps> = ({
   ];
 
   const handleInputChange = (field: string, value: string | number | boolean) => {
-    // Special validation for sort order
-    if (field === 'sortOrder') {
-      const strValue = String(value);
-      const numValue = parseFloat(strValue);
-      // Ensure it's a valid number less than 1
-      if (!isNaN(numValue) && numValue < 1) {
-        setDiscountData({
-          ...discountData,
-          [field]: strValue,
-        });
-      }
-      // If not valid, don't update the state
-      return;
-    }
-    
-    // For other fields, update normally
+    // For all fields, update normally
     setDiscountData({
       ...discountData,
       [field]: value,
@@ -359,7 +353,7 @@ const ProductDiscountForm: React.FC<ProductDiscountFormProps> = ({
     return conditionStrings.join(' and ');
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (retryCount = 0) => {
     setSuccessMessage(null);
     setSubmissionError(null);
     
@@ -369,6 +363,11 @@ const ProductDiscountForm: React.FC<ProductDiscountFormProps> = ({
       
       // Get the currency code for absolute discounts (using USD as default)
       const currencyCode = discountData.discountType === 'absolute' ? 'USD' : undefined;
+      
+      // Make sure we have a valid sort order (generate a new one if needed)
+      const sortOrder = isNaN(parseFloat(discountData.sortOrder)) || parseFloat(discountData.sortOrder) >= 1 
+        ? generateRandomSortOrder() 
+        : discountData.sortOrder;
       
       // Prepare the input for the mutation
       const baseInput = {
@@ -380,7 +379,7 @@ const ProductDiscountForm: React.FC<ProductDiscountFormProps> = ({
         discountType: discountData.discountType,
         currencyCode,
         isActive: discountData.isActive,
-        sortOrder: discountData.sortOrder,
+        sortOrder, // Use the validated/generated sort order
       };
       
       // Log the value being sent
@@ -420,6 +419,33 @@ const ProductDiscountForm: React.FC<ProductDiscountFormProps> = ({
       }
     } catch (err) {
       console.error(`Error ${isEditing ? 'updating' : 'submitting'} product discount:`, err);
+      
+      // Check if the error is related to duplicate sort order
+      const errorMessage = err instanceof Error ? err.message : '';
+      const isSortOrderConflict = errorMessage.includes('sort order') || 
+                                 errorMessage.includes('sortOrder') ||
+                                 errorMessage.includes('duplicate');
+      
+      // If it's a sort order conflict and we haven't exceeded max retries, try again with a new sort order
+      if (isSortOrderConflict && retryCount < MAX_RETRIES) {
+        console.log(`Sort order conflict detected. Retrying with a new sort order (attempt ${retryCount + 1}/${MAX_RETRIES})...`);
+        
+        // Set a new random sort order
+        const newSortOrder = generateRandomSortOrder();
+        setDiscountData(prev => ({
+          ...prev,
+          sortOrder: newSortOrder
+        }));
+        
+        // Wait a short time before retrying to ensure state updates
+        setTimeout(() => {
+          handleSubmit(retryCount + 1);
+        }, 100);
+        
+        return;
+      }
+      
+      // If it's not a sort order conflict or we've exceeded retries, show the error
       setSubmissionError(err instanceof Error ? err.message : intl.formatMessage(
         isEditing ? messages.promotionUpdateError : messages.promotionCreateError
       ));
@@ -484,21 +510,7 @@ const ProductDiscountForm: React.FC<ProductDiscountFormProps> = ({
                 onChange={(event) => handleInputChange('description', event.target.value)}
               />
               
-              <div className={styles.sortOrderField}>
-                <TextField
-                  title={intl.formatMessage(messages.sortOrder)}
-                  value={discountData.sortOrder}
-                  onChange={(event) => handleInputChange('sortOrder', event.target.value)}
-                  isRequired
-                  hint={intl.formatMessage(messages.sortOrderHint)}
-                  errors={
-                    discountData.sortOrder && (isNaN(parseFloat(discountData.sortOrder)) || parseFloat(discountData.sortOrder) >= 1) 
-                      ? { invalid: true } 
-                      : {}
-                  }
-                  renderError={() => intl.formatMessage(messages.sortOrderError)}
-                />
-              </div>
+              {/* Sort order field removed - auto-generated */}
             </div>
           </Spacings.Stack>
         </Card>
@@ -710,12 +722,9 @@ const ProductDiscountForm: React.FC<ProductDiscountFormProps> = ({
           
           <PrimaryButton
             label={intl.formatMessage(isEditing ? messages.updatePromotion : messages.createPromotion)}
-            onClick={handleSubmit}
+            onClick={() => handleSubmit(0)}
             isDisabled={
               !discountData.name || 
-              !discountData.sortOrder || 
-              isNaN(parseFloat(discountData.sortOrder)) || 
-              parseFloat(discountData.sortOrder) >= 1 || 
               (discountData.applyTo === 'specific' && discountData.conditions.length === 0) ||
               loading
             }
