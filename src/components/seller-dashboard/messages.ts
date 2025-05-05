@@ -33,4 +33,8 @@ export default defineMessages({
     id: 'SellerDashboard.manageContent',
     defaultMessage: 'contentools',
   },
+  viewReports: {
+    id: 'SellerDashboard.viewReports',
+    defaultMessage: 'View Reports',
+  },
 }); 

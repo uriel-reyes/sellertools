@@ -79,6 +79,12 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate }) => {
       emoji: '📝',
       onClick: () => handleNavigation('/content'),
     },
+    {
+      id: 'reports',
+      title: intl.formatMessage(messages.viewReports),
+      emoji: '📈',
+      onClick: () => handleNavigation('/reports'),
+    },
   ];
 
   return (
