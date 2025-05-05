@@ -101,7 +101,8 @@ const Products: React.FC<ProductsProps> = ({ linkToWelcome, onBack }) => {
           ...product,
           isSelected: selectedProducts.includes(product.id)
         }));
-        setMasterProducts(updatedProducts);
+        const filteredProducts = updatedProducts.filter(product => !storeProducts.find(p => p.id === product.id));
+        setMasterProducts(filteredProducts);
       } else {
         console.log('No products returned for master-store');
         setMasterProducts([]);
@@ -140,9 +141,12 @@ const Products: React.FC<ProductsProps> = ({ linkToWelcome, onBack }) => {
   };
   
   useEffect(() => {
-    fetchMasterProducts();
     fetchUserStoreProducts();
   }, [storeKey]);
+  
+  useEffect(() => {
+    fetchMasterProducts();
+  }, [storeProducts]);
   
   useEffect(() => {
     // Update selected state when selectedProducts changes
@@ -263,7 +267,6 @@ const Products: React.FC<ProductsProps> = ({ linkToWelcome, onBack }) => {
               const success = await createProduct(productData);
               if (success) {
                 // Refresh product lists after creating a new product
-                fetchMasterProducts();
                 fetchUserStoreProducts();
                 setView('list');
               }
@@ -291,7 +294,6 @@ const Products: React.FC<ProductsProps> = ({ linkToWelcome, onBack }) => {
                   iconLeft={<RefreshIcon />}
                   label={intl.formatMessage(messages.refreshButton)}
                   onClick={() => {
-                    fetchMasterProducts();
                     fetchUserStoreProducts();
                   }}
                   isDisabled={isLoading || isStoreProductsLoading}
