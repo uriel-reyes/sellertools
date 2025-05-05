@@ -43,6 +43,43 @@ const GET_PRODUCT_DISCOUNTS_QUERY = gql`
   }
 `;
 
+// GraphQL query to fetch a single product discount by ID
+const GET_PRODUCT_DISCOUNT_BY_ID_QUERY = gql`
+  query GetProductDiscountById($id: String!) {
+    productDiscount(id: $id) {
+      id
+      version
+      createdAt
+      lastModifiedAt
+      isActive
+      name(locale: "en-US")
+      description(locale: "en-US")
+      predicate
+      validFrom
+      validUntil
+      sortOrder
+      key
+      value {
+        ... on RelativeDiscountValue {
+          __typename
+          permyriad
+          type
+        }
+        ... on AbsoluteDiscountValue {
+          __typename
+          money {
+            centAmount
+            currencyCode
+            fractionDigits
+            type
+          }
+          type
+        }
+      }
+    }
+  }
+`;
+
 // GraphQL mutation to create a new product discount
 const CREATE_PRODUCT_DISCOUNT_MUTATION = gql`
   mutation CreateProductDiscount($draft: ProductDiscountDraft!) {
@@ -247,9 +284,15 @@ interface DeleteProductDiscountResult {
   };
 }
 
+// Interface for the get promotion by ID response
+interface GetProductDiscountByIdResult {
+  productDiscount: ProductDiscountResult;
+}
+
 // Define the hook result interface
 interface UsePromotionsResult {
   fetchPromotions: (channelKey: string) => Promise<PromotionData[]>;
+  getPromotionById: (id: string) => Promise<PromotionData | null>;
   createProductDiscount: (input: CreateProductDiscountInput) => Promise<ProductDiscountResult | null>;
   updatePromotionActiveStatus: (input: UpdateProductDiscountActiveStatusInput) => Promise<boolean>;
   updateProductDiscount: (input: UpdateProductDiscountInput) => Promise<ProductDiscountResult | null>;
@@ -269,6 +312,16 @@ const usePromotions = (): UsePromotionsResult => {
     },
     skip: true, // Skip initial query, we'll trigger it manually
   });
+
+  const { refetch: fetchProductDiscountById } = useMcQuery<GetProductDiscountByIdResult>(
+    GET_PRODUCT_DISCOUNT_BY_ID_QUERY,
+    {
+      context: {
+        target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
+      },
+      skip: true,
+    }
+  );
 
   const [runCreateMutation] = useMcMutation<CreateProductDiscountResult>(
     CREATE_PRODUCT_DISCOUNT_MUTATION,
@@ -392,6 +445,68 @@ const usePromotions = (): UsePromotionsResult => {
       }
     },
     [refetch]
+  );
+
+  const getPromotionById = useCallback(
+    async (id: string): Promise<PromotionData | null> => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        console.log(`Fetching product discount with ID: ${id}`);
+        const response = await fetchProductDiscountById({
+          id,
+        });
+
+        // Safely access data with optional chaining
+        const productDiscount = response?.data?.productDiscount;
+        
+        if (!productDiscount) {
+          console.log(`No product discount found with ID: ${id}`);
+          return null;
+        }
+        
+        // Process discount value information
+        let valueAmount = '';
+        
+        if (productDiscount.value) {
+          if (productDiscount.value.__typename === 'AbsoluteDiscountValue') {
+            if (productDiscount.value.money && productDiscount.value.money.length > 0) {
+              const { centAmount, currencyCode } = productDiscount.value.money[0];
+              valueAmount = formatCurrency(centAmount, currencyCode);
+            }
+          } else if (productDiscount.value.__typename === 'RelativeDiscountValue') {
+            if (productDiscount.value.permyriad !== undefined) {
+              valueAmount = formatPercentage(productDiscount.value.permyriad);
+            }
+          }
+        }
+        
+        // Map to our promotion data structure
+        const promotion: PromotionData = {
+          id: productDiscount.id,
+          name: productDiscount.name || 'Unnamed Promotion',
+          description: productDiscount.description || '',
+          isActive: productDiscount.isActive || false,
+          predicate: productDiscount.predicate || 'No conditions',
+          channelKey: extractChannelKey(productDiscount.predicate),
+          valueAmount,
+          sortOrder: productDiscount.sortOrder || '0',
+          key: productDiscount.key,
+          version: productDiscount.version || 1,
+        };
+
+        console.log(`Successfully fetched product discount with ID: ${id}`);
+        return promotion;
+      } catch (err) {
+        console.error(`Error fetching product discount with ID ${id}:`, err);
+        setError(err instanceof Error ? err : new Error('Unknown error occurred'));
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [fetchProductDiscountById]
   );
 
   const createProductDiscount = useCallback(
@@ -761,6 +876,7 @@ const usePromotions = (): UsePromotionsResult => {
 
   return {
     fetchPromotions,
+    getPromotionById,
     createProductDiscount,
     updatePromotionActiveStatus,
     updateProductDiscount,

@@ -10,9 +10,10 @@ import { RefreshIcon } from '@commercetools-uikit/icons';
 import { ErrorMessage } from '@commercetools-uikit/messages';
 import usePriceManagement from '../../hooks/use-price-management/use-price-management';
 import styles from './prices.module.css';
+import { useAuthContext } from '../../contexts/auth-context';
 
 interface PricesProps {
-  storeKey: string;
+  linkToWelcome: string;
   onBack: () => void;
 }
 
@@ -123,7 +124,8 @@ const PriceInputCell = ({
   );
 };
 
-const Prices: React.FC<PricesProps> = ({ storeKey, onBack }) => {
+const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
+  const { storeKey } = useAuthContext();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [products, setProducts] = useState<ProductPriceData[]>([]);
@@ -135,7 +137,7 @@ const Prices: React.FC<PricesProps> = ({ storeKey, onBack }) => {
     setError(null);
     
     try {
-      const result = await fetchProductsWithPrices(storeKey);
+      const result = await fetchProductsWithPrices(storeKey!);
       setProducts(result);
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Unknown error fetching products'));
@@ -225,7 +227,7 @@ const Prices: React.FC<PricesProps> = ({ storeKey, onBack }) => {
       renderItem: (item: ProductPriceData) => (
         <PriceInputCell 
           product={item}
-          storeKey={storeKey}
+          storeKey={storeKey!}
           onPriceChange={handlePriceChange} 
         />
       ),

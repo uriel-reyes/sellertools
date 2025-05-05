@@ -1,134 +1,92 @@
-import React from 'react';
-import { FormModalPage } from '@commercetools-frontend/application-components';
-import Text from '@commercetools-uikit/text';
-import Spacings from '@commercetools-uikit/spacings';
-import { ContentNotification } from '@commercetools-uikit/notifications';
+import { InfoModalPage } from '@commercetools-frontend/application-components';
 import Card from '@commercetools-uikit/card';
 import Constraints from '@commercetools-uikit/constraints';
 import Table from '@commercetools-uikit/data-table';
 import {
-  InformationIcon,
-  UsersIcon,
-  WorldIcon,
   CartIcon,
   CoinsIcon,
-  CloseIcon
+  InformationIcon,
+  UsersIcon,
+  WorldIcon
 } from '@commercetools-uikit/icons';
+import LoadingSpinner from '@commercetools-uikit/loading-spinner';
+import Spacings from '@commercetools-uikit/spacings';
+import Text from '@commercetools-uikit/text';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useParams } from 'react-router';
+import useOrders from '../../hooks/use-orders/use-orders';
+import { formatPrice } from '../../utils/price';
 import styles from './orders.module.css';
 
 interface OrderDetailsModalProps {
-  order: {
-    id: string;
-    version: number;
-    orderNumber?: string;
-    createdAt: string;
-    lastModifiedAt?: string;
-    totalPrice: {
-      centAmount: number;
-      currencyCode: string;
-    };
-    orderState: string;
-    customerId?: string;
-    customerEmail?: string;
-    customerName?: string;
-    lineItems?: Array<{
-      id: string;
-      name: string;
-      productId: string;
-      quantity: number;
-      variant?: {
-        images?: Array<{
-          url: string;
-        }>;
-      };
-      price: {
-        value: {
-          centAmount: number;
-          currencyCode: string;
-        }
-      };
-      totalPrice: {
-        centAmount: number;
-        currencyCode: string;
-      }
-    }>;
-    shippingAddress?: {
-      firstName?: string;
-      lastName?: string;
-      streetName?: string;
-      streetNumber?: string;
-      city?: string;
-      postalCode?: string;
-      country?: string;
-    };
-    billingAddress?: {
-      firstName?: string;
-      lastName?: string;
-      streetName?: string;
-      streetNumber?: string;
-      city?: string;
-      postalCode?: string;
-      country?: string;
-    };
-  };
-  isOpen: boolean;
-  onClose: () => void;
-  formatPrice: (cents: number, currency: string) => string;
+  linkToWelcome: string;
+  onBack: () => void;
 }
 
 const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
-  order,
-  isOpen,
-  onClose,
-  formatPrice,
+  onBack,
 }) => {
-  const orderTotal = formatPrice(
-    order.totalPrice.centAmount,
-    order.totalPrice.currencyCode
-  );
+  const { orderId } = useParams<{ orderId?: string }>();
+
+  const { fetchOrderById } = useOrders();
+  const [order, setOrder] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (orderId) {
+      fetchOrderById(orderId)
+        .then(setOrder)
+        .catch(setError)
+        .finally(() => setLoading(false));
+    }
+  }, [orderId, fetchOrderById]);
+
+  const orderTotal = useMemo(() => {
+    return formatPrice(
+      order?.totalPrice?.centAmount || 0,
+      order?.totalPrice?.currencyCode || 'USD'
+    );
+  }, [order]);
 
   const formatAddress = (address: any) => {
     if (!address) return 'Not available';
-    
+
     const parts = [];
     if (address.firstName || address.lastName) {
       parts.push(`${address.firstName || ''} ${address.lastName || ''}`.trim());
     }
-    
+
     if (address.streetName) {
       let street = address.streetName;
       if (address.streetNumber) street += ` ${address.streetNumber}`;
       parts.push(street);
     }
-    
+
     if (address.city || address.postalCode) {
       parts.push(`${address.city || ''} ${address.postalCode || ''}`.trim());
     }
-    
+
     if (address.country) {
       parts.push(address.country);
     }
-    
+
     return parts.join(', ') || 'Not available';
   };
 
   // Define columns for line items table
   const lineItemColumns = [
-    { 
-      key: 'image', 
+    {
+      key: 'image',
       label: 'Image',
       renderItem: (row: any) => {
         const imageUrl = row.imageUrl;
         return imageUrl ? (
-          <img 
-            src={imageUrl} 
-            alt={row.name} 
-            className={styles.productImage} 
-          />
+          <img src={imageUrl} alt={row.name} className={styles.productImage} />
         ) : (
           <div className={styles.noImage}>No image</div>
         );
-      }
+      },
     },
     { key: 'name', label: 'Product' },
     { key: 'quantity', label: 'Quantity' },
@@ -137,29 +95,39 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   ];
 
   // Map line items to table rows
-  const lineItemRows = order.lineItems?.map(item => ({
-    id: item.id,
-    name: item.name,
-    imageUrl: item.variant?.images && item.variant.images.length > 0 
-      ? item.variant.images[0].url 
-      : null,
-    quantity: item.quantity,
-    price: formatPrice(item.price.value.centAmount, item.price.value.currencyCode),
-    total: formatPrice(item.totalPrice.centAmount, item.totalPrice.currencyCode),
-  })) || [];
+  const lineItemRows = useMemo(() => {
+
+    return (
+      order?.lineItems?.map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        imageUrl:
+          item.variant?.images && item.variant.images.length > 0
+            ? item.variant.images[0].url
+            : null,
+        quantity: item.quantity,
+        price: formatPrice(
+          item.price.value.centAmount,
+          item.price.value.currencyCode
+        ),
+        total: formatPrice(
+          item.totalPrice.centAmount,
+          item.totalPrice.currencyCode
+        ),
+      })) || []
+    );
+  }, [order]);
+
+  if (loading) {
+    return <LoadingSpinner />;
+  }
 
   return (
-    <FormModalPage
+    <InfoModalPage
       data-testid="order-details-modal"
       title={`Order ${order.orderNumber || order.id}`}
-      isOpen={isOpen}
-      onClose={onClose}
-      isPrimaryButtonDisabled={true}
-      isSecondaryButtonDisabled={true}
-      labelPrimaryButton=""
-      labelSecondaryButton=""
-      onSecondaryButtonClick={() => {}}
-      onPrimaryButtonClick={() => {}}
+      isOpen={true}
+      onClose={onBack}
     >
       <Constraints.Horizontal max={16}>
         <Spacings.Stack scale="m">
@@ -167,7 +135,11 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
             <Spacings.Stack scale="m">
               <Spacings.Inline justifyContent="space-between">
                 <Text.Headline as="h3">Order Details</Text.Headline>
-                <div className={`${styles.orderStatus} ${styles[order.orderState.toLowerCase()]}`}>
+                <div
+                  className={`${styles.orderStatus} ${
+                    styles[order.orderState.toLowerCase()]
+                  }`}
+                >
                   {order.orderState}
                 </div>
               </Spacings.Inline>
@@ -176,7 +148,9 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                 <Spacings.Inline alignItems="center" scale="xs">
                   <InformationIcon size="medium" color="neutral60" />
                   <div className={styles.sectionHeader}>
-                    <Text.Subheadline isBold>Order Information</Text.Subheadline>
+                    <Text.Subheadline isBold>
+                      Order Information
+                    </Text.Subheadline>
                   </div>
                 </Spacings.Inline>
               </div>
@@ -192,7 +166,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                     </div>
                   </div>
                 </Spacings.Inline>
-                
+
                 <Spacings.Inline alignItems="flex-start">
                   <div className={styles.detailSection}>
                     <div className={styles.detailLabel}>
@@ -222,7 +196,9 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                 <Spacings.Inline alignItems="center" scale="xs">
                   <UsersIcon size="medium" color="neutral60" />
                   <div className={styles.sectionHeader}>
-                    <Text.Subheadline isBold>Customer Information</Text.Subheadline>
+                    <Text.Subheadline isBold>
+                      Customer Information
+                    </Text.Subheadline>
                   </div>
                 </Spacings.Inline>
               </div>
@@ -240,7 +216,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                     </div>
                   </Spacings.Inline>
                 )}
-                
+
                 <Spacings.Inline alignItems="flex-start">
                   <div className={styles.detailSection}>
                     <div className={styles.detailLabel}>
@@ -251,7 +227,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                     </div>
                   </div>
                 </Spacings.Inline>
-                
+
                 <Spacings.Inline alignItems="flex-start">
                   <div className={styles.detailSection}>
                     <div className={styles.detailLabel}>
@@ -279,10 +255,12 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                     <Text.Body isBold>Shipping Address</Text.Body>
                   </div>
                   <div className={styles.detailValue}>
-                    <Text.Body>{formatAddress(order.shippingAddress)}</Text.Body>
+                    <Text.Body>
+                      {formatAddress(order.shippingAddress)}
+                    </Text.Body>
                   </div>
                 </div>
-                
+
                 <div className={styles.detailSection}>
                   <div className={styles.detailLabel}>
                     <Text.Body isBold>Billing Address</Text.Body>
@@ -313,22 +291,27 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
               )}
 
               <div className={styles.sectionDivider}>
-                <Spacings.Inline alignItems="center" justifyContent="space-between">
+                <Spacings.Inline
+                  alignItems="center"
+                  justifyContent="space-between"
+                >
                   <Spacings.Inline alignItems="center" scale="xs">
                     <CoinsIcon size="medium" color="neutral60" />
                     <div className={styles.sectionHeader}>
                       <Text.Subheadline isBold>Order Total</Text.Subheadline>
                     </div>
                   </Spacings.Inline>
-                  <Text.Headline as="h3" tone="primary">{orderTotal}</Text.Headline>
+                  <Text.Headline as="h3" tone="primary">
+                    {orderTotal}
+                  </Text.Headline>
                 </Spacings.Inline>
               </div>
             </Spacings.Stack>
           </Card>
         </Spacings.Stack>
       </Constraints.Horizontal>
-    </FormModalPage>
+    </InfoModalPage>
   );
 };
 
-export default OrderDetailsModal; 
+export default OrderDetailsModal;

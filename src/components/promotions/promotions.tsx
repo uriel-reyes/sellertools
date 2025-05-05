@@ -1,25 +1,25 @@
-import React, { useEffect, useState, ReactNode, useCallback } from 'react';
-import { useIntl } from 'react-intl';
+import { ConfirmationDialog } from '@commercetools-frontend/application-components';
+import Checkbox from '@commercetools-uikit/checkbox-input';
 import DataTable, { TColumn } from '@commercetools-uikit/data-table';
-import Spacings from '@commercetools-uikit/spacings';
-import Text from '@commercetools-uikit/text';
+import { PlusBoldIcon, RefreshIcon } from '@commercetools-uikit/icons';
 import LoadingSpinner from '@commercetools-uikit/loading-spinner';
 import { ErrorMessage } from '@commercetools-uikit/messages';
-import SecondaryButton from '@commercetools-uikit/secondary-button';
-import PrimaryButton from '@commercetools-uikit/primary-button';
-import { BackIcon, PlusBoldIcon, CloseIcon, RefreshIcon, BinLinearIcon } from '@commercetools-uikit/icons';
-import Card from '@commercetools-uikit/card';
 import { ContentNotification } from '@commercetools-uikit/notifications';
-import Checkbox from '@commercetools-uikit/checkbox-input';
+import PrimaryButton from '@commercetools-uikit/primary-button';
+import SecondaryButton from '@commercetools-uikit/secondary-button';
 import SelectField from '@commercetools-uikit/select-field';
-import { ConfirmationDialog } from '@commercetools-frontend/application-components';
+import Spacings from '@commercetools-uikit/spacings';
+import Text from '@commercetools-uikit/text';
+import React, { ReactNode, useCallback, useEffect, useState } from 'react';
+import { useIntl } from 'react-intl';
+import { useAuthContext } from '../../contexts/auth-context';
 import usePromotions from '../../hooks/use-promotions/use-promotions';
-import ProductDiscountForm from './product-discount-form';
 import messages from './messages';
 import styles from './promotions.module.css';
+import { useHistory } from 'react-router';
 
 interface PromotionsProps {
-  channelKey: string;
+  linkToWelcome: string;
   onBack: () => void;
 }
 
@@ -43,12 +43,14 @@ type ViewState = 'list' | 'add-product-discount' | 'edit-product-discount';
 // Type for bulk actions
 type BulkAction = 'activate' | 'deactivate' | 'delete' | '';
 
-const Promotions: React.FC<PromotionsProps> = ({ channelKey, onBack }) => {
+const Promotions: React.FC<PromotionsProps> = ({ linkToWelcome, onBack }) => {
+  // TODO: Get the distribution channel key from the auth context
+  const { storeKey: channelKey } = useAuthContext();
   const intl = useIntl();
+  const { push } = useHistory();
   const [promotions, setPromotions] = useState<PromotionData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const [viewState, setViewState] = useState<ViewState>('list');
   const [lastRefreshed, setLastRefreshed] = useState<string | null>(null);
   const [selectedPromotion, setSelectedPromotion] = useState<PromotionData | null>(null);
   
@@ -68,7 +70,7 @@ const Promotions: React.FC<PromotionsProps> = ({ channelKey, onBack }) => {
     
     try {
       console.log(`Fetching product discounts for channel: ${channelKey}`);
-      const result = await fetchPromotions(channelKey);
+      const result = await fetchPromotions(channelKey!);
       
       if (result && result.length > 0) {
         console.log(`Fetched ${result.length} product discounts for channel ${channelKey}`);
@@ -107,8 +109,7 @@ const Promotions: React.FC<PromotionsProps> = ({ channelKey, onBack }) => {
   
   // Handle promotion row click to open edit form
   const handleRowClick = (promotion: PromotionData) => {
-    setSelectedPromotion(promotion);
-    setViewState('edit-product-discount');
+    push(`${linkToWelcome}/promotions/${promotion.id}`);
   };
   
   // Handle checkbox selection
@@ -321,21 +322,7 @@ const Promotions: React.FC<PromotionsProps> = ({ channelKey, onBack }) => {
   ];
 
   const handleAddPromotion = () => {
-    setSelectedPromotion(null);
-    setViewState('add-product-discount');
-  };
-
-  const handleBackToList = () => {
-    setViewState('list');
-    setSelectedPromotion(null);
-  };
-
-  const handleSubmitPromotion = (formData: any) => {
-    console.log('Submitted product discount form:', formData);
-    // After successful creation or update, go back to the list view and refresh promotions
-    setViewState('list');
-    setSelectedPromotion(null);
-    loadPromotions(); // Refresh the promotions list
+    push(`${linkToWelcome}/promotions/add`);
   };
   
   // Handle manual refresh button click
@@ -365,9 +352,11 @@ const Promotions: React.FC<PromotionsProps> = ({ channelKey, onBack }) => {
     );
   };
   
-  // Render the main promotions list view with table
-  const renderPromotionsList = () => (
-    <Spacings.Stack scale="l">
+
+  
+  return (
+    <div className={styles.container}>
+      <Spacings.Stack scale="l">
       <div className={styles.header}>
         <div>
           <Text.Headline as="h1">{intl.formatMessage(messages.title)}</Text.Headline>
@@ -477,41 +466,6 @@ const Promotions: React.FC<PromotionsProps> = ({ channelKey, onBack }) => {
         </ConfirmationDialog>
       )}
     </Spacings.Stack>
-  );
-  
-  // Determine which view to render
-  const renderView = () => {
-    switch (viewState) {
-      case 'add-product-discount':
-        return (
-          <ProductDiscountForm
-            channelKey={channelKey}
-            onBack={handleBackToList}
-            onSubmit={handleSubmitPromotion}
-          />
-        );
-      case 'edit-product-discount':
-        if (!selectedPromotion) {
-          return renderPromotionsList();
-        }
-        return (
-          <ProductDiscountForm
-            channelKey={channelKey}
-            onBack={handleBackToList}
-            onSubmit={handleSubmitPromotion}
-            promotion={selectedPromotion}
-            isEditing={true}
-          />
-        );
-      case 'list':
-      default:
-        return renderPromotionsList();
-    }
-  };
-  
-  return (
-    <div className={styles.container}>
-      {renderView()}
     </div>
   );
 };

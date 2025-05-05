@@ -224,4 +224,7 @@
   padding-bottom: 0 !important;
 }
 
+.link {
+  cursor: pointer;
+}
 /* Remove custom close button styles */ 

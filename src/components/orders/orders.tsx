@@ -10,12 +10,13 @@ import { ErrorMessage } from '@commercetools-uikit/messages';
 import SelectField from '@commercetools-uikit/select-field';
 import { ContentNotification } from '@commercetools-uikit/notifications';
 import useOrders from '../../hooks/use-orders/use-orders';
-import OrderDetailsModal from './order-details-modal';
 import styles from './orders.module.css';
-
+import { useHistory } from 'react-router-dom';
+import { formatPrice } from '../../utils/price';
+import { useAuthContext } from '../../contexts/auth-context';
 interface OrdersProps {
-  storeKey: string;
   onBack: () => void;
+  linkToWelcome: string;
 }
 
 const ORDER_STATES = [
@@ -25,14 +26,13 @@ const ORDER_STATES = [
   { value: 'Cancelled', label: 'Cancelled' },
 ];
 
-const Orders: React.FC<OrdersProps> = ({ storeKey, onBack }) => {
-  const { fetchOrdersByStore, fetchOrderById, updateOrderState, orders, loading, error } = useOrders();
+const Orders: React.FC<OrdersProps> = ({ onBack, linkToWelcome }) => {
+  const { push } = useHistory();
+  const { storeKey } = useAuthContext();
+  const { fetchOrdersByStore, updateOrderState, orders, loading, error } = useOrders();
   const [isFirstLoad, setIsFirstLoad] = useState(true);
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
-  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [statusUpdateSuccess, setStatusUpdateSuccess] = useState<string | null>(null);
   const [statusUpdateError, setStatusUpdateError] = useState<string | null>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState<string>('');
 
   useEffect(() => {
@@ -59,13 +59,6 @@ const Orders: React.FC<OrdersProps> = ({ storeKey, onBack }) => {
     }
   }, [statusUpdateSuccess, statusUpdateError]);
 
-  const formatPrice = (cents: number, currency: string) => {
-    const amount = cents / 100;
-    return new Intl.NumberFormat('en-US', { 
-      style: 'currency', 
-      currency 
-    }).format(amount);
-  };
 
   const handleRowClick = (row: any) => {
     // Skip handling if we don't have the raw data
@@ -73,30 +66,7 @@ const Orders: React.FC<OrdersProps> = ({ storeKey, onBack }) => {
       return;
     }
     
-    // Fetch detailed order data
-    showOrderDetails(row.rawData.id);
-  };
-
-  const showOrderDetails = async (orderId: string) => {
-    setDetailLoading(true);
-    try {
-      const orderDetails = await fetchOrderById(orderId);
-      if (orderDetails) {
-        setSelectedOrder(orderDetails);
-        setIsDetailsModalOpen(true);
-      } else {
-        setStatusUpdateError(`Could not find details for order ${orderId}`);
-      }
-    } catch (err) {
-      setStatusUpdateError(`Error fetching order details: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    } finally {
-      setDetailLoading(false);
-    }
-  };
-
-  const handleCloseModal = () => {
-    setIsDetailsModalOpen(false);
-    setSelectedOrder(null);
+    push(`${linkToWelcome}/orders/${row.rawData.id}`);
   };
 
   const handleStatusChange = async (event: any, orderId: string, version: number) => {
@@ -242,21 +212,8 @@ const Orders: React.FC<OrdersProps> = ({ storeKey, onBack }) => {
               maxHeight="80vh"
               maxWidth="100%"
             />
-            {detailLoading && (
-              <div className={styles.overlayLoading}>
-                <LoadingSpinner scale="l" />
-              </div>
-            )}
+            
           </div>
-        )}
-
-        {selectedOrder && (
-          <OrderDetailsModal
-            order={selectedOrder}
-            isOpen={isDetailsModalOpen}
-            onClose={handleCloseModal}
-            formatPrice={formatPrice}
-          />
         )}
       </Spacings.Stack>
     </div>

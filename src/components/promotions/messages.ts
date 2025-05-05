@@ -426,4 +426,20 @@ export default defineMessages({
     id: 'Promotions.actions',
     defaultMessage: 'Actions',
   },
+  loadingPromotion: {
+    id: 'Promotions.loadingPromotion',
+    defaultMessage: 'Loading promotion details...',
+  },
+  promotionNotFound: {
+    id: 'Promotions.promotionNotFound',
+    defaultMessage: 'Promotion not found. It may have been deleted.',
+  },
+  promotionLoadError: {
+    id: 'Promotions.promotionLoadError',
+    defaultMessage: 'Error loading promotion details. Please try again.',
+  },
+  promotionDataError: {
+    id: 'Promotions.promotionDataError',
+    defaultMessage: 'Error preparing promotion data. Please try again.',
+  },
 }); 

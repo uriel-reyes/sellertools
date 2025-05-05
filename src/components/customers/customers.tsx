@@ -8,12 +8,12 @@ import SecondaryButton from '@commercetools-uikit/secondary-button';
 import { RefreshIcon } from '@commercetools-uikit/icons';
 import { ErrorMessage } from '@commercetools-uikit/messages';
 import useStoreCustomers from '../../hooks/use-store-customers';
-import CustomerDetailsModal from './customer-details-modal';
 import styles from './customers.module.css';
-
+import { useAuthContext } from '../../contexts/auth-context';
+import { useHistory } from 'react-router-dom';
 interface CustomersProps {
-  storeKey: string;
   onBack: () => void;
+  linkToWelcome: string;
 }
 
 interface CustomerWithGroup {
@@ -24,12 +24,11 @@ interface CustomerWithGroup {
   rawData: any;
 }
 
-const Customers: React.FC<CustomersProps> = ({ storeKey, onBack }) => {
-  const { fetchCustomersByStore, fetchCustomerById, fetchCustomerGroupById, customers, loading, error } = useStoreCustomers();
+const Customers: React.FC<CustomersProps> = ({ onBack, linkToWelcome }) => {
+  const history = useHistory();
+  const { fetchCustomersByStore, fetchCustomerGroupById, customers, loading, error } = useStoreCustomers();
+  const { storeKey } = useAuthContext();
   const [isFirstLoad, setIsFirstLoad] = useState(true);
-  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
-  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-  const [detailLoading, setDetailLoading] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState<string>('');
   const [enhancedCustomers, setEnhancedCustomers] = useState<CustomerWithGroup[]>([]);
   const [loadingGroups, setLoadingGroups] = useState(false);
@@ -87,31 +86,12 @@ const Customers: React.FC<CustomersProps> = ({ storeKey, onBack }) => {
       return;
     }
     
-    // Fetch detailed customer data
-    showCustomerDetails(row.rawData.id);
+    // Navigate to the customer details page
+    history.push(`${linkToWelcome}/customers/${row.id}`);
   };
 
-  const showCustomerDetails = async (customerId: string) => {
-    setDetailLoading(true);
-    try {
-      const customerDetails = await fetchCustomerById(customerId);
-      if (customerDetails) {
-        setSelectedCustomer(customerDetails);
-        setIsDetailsModalOpen(true);
-      } else {
-        console.error(`Could not find details for customer ${customerId}`);
-      }
-    } catch (err) {
-      console.error(`Error fetching customer details: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    } finally {
-      setDetailLoading(false);
-    }
-  };
 
-  const handleCloseModal = () => {
-    setIsDetailsModalOpen(false);
-    setSelectedCustomer(null);
-  };
+
 
   const handleRefreshCustomers = () => {
     if (storeKey) {
@@ -183,21 +163,10 @@ const Customers: React.FC<CustomersProps> = ({ storeKey, onBack }) => {
               maxHeight="80vh"
               maxWidth="100%"
             />
-            {detailLoading && (
-              <div className={styles.overlayLoading}>
-                <LoadingSpinner scale="l" />
-              </div>
-            )}
           </div>
         )}
 
-        {selectedCustomer && (
-          <CustomerDetailsModal
-            customer={selectedCustomer}
-            isOpen={isDetailsModalOpen}
-            onClose={handleCloseModal}
-          />
-        )}
+        
       </Spacings.Stack>
     </div>
   );
