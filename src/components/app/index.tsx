@@ -9,6 +9,7 @@ import Prices from '../prices/prices';
 import Products from '../products/products';
 import ProductDiscountWrapper from '../promotions/product-discount-wrapper';
 import Promotions from '../promotions/promotions';
+import Reports from '../reports/index';
 import SellerDashboard from '../seller-dashboard/seller-dashboard';
 import Welcome from '../welcome/welcome';
 const App = () => {
@@ -57,6 +58,9 @@ const App = () => {
           </Route>
           <Route path={`${match.path}/content`} exact>
             <Content onBack={goBack} linkToWelcome={match.url} />
+          </Route>
+          <Route path={`${match.path}/reports`} exact>
+            <Reports onBack={goBack} linkToWelcome={match.url} />
           </Route>
           <Route>
             <SellerDashboard onNavigate={handleNavigate} />
