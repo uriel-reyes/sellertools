@@ -456,7 +456,7 @@ const Products: React.FC<ProductsProps> = ({ linkToWelcome, onBack }) => {
                         event.preventDefault();
                         handleSearch();
                       }}
-                      style={{ flex: 1 }}
+                      style={{ flex: 1, maxWidth: '600px' }}
                     >
                       <TextField
                         value={searchQuery}
@@ -559,6 +559,12 @@ const Products: React.FC<ProductsProps> = ({ linkToWelcome, onBack }) => {
                     </div>
                   ) : (
                     <div className={styles.tableContainer}>
+                      {isSearching && (
+                        <div className={styles.searchOverlay}>
+                          <LoadingSpinner scale="s" />
+                          <Text.Body>{intl.formatMessage(messages.searchingProducts)}</Text.Body>
+                        </div>
+                      )}
                       <DataTable
                         columns={columns}
                         rows={masterProducts}
@@ -582,7 +588,7 @@ const Products: React.FC<ProductsProps> = ({ linkToWelcome, onBack }) => {
                         event.preventDefault();
                         handleStoreSearch();
                       }}
-                      style={{ flex: 1 }}
+                      style={{ flex: 1, maxWidth: '600px' }}
                     >
                       <TextField
                         value={storeSearchQuery}
@@ -668,6 +674,12 @@ const Products: React.FC<ProductsProps> = ({ linkToWelcome, onBack }) => {
                     </div>
                   ) : (
                     <div className={styles.tableContainer}>
+                      {isStoreSearching && (
+                        <div className={styles.searchOverlay}>
+                          <LoadingSpinner scale="s" />
+                          <Text.Body>{intl.formatMessage(messages.searchingProducts)}</Text.Body>
+                        </div>
+                      )}
                       <DataTable
                         columns={storeProductColumns}
                         rows={filteredStoreProducts}

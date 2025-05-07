@@ -26,6 +26,22 @@
   width: 100%;
   margin-top: 8px;
   position: relative;
+  overflow: hidden;
+}
+
+.searchOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  gap: 1rem;
 }
 
 .tableSection {

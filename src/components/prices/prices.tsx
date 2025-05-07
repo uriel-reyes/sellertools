@@ -128,11 +128,11 @@ const PriceInputCell = ({
 
 const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
   const { storeKey } = useAuthContext();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isSearchLoading, setIsSearchLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [products, setProducts] = useState<ProductPriceData[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
   
   // Ref for debouncing search
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -150,16 +150,13 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
   }, []);
   
   const fetchProducts = async () => {
-    setIsLoading(true);
-    setError(null);
-    
     try {
       const result = await fetchProductsWithPrices(storeKey!);
       setProducts(result);
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Unknown error fetching products'));
     } finally {
-      setIsLoading(false);
+      setIsInitialLoading(false);
     }
   };
   
@@ -192,21 +189,18 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
     }
   };
   
-  // Handle product search
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) {
-      // If search is empty, fetch regular products list
+  // Execute search with the current query
+  const executeSearch = async (query: string) => {
+    if (!query.trim()) {
       fetchProducts();
       return;
     }
     
-    setIsSearching(true);
+    setIsSearchLoading(true);
     setError(null);
     
     try {
-      console.log('Executing search with query:', searchQuery);
-      const searchResults = await searchProducts(searchQuery);
-      console.log('Search results received:', searchResults);
+      const searchResults = await searchProducts(query);
       
       if (searchResults.length > 0) {
         // Fetch detailed price information for the search results
@@ -220,14 +214,13 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
         
         setProducts(filteredProducts);
       } else {
-        // If no search results, show empty list
         setProducts([]);
       }
     } catch (err) {
       console.error('Error searching products:', err);
       setError(err instanceof Error ? err : new Error('Error searching products'));
     } finally {
-      setIsSearching(false);
+      setIsSearchLoading(false);
     }
   };
   
@@ -236,10 +229,10 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
       key: 'image', 
       label: 'Image', 
       renderItem: (item: ProductPriceData) => <ImageCell value={item.image} />,
-      width: "70px"
+      width: "10%" 
     },
     { key: 'name', label: 'Product Name', width: "25%" },
-    { key: 'sku', label: 'SKU', width: "10%" },
+    { key: 'sku', label: 'SKU', width: "15%" },
     { 
       key: 'masterPrice', 
       label: 'Master Price', 
@@ -250,7 +243,7 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
             : 'Not set'}
         </Text.Body>
       ),
-      width: "12%"
+      width: "12.5%" 
     },
     { 
       key: 'currentPrice', 
@@ -262,7 +255,7 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
             : 'Not set'}
         </Text.Body>
       ),
-      width: "12%"
+      width: "12.5%" 
     },
     {
       key: 'profitMargin',
@@ -275,7 +268,7 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
           )}
         </Text.Body>
       ),
-      width: "12%"
+      width: "10%" 
     },
     { 
       key: 'newPrice', 
@@ -287,7 +280,7 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
           onPriceChange={handlePriceChange} 
         />
       ),
-      width: "19%"
+      width: "15%" 
     },
   ];
 
@@ -306,7 +299,7 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
               iconLeft={<RefreshIcon />}
               label="Refresh"
               onClick={fetchProducts}
-              isDisabled={isLoading || isSearching}
+              isDisabled={isInitialLoading || isSearchLoading}
             />
             <PrimaryButton
               label="Back to Dashboard"
@@ -320,9 +313,9 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
           <form 
             onSubmit={(event) => {
               event.preventDefault();
-              handleSearch();
+              executeSearch(searchQuery);
             }}
-            style={{ flex: 1 }}
+            style={{ flex: 1, maxWidth: '600px' }}
           >
             <TextField
               value={searchQuery}
@@ -336,15 +329,8 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
                 }
                 
                 searchTimeoutRef.current = setTimeout(() => {
-                  // If search is empty, fetch all products
-                  if (!newValue.trim()) {
-                    fetchProducts();
-                    return;
-                  }
-                  
-                  // Otherwise perform search
-                  handleSearch();
-                }, 200); // 200ms debounce for fast feedback
+                  executeSearch(newValue);
+                }, 500); // 500ms debounce
               }}
               title="Search"
               horizontalConstraint="scale"
@@ -353,14 +339,11 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
           </form>
         </div>
 
-        {isLoading || isSearching ? (
+        {/* Initial loading state */}
+        {isInitialLoading ? (
           <div className={styles.loadingContainer}>
             <LoadingSpinner scale="l" />
-            <Text.Body>
-              {isSearching 
-                ? "Searching products..." 
-                : "Loading products and prices..."}
-            </Text.Body>
+            <Text.Body>Loading products and prices...</Text.Body>
           </div>
         ) : error ? (
           <ErrorMessage>
@@ -381,21 +364,27 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
           </div>
         ) : (
           <div className={styles.tableContainer}>
+            {isSearchLoading && (
+              <div className={styles.searchOverlay}>
+                <LoadingSpinner scale="s" />
+                <Text.Body>Searching products...</Text.Body>
+              </div>
+            )}
             <DataTable
               columns={columns}
               rows={products}
               maxHeight="70vh"
               maxWidth="100%"
+              horizontalConstraint="scale"
+              style={{ width: '100%', tableLayout: 'fixed' }}
             />
-            {products.length > 0 && (
-              <div className={styles.tableFooter}>
-                <Text.Detail>
-                  {searchQuery 
-                    ? `${products.length} products found matching "${searchQuery}"` 
-                    : `${products.length} products found`}
-                </Text.Detail>
-              </div>
-            )}
+            <div className={styles.tableFooter}>
+              <Text.Detail>
+                {searchQuery 
+                  ? `${products.length} products found matching "${searchQuery}"` 
+                  : `${products.length} products found`}
+              </Text.Detail>
+            </div>
           </div>
         )}
       </Spacings.Stack>

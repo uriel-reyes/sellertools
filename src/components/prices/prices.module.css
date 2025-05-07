@@ -58,8 +58,25 @@
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  overflow: auto;
+  overflow: hidden;
   width: 100%;
+  position: relative;
+}
+
+/* Search overlay styles */
+.searchOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  gap: 1rem;
 }
 
 /* Apply width styles to the data table */
@@ -69,7 +86,22 @@
 
 .tableContainer table {
   width: 100%;
+  min-width: 100%;
   table-layout: fixed;
+}
+
+/* Force table to fill the container width */
+.tableContainer table,
+.tableContainer th,
+.tableContainer td {
+  box-sizing: border-box;
+}
+
+/* Ensure cells don't collapse */
+.tableContainer td {
+  white-space: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Fix header styling */

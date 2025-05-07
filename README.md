@@ -231,6 +231,35 @@ Sellers (customers who manage stores) are not directly assigned to stores in thi
 
 The application implements consistent UI patterns across all features to ensure a cohesive user experience:
 
+### Enhanced Search Experience
+
+The application features an optimized search user experience across product and price management:
+
+- **Persistent Table During Search**:
+  - Tables remain visible during active searches, maintaining context
+  - Semi-transparent overlay with loading indicator provides visual feedback
+  - Prevents disruptive UI shifts when performing searches
+  - Implemented in both Product Management and Price Management
+
+- **Search Field Optimization**:
+  - Width-constrained search fields (600px maximum) for better visual balance
+  - Properly debounced search to prevent excessive API calls
+  - Immediate visual feedback for search operations
+
+- **Table Rendering Improvements**:
+  - Eliminated horizontal scrollbars with `overflow: hidden`
+  - Optimized column width distribution (percentages add up to 100%)
+  - Enhanced cell styling with proper overflow handling
+  - Fixed image dimensions for consistent presentation
+
+- **CSS Refinements**:
+  - Table container improvements to ensure proper width distribution
+  - Box-sizing rules for consistent column rendering
+  - Text overflow handling for long content in cells
+  - Mobile-responsive adjustments for smaller screens
+
+These UI enhancements create a more stable, responsive interface that maintains context during searches, reducing user confusion and providing clearer visual feedback throughout the application.
+
 ### Header Components
 
 All section headers follow a consistent structure with:
