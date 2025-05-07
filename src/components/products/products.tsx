@@ -606,7 +606,7 @@ const Products: React.FC<ProductsProps> = ({ linkToWelcome, onBack }) => {
                         }}
                         title={intl.formatMessage(messages.searchButton)}
                         horizontalConstraint="scale"
-                        placeholder="Filter store products..."
+                        placeholder="Search store's products..."
                       />
                     </form>
                   </div>
