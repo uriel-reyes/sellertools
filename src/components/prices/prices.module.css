@@ -29,6 +29,17 @@
   color: #007bff;
 }
 
+/* Search container styles */
+.searchContainer {
+  margin-bottom: 1.5rem;
+  width: 100%;
+}
+
+.searchContainer > form {
+  flex: 1;
+  margin: 0;
+}
+
 .loadingContainer {
   display: flex;
   flex-direction: column;

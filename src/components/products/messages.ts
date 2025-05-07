@@ -158,4 +158,29 @@ export default defineMessages({
     id: 'Products.productCreateError',
     defaultMessage: 'Error creating product: {error}',
   },
+  // Search related messages
+  searchPlaceholder: {
+    id: 'Products.searchPlaceholder',
+    defaultMessage: 'Search by name, description or SKU...',
+  },
+  searchButton: {
+    id: 'Products.searchButton',
+    defaultMessage: 'Search',
+  },
+  searchResults: {
+    id: 'Products.searchResults',
+    defaultMessage: 'Found {count} products matching "{query}"',
+  },
+  searchingProducts: {
+    id: 'Products.searchingProducts',
+    defaultMessage: 'Searching products...',
+  },
+  noSearchResults: {
+    id: 'Products.noSearchResults',
+    defaultMessage: 'No products found for "{query}"',
+  },
+  tryDifferentSearch: {
+    id: 'Products.tryDifferentSearch',
+    defaultMessage: 'Try a different search term or browse the master catalog.',
+  },
 }); 

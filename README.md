@@ -60,6 +60,55 @@ This application addresses the need for store-specific management tools in a mul
   - Real-time updates with synchronization to commercetools
   - Selection checkboxes with clear visual feedback
 
+- **Product Search**:
+  - Powerful real-time search across both tables:
+    - Master Products Search: GraphQL-based search on the commercetools API
+    - Store Products Search: Client-side filtering of the store's products
+  - Implementation details:
+    ```graphql
+    # GraphQL search query structure
+    query ProductSearch($text: String, $filter: [SearchFilterInput!]) {
+      productProjectionSearch(
+        markMatchingVariants: true
+        text: $text
+        filters: $filter
+        locale: "en-US"
+        limit: 20
+        fuzzy: true
+      ) {
+        results {
+          id
+          nameAllLocales {
+            locale
+            value
+          }
+          masterVariant {
+            sku
+            images {
+              url
+            }
+          }
+        }
+      }
+    }
+    ```
+  - Advanced features:
+    - Fuzzy matching enabled for partial word search
+    - Locale-specific handling (en-US prioritized with fallbacks)
+    - Zero-delay keystroke processing (immediate search triggering)
+    - Advanced race condition handling:
+      - Request abandonment for outdated searches when typing quickly
+      - Search token tracking to process only the latest results
+      - Pending search counter for proper loading state management
+    - Robust error handling and recovery
+    - Cache-busting for product images to prevent browser caching issues
+    - Unique image identification via product ID to handle identical image URLs
+  - User experience optimizations:
+    - Immediate search feedback
+    - Contextual empty state messaging based on search terms
+    - Loading indicators during search operations
+    - Result count display showing matches found
+
 - **Product Creation**:
   - Form-based interface for creating new products
   - Direct integration with commercetools GraphQL API

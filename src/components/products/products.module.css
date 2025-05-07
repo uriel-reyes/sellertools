@@ -52,9 +52,26 @@
   width: 80px;
   height: 80px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 8px;
+  position: relative;
+}
+
+.debugInfo {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0,0,0,0.5);
+  color: white;
+  font-size: 8px;
+  padding: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+  z-index: 2;
 }
 
 .productImage {
@@ -194,6 +211,25 @@
   justify-content: center;
   align-items: center;
   z-index: 1000;
+}
+
+.searchContainer {
+  margin-bottom: 16px;
+  width: 100%;
+}
+
+.searchContainer > form {
+  flex: 1;
+  margin: 0;
+}
+
+.searchPlaceholder {
+  height: 60px; /* Match the height of the search container */
+}
+
+/* Add a bit of spacing for the store products section to align with master section */
+.tableSection + .tableSection {
+  padding-top: 8px;
 }
 
 /* Add any additional styles below */ 

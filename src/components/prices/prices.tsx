@@ -6,9 +6,11 @@ import Text from '@commercetools-uikit/text';
 import Spacings from '@commercetools-uikit/spacings';
 import PrimaryButton from '@commercetools-uikit/primary-button';
 import SecondaryButton from '@commercetools-uikit/secondary-button';
-import { RefreshIcon } from '@commercetools-uikit/icons';
+import { RefreshIcon, SearchIcon } from '@commercetools-uikit/icons';
 import { ErrorMessage } from '@commercetools-uikit/messages';
+import TextField from '@commercetools-uikit/text-field';
 import usePriceManagement from '../../hooks/use-price-management/use-price-management';
+import useStoreProducts from '../../hooks/use-store-products/use-store-products';
 import styles from './prices.module.css';
 import { useAuthContext } from '../../contexts/auth-context';
 
@@ -129,8 +131,23 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [products, setProducts] = useState<ProductPriceData[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  
+  // Ref for debouncing search
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const { fetchProductsWithPrices, updateProductPrice } = usePriceManagement();
+  const { searchProducts } = useStoreProducts();
+  
+  // Clean up the search timeout when component unmounts
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
   
   const fetchProducts = async () => {
     setIsLoading(true);
@@ -172,6 +189,45 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
       }
     } catch (err) {
       console.error('Error updating price:', err);
+    }
+  };
+  
+  // Handle product search
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
+      // If search is empty, fetch regular products list
+      fetchProducts();
+      return;
+    }
+    
+    setIsSearching(true);
+    setError(null);
+    
+    try {
+      console.log('Executing search with query:', searchQuery);
+      const searchResults = await searchProducts(searchQuery);
+      console.log('Search results received:', searchResults);
+      
+      if (searchResults.length > 0) {
+        // Fetch detailed price information for the search results
+        const result = await fetchProductsWithPrices(storeKey!);
+        
+        // Filter the price data to only include products that match our search results
+        const searchResultIds = searchResults.map(product => product.id);
+        const filteredProducts = result.filter(product => 
+          searchResultIds.includes(product.id)
+        );
+        
+        setProducts(filteredProducts);
+      } else {
+        // If no search results, show empty list
+        setProducts([]);
+      }
+    } catch (err) {
+      console.error('Error searching products:', err);
+      setError(err instanceof Error ? err : new Error('Error searching products'));
+    } finally {
+      setIsSearching(false);
     }
   };
   
@@ -250,7 +306,7 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
               iconLeft={<RefreshIcon />}
               label="Refresh"
               onClick={fetchProducts}
-              isDisabled={isLoading}
+              isDisabled={isLoading || isSearching}
             />
             <PrimaryButton
               label="Back to Dashboard"
@@ -258,11 +314,53 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
             />
           </Spacings.Inline>
         </div>
+        
+        {/* Search bar */}
+        <div className={styles.searchContainer}>
+          <form 
+            onSubmit={(event) => {
+              event.preventDefault();
+              handleSearch();
+            }}
+            style={{ flex: 1 }}
+          >
+            <TextField
+              value={searchQuery}
+              onChange={(event) => {
+                const newValue = event.target.value;
+                setSearchQuery(newValue);
+                
+                // Debounce search to avoid too many API calls
+                if (searchTimeoutRef.current) {
+                  clearTimeout(searchTimeoutRef.current);
+                }
+                
+                searchTimeoutRef.current = setTimeout(() => {
+                  // If search is empty, fetch all products
+                  if (!newValue.trim()) {
+                    fetchProducts();
+                    return;
+                  }
+                  
+                  // Otherwise perform search
+                  handleSearch();
+                }, 200); // 200ms debounce for fast feedback
+              }}
+              title="Search"
+              horizontalConstraint="scale"
+              placeholder="Search products..."
+            />
+          </form>
+        </div>
 
-        {isLoading ? (
+        {isLoading || isSearching ? (
           <div className={styles.loadingContainer}>
             <LoadingSpinner scale="l" />
-            <Text.Body>Loading products and prices...</Text.Body>
+            <Text.Body>
+              {isSearching 
+                ? "Searching products..." 
+                : "Loading products and prices..."}
+            </Text.Body>
           </div>
         ) : error ? (
           <ErrorMessage>
@@ -270,8 +368,16 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
           </ErrorMessage>
         ) : products.length === 0 ? (
           <div className={styles.emptyState}>
-            <Text.Headline as="h3">No products found</Text.Headline>
-            <Text.Body>There are no products in your store's catalog.</Text.Body>
+            <Text.Headline as="h3">
+              {searchQuery 
+                ? `No products found matching "${searchQuery}"` 
+                : "No products found"}
+            </Text.Headline>
+            <Text.Body>
+              {searchQuery 
+                ? "Try a different search term or clear the search" 
+                : "There are no products in your store's catalog."}
+            </Text.Body>
           </div>
         ) : (
           <div className={styles.tableContainer}>
@@ -283,7 +389,11 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
             />
             {products.length > 0 && (
               <div className={styles.tableFooter}>
-                <Text.Detail>{products.length} products found</Text.Detail>
+                <Text.Detail>
+                  {searchQuery 
+                    ? `${products.length} products found matching "${searchQuery}"` 
+                    : `${products.length} products found`}
+                </Text.Detail>
               </div>
             )}
           </div>
