@@ -14,6 +14,7 @@ import messages from './messages';
 import styles from './products.module.css';
 import ProductForm from './product-form';
 import { useAuthContext } from '../../contexts/auth-context';
+import logger from '../../utils/logger';
 
 interface ProductsProps {
   onBack: () => void;
@@ -47,7 +48,7 @@ const ImageCell = ({ value }: { value: string }) => {
         alt="Product" 
         className={styles.productImage}
         onError={() => {
-          console.error(`Failed to load image: ${imageUrl}`);
+          logger.error(`Failed to load image: ${imageUrl}`);
           setError(true);
         }}
       />
@@ -134,11 +135,11 @@ const Products: React.FC<ProductsProps> = ({ linkToWelcome, onBack }) => {
     setError(null);
     
     try {
-      console.log('Fetching products for master-store');
+      logger.info('Fetching products for master-store');
       const result = await fetchStoreProducts('master-store');
       
       if (result) {
-        console.log(`Fetched ${result.length} products from master-store`);
+        logger.info(`Fetched ${result.length} products from master-store`);
         // Mark previously selected products
         const updatedProducts = result.map(product => ({
           ...product,
@@ -147,11 +148,11 @@ const Products: React.FC<ProductsProps> = ({ linkToWelcome, onBack }) => {
         const filteredProducts = updatedProducts.filter(product => !storeProducts.find(p => p.id === product.id));
         setMasterProducts(filteredProducts);
       } else {
-        console.log('No products returned for master-store');
+        logger.info('No products returned for master-store');
         setMasterProducts([]);
       }
     } catch (err) {
-      console.error('Error fetching master-store products:', err);
+      logger.error('Error fetching master-store products:', err);
       setError(err instanceof Error ? err : new Error('Unknown error fetching master-store products'));
     } finally {
       setIsLoading(false);
@@ -165,18 +166,18 @@ const Products: React.FC<ProductsProps> = ({ linkToWelcome, onBack }) => {
     setStoreProductsError(null);
     
     try {
-      console.log(`Fetching products for user store: ${storeKey}`);
+      logger.info(`Fetching products for user store: ${storeKey}`);
       const result = await fetchStoreProducts(storeKey);
       
       if (result) {
-        console.log(`Fetched ${result.length} products from user store: ${storeKey}`);
+        logger.info(`Fetched ${result.length} products from user store: ${storeKey}`);
         setStoreProducts(result);
       } else {
-        console.log(`No products returned for user store: ${storeKey}`);
+        logger.info(`No products returned for user store: ${storeKey}`);
         setStoreProducts([]);
       }
     } catch (err) {
-      console.error(`Error fetching products for store ${storeKey}:`, err);
+      logger.error(`Error fetching products for store ${storeKey}:`, err);
       setStoreProductsError(err instanceof Error ? err : new Error(`Unknown error fetching products for store ${storeKey}`));
     } finally {
       setIsStoreProductsLoading(false);
@@ -245,7 +246,7 @@ const Products: React.FC<ProductsProps> = ({ linkToWelcome, onBack }) => {
         setSelectedStoreProducts([]);
       }
     } catch (err) {
-      console.error('Error removing products from store:', err);
+      logger.error('Error removing products from store:', err);
     } finally {
       setIsRemovingProducts(false);
     }
@@ -319,16 +320,16 @@ const Products: React.FC<ProductsProps> = ({ linkToWelcome, onBack }) => {
     const currentSearchQuery = searchQuery;
     
     try {
-      console.log(`Executing search with query: "${currentSearchQuery}"`);
+      logger.info(`Executing search with query: "${currentSearchQuery}"`);
       const searchResults = await searchProducts(currentSearchQuery);
       
       // Only process the results if this is still the latest search query
       if (currentSearchQuery !== latestSearchQueryRef.current) {
-        console.log('Search query changed since search started, abandoning results');
+        logger.info('Search query changed since search started, abandoning results');
         return;
       }
       
-      console.log('Search results received:', searchResults);
+      logger.info('Search results received:', searchResults);
       
       // Mark previously selected products
       const updatedProducts = searchResults.map(product => ({
@@ -342,7 +343,7 @@ const Products: React.FC<ProductsProps> = ({ linkToWelcome, onBack }) => {
     } catch (err) {
       // Only set error if this is still the latest search query
       if (currentSearchQuery === latestSearchQueryRef.current) {
-        console.error('Error searching products:', err);
+        logger.error('Error searching products:', err);
         setError(err instanceof Error ? err : new Error('Error searching products'));
       }
     } finally {
@@ -375,19 +376,19 @@ const Products: React.FC<ProductsProps> = ({ linkToWelcome, onBack }) => {
     try {
       // Simple client-side filtering for store products
       const searchTermLower = storeSearchQuery.toLowerCase();
-      console.log(`Filtering store products with query: "${searchTermLower}"`);
+      logger.info(`Filtering store products with query: "${searchTermLower}"`);
       
       const filtered = storeProducts.filter(product => 
         product.name.toLowerCase().includes(searchTermLower) || 
         product.sku.toLowerCase().includes(searchTermLower)
       );
       
-      console.log(`Found ${filtered.length} store products matching "${storeSearchQuery}"`);
+      logger.info(`Found ${filtered.length} store products matching "${storeSearchQuery}"`);
       
       // Update store products with filtered results
       setFilteredStoreProducts(filtered);
     } catch (error) {
-      console.error('Error during store product filtering:', error);
+      logger.error('Error during store product filtering:', error);
     } finally {
       setIsStoreSearching(false);
     }
@@ -518,7 +519,7 @@ const Products: React.FC<ProductsProps> = ({ linkToWelcome, onBack }) => {
                                 setSelectedProducts([]);
                               }
                             } catch (err) {
-                              console.error('Error adding products to store:', err);
+                              logger.error('Error adding products to store:', err);
                             } finally {
                               setIsAddingProducts(false);
                             }

@@ -3,6 +3,7 @@ import { useApplicationContext } from '@commercetools-frontend/application-shell
 import { useMcQuery, useMcMutation } from '@commercetools-frontend/application-shell';
 import { GRAPHQL_TARGETS } from '@commercetools-frontend/constants';
 import gql from 'graphql-tag';
+import logger from '../../utils/logger';
 
 // Define GraphQL response types
 interface ProductSelectionResponse {
@@ -248,7 +249,7 @@ const useStoreProducts = (): UseStoreProductsResult => {
       setError(null);
 
       try {
-        console.log(`Fetching products for store: ${storeKey}`);
+        logger.info(`Fetching products for store: ${storeKey}`);
         const { data } = await refetch({
           storeKey,
         }) as { data: ProductSelectionResponse };
@@ -290,14 +291,14 @@ const useStoreProducts = (): UseStoreProductsResult => {
             }
           );
 
-          console.log(`Successfully fetched ${products.length} products for store ${storeKey}`);
+          logger.info(`Successfully fetched ${products.length} products for store ${storeKey}`);
           return products;
         }
 
-        console.log(`No products found for store ${storeKey}`);
+        logger.info(`No products found for store ${storeKey}`);
         return [];
       } catch (err) {
-        console.error(`Error fetching products for store ${storeKey}:`, err);
+        logger.error(`Error fetching products for store ${storeKey}:`, err);
         setError(err instanceof Error ? err : new Error(`Unknown error loading products for store ${storeKey}`));
         return [];
       } finally {
@@ -310,7 +311,7 @@ const useStoreProducts = (): UseStoreProductsResult => {
   const addProductsToStore = useCallback(
     async (storeKey: string, productIds: string[]): Promise<boolean> => {
       if (!productIds.length) {
-        console.warn('No products selected to add');
+        logger.warn('No products selected to add');
         return false;
       }
 
@@ -318,7 +319,7 @@ const useStoreProducts = (): UseStoreProductsResult => {
       setError(null);
 
       try {
-        console.log(`Adding ${productIds.length} products to store ${storeKey}`);
+        logger.info(`Adding ${productIds.length} products to store ${storeKey}`);
         
         // Step 1: Get the product selection ID and version
         const { data: selectionData } = await getProductSelectionByKey({
@@ -332,7 +333,7 @@ const useStoreProducts = (): UseStoreProductsResult => {
         const selectionId = selectionData.productSelection.id;
         const version = selectionData.productSelection.version;
         
-        console.log(`Found product selection: ${selectionId} (version ${version})`);
+        logger.info(`Found product selection: ${selectionId} (version ${version})`);
         
         // Step 2: Create actions to add each product
         const actions = productIds.map(productId => ({
@@ -352,10 +353,10 @@ const useStoreProducts = (): UseStoreProductsResult => {
           },
         });
         
-        console.log('Product selection updated successfully:', result);
+        logger.info('Product selection updated successfully:', result);
         return true;
       } catch (err) {
-        console.error(`Error adding products to store ${storeKey}:`, err);
+        logger.error(`Error adding products to store ${storeKey}:`, err);
         setError(err instanceof Error ? err : new Error(`Unknown error adding products to store ${storeKey}`));
         return false;
       } finally {
@@ -368,7 +369,7 @@ const useStoreProducts = (): UseStoreProductsResult => {
   const removeProductsFromStore = useCallback(
     async (storeKey: string, productIds: string[]): Promise<boolean> => {
       if (!productIds.length) {
-        console.warn('No products selected to remove');
+        logger.warn('No products selected to remove');
         return false;
       }
 
@@ -376,7 +377,7 @@ const useStoreProducts = (): UseStoreProductsResult => {
       setError(null);
 
       try {
-        console.log(`Removing ${productIds.length} products from store ${storeKey}`);
+        logger.info(`Removing ${productIds.length} products from store ${storeKey}`);
         
         // Step 1: Get the product selection ID and version
         const { data: selectionData } = await getProductSelectionByKey({
@@ -390,7 +391,7 @@ const useStoreProducts = (): UseStoreProductsResult => {
         const selectionId = selectionData.productSelection.id;
         const version = selectionData.productSelection.version;
         
-        console.log(`Found product selection: ${selectionId} (version ${version})`);
+        logger.info(`Found product selection: ${selectionId} (version ${version})`);
         
         // Step 2: Create actions to remove each product
         const actions = productIds.map(productId => ({
@@ -410,10 +411,10 @@ const useStoreProducts = (): UseStoreProductsResult => {
           },
         });
         
-        console.log('Products successfully removed from selection:', result);
+        logger.info('Products successfully removed from selection:', result);
         return true;
       } catch (err) {
-        console.error(`Error removing products from store ${storeKey}:`, err);
+        logger.error(`Error removing products from store ${storeKey}:`, err);
         setError(err instanceof Error ? err : new Error(`Unknown error removing products from store ${storeKey}`));
         return false;
       } finally {
@@ -435,7 +436,7 @@ const useStoreProducts = (): UseStoreProductsResult => {
         priceMode: "Embedded"
       };
       
-      console.log('Creating product with data:', JSON.stringify(finalProductDraft, null, 2));
+      logger.info('Creating product with data:', JSON.stringify(finalProductDraft, null, 2));
       
       // Step 1: Create the product using the GraphQL mutation
       const result = await createProductMutation({
@@ -448,16 +449,16 @@ const useStoreProducts = (): UseStoreProductsResult => {
         
         if (graphqlErrors.length > 0) {
           const errorDetails = graphqlErrors.map((err: any) => {
-            console.error('GraphQL error details:', JSON.stringify(err, null, 2));
+            logger.error('GraphQL error details:', JSON.stringify(err, null, 2));
             return `${err.message}${err.extensions?.code ? ` (${err.extensions.code})` : ''}`;
           }).join('\n');
-          console.error('GraphQL errors:', errorDetails);
+          logger.error('GraphQL errors:', errorDetails);
           throw new Error(`Failed to create product: ${errorDetails}`);
         } else if (error.networkError) {
-          console.error('Network error:', error.networkError);
+          logger.error('Network error:', error.networkError);
           throw new Error('Network error when creating product. Please try again.');
         } else {
-          console.error('Unexpected error:', error);
+          logger.error('Unexpected error:', error);
           throw error;
         }
       });
@@ -470,7 +471,7 @@ const useStoreProducts = (): UseStoreProductsResult => {
       }
       
       const productId = data.createProduct.id;
-      console.log('Product created successfully with ID:', productId);
+      logger.info('Product created successfully with ID:', productId);
       
       // Step 2: Add the product to the store's product selection if a channel key is provided
       if (productDraft.masterVariant.prices?.[0]?.channel?.key) {
@@ -478,14 +479,14 @@ const useStoreProducts = (): UseStoreProductsResult => {
         
         // Add the newly created product to the store's product selection
         await addProductsToStore(storeKey, [productId]);
-        console.log(`Product ${productId} added to store ${storeKey}`);
+        logger.info(`Product ${productId} added to store ${storeKey}`);
       } else {
-        console.warn('No channel key found in product draft, skipping add to product selection');
+        logger.warn('No channel key found in product draft, skipping add to product selection');
       }
       
       return true;
     } catch (err) {
-      console.error('Error creating product:', err);
+      logger.error('Error creating product:', err);
       setError(err instanceof Error ? err : new Error('Unknown error creating product'));
       return false;
     } finally {
@@ -499,7 +500,7 @@ const useStoreProducts = (): UseStoreProductsResult => {
       setError(null);
 
       try {
-        console.log(`Searching products with text: "${searchText}"`);
+        logger.info(`Searching products with text: "${searchText}"`);
         const response = await searchProducts({
           text: searchText,
           filter: filters || []
@@ -508,7 +509,7 @@ const useStoreProducts = (): UseStoreProductsResult => {
         const { data } = response;
         
         // Log the raw response for debugging
-        console.log('Raw search response data structure:', 
+        logger.info('Raw search response data structure:', 
           JSON.stringify(data?.productProjectionSearch?.results?.[0] || {}, null, 2)
         );
 
@@ -516,16 +517,16 @@ const useStoreProducts = (): UseStoreProductsResult => {
           data?.productProjectionSearch?.results &&
           Array.isArray(data.productProjectionSearch.results)
         ) {
-          console.log(`Search found ${data.productProjectionSearch.results.length} products`);
+          logger.info(`Search found ${data.productProjectionSearch.results.length} products`);
           
           const products = data.productProjectionSearch.results.map(
             (product, index) => {
-              console.log(`Processing product ${index + 1}/${data.productProjectionSearch.results.length}, ID: ${product.id}`);
+              logger.info(`Processing product ${index + 1}/${data.productProjectionSearch.results.length}, ID: ${product.id}`);
               
               // Extract name from nameAllLocales, preferring en-US
               let productName = 'Unnamed product';
               if (product.nameAllLocales && product.nameAllLocales.length > 0) {
-                console.log(`nameAllLocales for product ${product.id}:`, 
+                logger.info(`nameAllLocales for product ${product.id}:`, 
                   JSON.stringify(product.nameAllLocales, null, 2)
                 );
                 
@@ -533,23 +534,23 @@ const useStoreProducts = (): UseStoreProductsResult => {
                 const enUsName = product.nameAllLocales.find(name => name.locale === 'en-US');
                 if (enUsName) {
                   productName = enUsName.value;
-                  console.log(`Using en-US locale name: "${productName}"`);
+                  logger.info(`Using en-US locale name: "${productName}"`);
                 } else {
                   // Fallback to first name if en-US not available
                   productName = product.nameAllLocales[0].value;
-                  console.log(`No en-US locale found, using first available: "${productName}"`);
+                  logger.info(`No en-US locale found, using first available: "${productName}"`);
                 }
               } else {
-                console.log(`No nameAllLocales found for product ${product.id}`);
+                logger.info(`No nameAllLocales found for product ${product.id}`);
               }
               
               // Get image URL from masterVariant
               let imageUrl = 'https://via.placeholder.com/80';
               if (product.masterVariant?.images && product.masterVariant.images.length > 0) {
                 imageUrl = product.masterVariant.images[0].url;
-                console.log(`Found image URL: ${imageUrl}`);
+                logger.info(`Found image URL: ${imageUrl}`);
               } else {
-                console.log(`No images found, using placeholder`);
+                logger.info(`No images found, using placeholder`);
               }
               
               // Add cache busting parameter with product ID to ensure uniqueness
@@ -568,7 +569,7 @@ const useStoreProducts = (): UseStoreProductsResult => {
                 sku: product.masterVariant?.sku || 'No SKU',
               };
               
-              console.log(`Final product data:`, result);
+              logger.info(`Final product data:`, result);
               return result;
             }
           );
@@ -576,10 +577,10 @@ const useStoreProducts = (): UseStoreProductsResult => {
           return products;
         }
 
-        console.log('No products found in search');
+        logger.info('No products found in search');
         return [];
       } catch (err) {
-        console.error(`Error searching products:`, err);
+        logger.error(`Error searching products:`, err);
         setError(err instanceof Error ? err : new Error(`Unknown error searching products`));
         return [];
       } finally {

@@ -3,6 +3,7 @@ import { useApplicationContext } from '@commercetools-frontend/application-shell
 import { useMcQuery, useMcMutation } from '@commercetools-frontend/application-shell';
 import { GRAPHQL_TARGETS } from '@commercetools-frontend/constants';
 import gql from 'graphql-tag';
+import logger from '../../utils/logger';
 
 // GraphQL query to fetch products with their prices (both current and staged)
 const GET_PRODUCTS_WITH_PRICES = gql`
@@ -237,7 +238,7 @@ const usePriceManagement = (): UsePriceManagementResult => {
       setError(null);
 
       try {
-        console.log(`Fetching products with prices for store: ${storeKey}`);
+        logger.info(`Fetching products with prices for store: ${storeKey}`);
         const { data } = await refetch({
           storeKey,
         });
@@ -263,7 +264,7 @@ const usePriceManagement = (): UsePriceManagementResult => {
                   (price) => price.channel?.key === storeKey
                 );
                 if (storePrice) {
-                  console.log(`Found price in staged data for product ${product.id}`);
+                  logger.info(`Found price in staged data for product ${product.id}`);
                 }
               }
               
@@ -299,14 +300,14 @@ const usePriceManagement = (): UsePriceManagementResult => {
             }
           );
 
-          console.log(`Successfully fetched ${products.length} products with prices for store ${storeKey}`);
+          logger.info(`Successfully fetched ${products.length} products with prices for store ${storeKey}`);
           return products;
         }
 
-        console.log(`No products found for store ${storeKey}`);
+        logger.info(`No products found for store ${storeKey}`);
         return [];
       } catch (err) {
-        console.error(`Error fetching products with prices for store ${storeKey}:`, err);
+        logger.error(`Error fetching products with prices for store ${storeKey}:`, err);
         setError(err instanceof Error ? err : new Error(`Unknown error loading products for store ${storeKey}`));
         return [];
       } finally {
@@ -322,7 +323,7 @@ const usePriceManagement = (): UsePriceManagementResult => {
       setError(null);
 
       try {
-        console.log(`Updating price for product ${productId} with channel ${channelKey}`);
+        logger.info(`Updating price for product ${productId} with channel ${channelKey}`);
         
         // Always fetch the product's current prices to ensure we have the latest data
         const { data } = await getProductPrices({
@@ -335,7 +336,7 @@ const usePriceManagement = (): UsePriceManagementResult => {
         
         // Get the latest version from the response
         let latestVersion = data.product.version;
-        console.log(`Initial product version: ${latestVersion}`);
+        logger.info(`Initial product version: ${latestVersion}`);
         
         // Check both current and staged variants for existing prices
         const currentPrices = data.product.masterData.current.masterVariant.prices || [];
@@ -352,7 +353,7 @@ const usePriceManagement = (): UsePriceManagementResult => {
           
           if (currentPriceWithChannel) {
             existingPriceId = currentPriceWithChannel.id;
-            console.log(`Found existing price in current variant with ID ${existingPriceId} for channel ${channelKey}`);
+            logger.info(`Found existing price in current variant with ID ${existingPriceId} for channel ${channelKey}`);
           } else {
             // Look in staged prices if not found in current
             const stagedPriceWithChannel = stagedPrices.find(p => 
@@ -361,7 +362,7 @@ const usePriceManagement = (): UsePriceManagementResult => {
             
             if (stagedPriceWithChannel) {
               existingPriceId = stagedPriceWithChannel.id;
-              console.log(`Found existing price in staged variant with ID ${existingPriceId} for channel ${channelKey}`);
+              logger.info(`Found existing price in staged variant with ID ${existingPriceId} for channel ${channelKey}`);
             }
           }
         }
@@ -371,7 +372,7 @@ const usePriceManagement = (): UsePriceManagementResult => {
         
         // STEP 1: If there's an existing price, remove it first in a separate update
         if (existingPriceId) {
-          console.log(`Removing existing price with ID ${existingPriceId} in separate operation`);
+          logger.info(`Removing existing price with ID ${existingPriceId} in separate operation`);
           
           // Create remove action
           const removeAction = {
@@ -399,14 +400,14 @@ const usePriceManagement = (): UsePriceManagementResult => {
           
           // Update version number for next operation
           latestVersion = removeResult.data.updateProduct.version;
-          console.log(`Price removed. New product version: ${latestVersion}`);
+          logger.info(`Price removed. New product version: ${latestVersion}`);
           
           // Small delay to ensure commercetools processes the change
           await new Promise(resolve => setTimeout(resolve, 500));
         }
         
         // STEP 2: Add the new price in a separate operation
-        console.log(`Adding new price for channel ${channelKey} with amount ${priceInCents}`);
+        logger.info(`Adding new price for channel ${channelKey} with amount ${priceInCents}`);
         
         const addPriceAction = {
           addPrice: {
@@ -442,23 +443,23 @@ const usePriceManagement = (): UsePriceManagementResult => {
           },
         });
         
-        console.log('Product price updated successfully:', result);
+        logger.info('Product price updated successfully:', result);
         return true;
       } catch (err) {
-        console.error(`Error updating price for product ${productId}:`, err);
+        logger.error(`Error updating price for product ${productId}:`, err);
         
         // Additional error logging
         if (err instanceof Error) {
-          console.error('Error message:', err.message);
-          console.error('Error stack:', err.stack);
+          logger.error('Error message:', err.message);
+          logger.error('Error stack:', err.stack);
           
           // Try to extract more details if it's an Apollo error
           const anyErr = err as any;
           if (anyErr.graphQLErrors) {
-            console.error('GraphQL Errors:', JSON.stringify(anyErr.graphQLErrors));
+            logger.error('GraphQL Errors:', JSON.stringify(anyErr.graphQLErrors));
           }
           if (anyErr.networkError) {
-            console.error('Network Error:', anyErr.networkError);
+            logger.error('Network Error:', anyErr.networkError);
           }
         }
         

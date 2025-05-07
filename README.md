@@ -382,6 +382,39 @@ try {
 }
 ```
 
+## Performance Optimizations
+
+### Logging Control
+
+The application implements a centralized logging utility to optimize performance and reduce console clutter in production:
+
+- **Logging Utility**: Located in `src/utils/logger.ts`
+- **Environment-Aware**: Automatically detects development vs. production environments
+- **Log Levels**: Supports different logging levels (log, info, warn, error, debug, performance)
+- **Production Behavior**: 
+  - Informational logs are suppressed in production
+  - Warnings appear with minimal information
+  - Errors are always logged in full detail
+
+This approach ensures that detailed logging is available during development while preventing excessive console output that could impact performance in production.
+
+**Usage:**
+
+```typescript
+import logger from '../utils/logger';
+
+// Instead of console.log:
+logger.info(`Fetched ${products.length} products`);
+
+// Critical errors are always logged:
+logger.error('Failed to process order', error);
+
+// Performance measurement:
+const startTime = performance.now();
+// ... operation to measure ...
+logger.performance('Data processing', startTime);
+```
+
 ## Getting Started
 
 ### Prerequisites
