@@ -6,7 +6,7 @@ import Customers from '../customers/customers';
 import OrderDetailsModal from '../orders/order-details-modal';
 import Orders from '../orders/orders';
 import Prices from '../prices/prices';
-import Products from '../products/products';
+import Products from '../products';
 import ProductDiscountWrapper from '../promotions/product-discount-wrapper';
 import Promotions from '../promotions/promotions';
 import Reports from '../reports/index';

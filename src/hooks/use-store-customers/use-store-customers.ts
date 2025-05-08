@@ -3,6 +3,7 @@ import { useApplicationContext } from '@commercetools-frontend/application-shell
 import { useMcQuery } from '@commercetools-frontend/application-shell';
 import { GRAPHQL_TARGETS } from '@commercetools-frontend/constants';
 import gql from 'graphql-tag';
+import { TDataTableSortingState } from '@commercetools-uikit/hooks';
 
 interface Order {
   id: string;
@@ -43,8 +44,9 @@ interface Customer {
 
 // GraphQL query to fetch customers by store key
 const GET_STORE_CUSTOMERS = gql`
-  query GetStoreCustomers($where: String, $sort: [String!]) {
-    customers(where: $where, sort: $sort) {
+  query GetStoreCustomers($where: String, $sort: [String!], $limit: Int, $offset: Int) {
+    customers(where: $where, sort: $sort, limit: $limit, offset: $offset) {
+      total
       results {
         id
         version
@@ -57,6 +59,7 @@ const GET_STORE_CUSTOMERS = gql`
         lastModifiedAt
         customerGroup {
           id
+          name
         }
         stores {
           key
@@ -87,6 +90,7 @@ const GET_CUSTOMER_BY_ID = gql`
       lastModifiedAt
       customerGroup {
         id
+        name
       }
       stores {
         key
@@ -115,18 +119,6 @@ const GET_CUSTOMER_BY_ID = gql`
   }
 `;
 
-// GraphQL query to fetch a customer group by ID
-const GET_CUSTOMER_GROUP = gql`
-  query GetCustomerGroup($id: String!) {
-    customerGroup(id: $id) {
-      id
-      version
-      name
-      key
-    }
-  }
-`;
-
 // Add orders query
 const GET_CUSTOMER_ORDERS = gql`
   query GetCustomerOrders($where: String, $sort: [String!], $limit: Int) {
@@ -145,24 +137,10 @@ const GET_CUSTOMER_ORDERS = gql`
   }
 `;
 
-interface CustomersResponse {
-  customers: {
-    results: Array<Customer>;
-  };
-}
-
 interface CustomerDetailResponse {
   customer: Customer;
 }
 
-interface CustomerGroupResponse {
-  customerGroup: {
-    id: string;
-    version: number;
-    name: string;
-    key?: string;
-  };
-}
 
 interface CustomerOrdersResponse {
   orders: {
@@ -173,15 +151,16 @@ interface CustomerOrdersResponse {
 interface UseStoreCustomersHook {
   fetchCustomersByStore: (storeKey: string) => Promise<Customer[]>;
   fetchCustomerById: (customerId: string) => Promise<Customer | null>;
-  fetchCustomerGroupById: (groupId: string) => Promise<{ id: string; name: string } | null>;
   fetchCustomerOrders: (customerId: string, limit?: number) => Promise<Order[]>;
   customers: Customer[];
+  total: number;
   loading: boolean;
   error: Error | null;
 }
 
-const useStoreCustomers = (): UseStoreCustomersHook => {
+const useStoreCustomers = ( {page, perPage, tableSorting}: { page?: {value: number}, perPage?: {value: number}, tableSorting?: TDataTableSortingState}): UseStoreCustomersHook => {
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [total, setTotal] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [customerGroups, setCustomerGroups] = useState<{[key: string]: {id: string; name: string}}>({});
@@ -191,7 +170,7 @@ const useStoreCustomers = (): UseStoreCustomersHook => {
   }));
   
   const { refetch, loading: queryLoading } = useMcQuery<{
-    customers?: { results: Array<Customer> };
+    customers?: { results: Array<Customer>, total: number };
   }>(GET_STORE_CUSTOMERS, {
     context: {
       target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
@@ -209,15 +188,6 @@ const useStoreCustomers = (): UseStoreCustomersHook => {
     }
   );
 
-  const { refetch: refetchCustomerGroupById, loading: groupLoading } = useMcQuery<CustomerGroupResponse>(
-    GET_CUSTOMER_GROUP,
-    {
-      context: {
-        target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
-      },
-      skip: true, // Skip on initial render
-    }
-  );
 
   const { refetch: refetchCustomerOrders, loading: ordersLoading } = useMcQuery<CustomerOrdersResponse>(
     GET_CUSTOMER_ORDERS,
@@ -227,50 +197,6 @@ const useStoreCustomers = (): UseStoreCustomersHook => {
       },
       skip: true, // Skip on initial render
     }
-  );
-
-  const fetchCustomerGroupById = useCallback(
-    async (groupId: string): Promise<{ id: string; name: string } | null> => {
-      // Check if we already have this group cached
-      if (customerGroups[groupId]) {
-        return customerGroups[groupId];
-      }
-      
-      try {
-        console.log(`Fetching customer group for ID: ${groupId}`);
-        
-        const { data, error: apiError } = await refetchCustomerGroupById({ 
-          id: groupId
-        });
-        
-        if (apiError) {
-          console.error('API Error fetching customer group:', apiError);
-          return null;
-        }
-        
-        if (!data?.customerGroup) {
-          console.log('Customer group not found');
-          return null;
-        }
-        
-        const group = {
-          id: data.customerGroup.id,
-          name: data.customerGroup.name
-        };
-        
-        // Cache the result
-        setCustomerGroups(prev => ({
-          ...prev,
-          [groupId]: group
-        }));
-        
-        return group;
-      } catch (err) {
-        console.error('Error in fetchCustomerGroupById:', err);
-        return null;
-      }
-    },
-    [refetchCustomerGroupById, customerGroups]
   );
 
   const fetchCustomersByStore = useCallback(
@@ -286,7 +212,9 @@ const useStoreCustomers = (): UseStoreCustomersHook => {
         
         const { data, error: apiError } = await refetch({ 
           where: whereCondition,
-          sort: ['createdAt desc'] // Sort by creation date, newest first
+          sort: tableSorting?.value ? [tableSorting.value.key + ' ' + tableSorting.value.order] : ['createdAt desc'],
+          limit: perPage?.value,
+          offset: page?.value
         });
         
         if (apiError) {
@@ -297,6 +225,7 @@ const useStoreCustomers = (): UseStoreCustomersHook => {
         if (!data?.customers?.results || data.customers.results.length === 0) {
           console.log('No customers found for this store');
           setCustomers([]);
+          setTotal(0);
           return [];
         }
         
@@ -311,6 +240,7 @@ const useStoreCustomers = (): UseStoreCustomersHook => {
         }));
         
         setCustomers(formattedCustomers);
+        setTotal(data.customers.total);
         return formattedCustomers;
       } catch (err) {
         console.error('Error in fetchCustomersByStore:', err);
@@ -321,7 +251,7 @@ const useStoreCustomers = (): UseStoreCustomersHook => {
         setLoading(false);
       }
     },
-    [refetch]
+    [refetch, tableSorting?.value, page?.value, perPage?.value]
   );
 
   const fetchCustomerById = useCallback(
@@ -356,20 +286,7 @@ const useStoreCustomers = (): UseStoreCustomersHook => {
             ? new Date(data.customer.lastModifiedAt).toLocaleString() 
             : undefined,
         };
-        
-        // Fetch customer group name if available
-        if (formattedCustomer.customerGroup?.id) {
-          try {
-            const group = await fetchCustomerGroupById(formattedCustomer.customerGroup.id);
-            if (group) {
-              formattedCustomer.customerGroup.name = group.name;
-            }
-          } catch (groupErr) {
-            console.error('Error fetching customer group:', groupErr);
-            // Continue without the group name
-          }
-        }
-        
+
         return formattedCustomer;
       } catch (err) {
         console.error('Error in fetchCustomerById:', err);
@@ -380,7 +297,7 @@ const useStoreCustomers = (): UseStoreCustomersHook => {
         setLoading(false);
       }
     },
-    [refetchCustomerById, fetchCustomerGroupById]
+    [refetchCustomerById]
   );
 
   const fetchCustomerOrders = useCallback(
@@ -426,10 +343,10 @@ const useStoreCustomers = (): UseStoreCustomersHook => {
   return {
     fetchCustomersByStore,
     fetchCustomerById,
-    fetchCustomerGroupById,
     fetchCustomerOrders,
     customers,
-    loading: loading || queryLoading || customerDetailLoading || groupLoading || ordersLoading,
+    total,
+    loading: loading || queryLoading || customerDetailLoading || ordersLoading,
     error,
   };
 };

@@ -1,8 +1,9 @@
-import { useCallback, useState } from 'react';
+import { useMcMutation, useMcQuery } from '@commercetools-frontend/application-shell';
 import { useApplicationContext } from '@commercetools-frontend/application-shell-connectors';
-import { useMcQuery, useMcMutation } from '@commercetools-frontend/application-shell';
 import { GRAPHQL_TARGETS } from '@commercetools-frontend/constants';
+import { TDataTableSortingState } from '@commercetools-uikit/hooks';
 import gql from 'graphql-tag';
+import { useCallback, useState } from 'react';
 
 interface Order {
   id: string;
@@ -21,19 +22,18 @@ interface Order {
   lineItems?: Array<any>;
   shippingAddress?: any;
   billingAddress?: any;
+  customer?: {
+    firstName?: string;
+    lastName?: string;
+  };
 }
 
-interface Customer {
-  id: string;
-  firstName?: string;
-  lastName?: string;
-  email?: string;
-}
 
 // GraphQL query to fetch store orders
 const GET_STORE_ORDERS = gql`
-  query GetStoreOrders($where: String, $sort: [String!]) {
-    orders(where: $where, sort: $sort) {
+  query GetStoreOrders($where: String, $sort: [String!], $limit: Int, $offset: Int) {
+    orders(where: $where, sort: $sort, limit: $limit, offset: $offset) {
+      total
       results {
         id
         version
@@ -46,6 +46,10 @@ const GET_STORE_ORDERS = gql`
         orderState
         customerId
         customerEmail
+         customer {
+          firstName
+          lastName
+        }
       }
     }
   }
@@ -110,18 +114,6 @@ const GET_ORDER_BY_ID = gql`
   }
 `;
 
-// GraphQL query to fetch customer details
-const GET_CUSTOMER_BY_ID = gql`
-  query GetCustomerById($id: String!) {
-    customer(id: $id) {
-      id
-      firstName
-      lastName
-      email
-    }
-  }
-`;
-
 // GraphQL mutation to update order state
 const UPDATE_ORDER_STATE = gql`
   mutation UpdateOrderState($id: String!, $version: Long!, $actions: [OrderUpdateAction!]!) {
@@ -133,33 +125,26 @@ const UPDATE_ORDER_STATE = gql`
   }
 `;
 
-interface OrdersResponse {
-  orders: {
-    results: Array<Order>;
-  };
-}
 
 interface OrderDetailResponse {
   order: Order;
 }
 
-interface CustomerResponse {
-  customer: Customer;
-}
-
 interface UseOrdersHook {
   fetchOrdersByStore: (storeKey: string) => Promise<Order[]>;
   fetchOrderById: (orderId: string) => Promise<Order | null>;
-  fetchCustomerById: (customerId: string) => Promise<Customer | null>;
+  // fetchCustomerById: (customerId: string) => Promise<Customer | null>;
   updateOrderState: (orderId: string, version: number, newState: string) => Promise<boolean>;
-  enrichOrdersWithCustomerNames: (orders: Order[]) => Promise<Order[]>;
+  // enrichOrdersWithCustomerNames: (orders: Order[]) => Promise<Order[]>;
   orders: Order[];
+  total: number;
   loading: boolean;
   error: Error | null;
 }
 
-const useOrders = (): UseOrdersHook => {
+const useOrders = ( {page, perPage, tableSorting}: { page?: {value: number}, perPage?: {value: number}, tableSorting?: TDataTableSortingState}): UseOrdersHook => {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [total, setTotal] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   
@@ -168,7 +153,7 @@ const useOrders = (): UseOrdersHook => {
   }));
   
   const { refetch, loading: queryLoading } = useMcQuery<{
-    orders?: { results: Array<Order> };
+    orders?: { results: Array<Order>, total: number };
   }>(GET_STORE_ORDERS, {
     context: {
       target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
@@ -188,15 +173,6 @@ const useOrders = (): UseOrdersHook => {
     }
   );
 
-  const { refetch: refetchCustomerById, loading: customerLoading } = useMcQuery<CustomerResponse>(
-    GET_CUSTOMER_BY_ID,
-    {
-      context: {
-        target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
-      },
-      skip: true, // Skip on initial render
-    }
-  );
 
   const [executeUpdateOrderState, { loading: updateLoading }] = useMcMutation(
     UPDATE_ORDER_STATE,
@@ -206,84 +182,82 @@ const useOrders = (): UseOrdersHook => {
       },
     }
   );
-
-  const fetchCustomerById = useCallback(
-    async (customerId: string): Promise<Customer | null> => {
-      if (!customerId) {
-        return null;
-      }
+  //   async (customerId: string): Promise<Customer | null> => {
+  //     if (!customerId) {
+  //       return null;
+  //     }
       
-      try {
-        console.log(`Fetching customer details for ID: ${customerId}`);
+  //     try {
+  //       console.log(`Fetching customer details for ID: ${customerId}`);
         
-        const { data, error: apiError } = await refetchCustomerById({ 
-          id: customerId
-        });
+  //       const { data, error: apiError } = await refetchCustomerById({ 
+  //         id: customerId
+  //       });
         
-        if (apiError) {
-          console.error('API Error fetching customer details:', apiError);
-          return null;
-        }
+  //       if (apiError) {
+  //         console.error('API Error fetching customer details:', apiError);
+  //         return null;
+  //       }
         
-        if (!data?.customer) {
-          console.log('Customer not found');
-          return null;
-        }
+  //       if (!data?.customer) {
+  //         console.log('Customer not found');
+  //         return null;
+  //       }
         
-        console.log('Customer details retrieved');
-        return data.customer;
-      } catch (err) {
-        console.error('Error in fetchCustomerById:', err);
-        return null;
-      }
-    },
-    [refetchCustomerById]
-  );
+  //       console.log('Customer details retrieved');
+  //       return data.customer;
+  //     } catch (err) {
+  //       console.error('Error in fetchCustomerById:', err);
+  //       return null;
+  //     }
+  //   },
+  //   [refetchCustomerById]
+  // );
 
-  const enrichOrdersWithCustomerNames = useCallback(
-    async (ordersList: Order[]): Promise<Order[]> => {
-      try {
-        const enrichedOrders = await Promise.all(
-          ordersList.map(async (order) => {
-            if (!order.customerId) {
-              return {
-                ...order,
-                customerName: order.customerEmail || 'Guest',
-              };
-            }
+  // const enrichOrdersWithCustomerNames = useCallback(
+  //   async (ordersList: Order[]): Promise<Order[]> => {
+  //     try {
+  //       const enrichedOrders = await Promise.all(
+  //         ordersList.map(async (order) => {
+  //           if (!order.customerId) {
+  //             return {
+  //               ...order,
+  //               customerName: order.customerEmail || 'Guest',
+  //             };
+  //           }
             
-            const customer = await fetchCustomerById(order.customerId);
+  //           const customer = await fetchCustomerById(order.customerId);
             
-            if (!customer) {
-              return {
-                ...order,
-                customerName: order.customerEmail || 'Unknown',
-              };
-            }
+  //           if (!customer) {
+  //             return {
+  //               ...order,
+  //               customerName: order.customerEmail || 'Unknown',
+  //             };
+  //           }
             
-            const customerName = [customer.firstName, customer.lastName]
-              .filter(Boolean)
-              .join(' ') || customer.email || 'Unknown';
+  //           const customerName = [customer.firstName, customer.lastName]
+  //             .filter(Boolean)
+  //             .join(' ') || customer.email || 'Unknown';
             
-            return {
-              ...order,
-              customerName,
-            };
-          })
-        );
+  //           return {
+  //             ...order,
+  //             customerName,
+  //           };
+  //         })
+  //       );
         
-        return enrichedOrders;
-      } catch (err) {
-        console.error('Error enriching orders with customer names:', err);
-        // Return original orders without enrichment
-        return ordersList.map(order => ({
-          ...order,
-          customerName: order.customerEmail || 'Unknown',
-        }));
-      }
-    },
-    [fetchCustomerById]
-  );
+  //       return enrichedOrders;
+  //     } catch (err) {
+  //       console.error('Error enriching orders with customer names:', err);
+  //       // Return original orders without enrichment
+  //       return ordersList.map(order => ({
+  //         ...order,
+  //         customerName: order.customerEmail || 'Unknown',
+  //       }));
+  //     }
+  //   },
+  //   [fetchCustomerById]
+  // );
 
   const fetchOrdersByStore = useCallback(
     async (storeKey: string): Promise<Order[]> => {
@@ -298,7 +272,9 @@ const useOrders = (): UseOrdersHook => {
         
         const { data, error: apiError } = await refetch({ 
           where: whereCondition,
-          sort: ['createdAt desc'] // Sort by creation date, newest first
+          sort: tableSorting?.value ? [tableSorting.value.key + ' ' + tableSorting.value.order] : ['createdAt desc'],
+          limit: perPage?.value,
+          offset: page?.value
         });
         
         if (apiError) {
@@ -309,6 +285,7 @@ const useOrders = (): UseOrdersHook => {
         if (!data?.orders?.results || data.orders.results.length === 0) {
           console.log('No orders found for this store');
           setOrders([]);
+          setTotal(0);
           return [];
         }
         
@@ -319,11 +296,9 @@ const useOrders = (): UseOrdersHook => {
           createdAt: new Date(order.createdAt).toLocaleString(),
         }));
         
-        // Enrich orders with customer names
-        const enrichedOrders = await enrichOrdersWithCustomerNames(formattedOrders);
-        
-        setOrders(enrichedOrders);
-        return enrichedOrders;
+        setOrders(formattedOrders);
+        setTotal(data.orders.total);
+        return formattedOrders;
       } catch (err) {
         console.error('Error in fetchOrdersByStore:', err);
         const errorObject = err instanceof Error ? err : new Error('Unknown error fetching orders');
@@ -333,7 +308,7 @@ const useOrders = (): UseOrdersHook => {
         setLoading(false);
       }
     },
-    [refetch, enrichOrdersWithCustomerNames]
+    [refetch, tableSorting?.value, page?.value, perPage?.value]
   );
 
   const fetchOrderById = useCallback(
@@ -369,21 +344,7 @@ const useOrders = (): UseOrdersHook => {
             ? new Date(data.order.lastModifiedAt).toLocaleString() 
             : undefined,
         };
-        
-        // Add customer name if customer ID is available
-        if (formattedOrder.customerId) {
-          const customer = await fetchCustomerById(formattedOrder.customerId);
-          if (customer) {
-            const customerName = [customer.firstName, customer.lastName]
-              .filter(Boolean)
-              .join(' ') || customer.email || 'Unknown';
-            
-            formattedOrder = {
-              ...formattedOrder,
-              customerName,
-            };
-          }
-        }
+      
         
         return formattedOrder;
       } catch (err) {
@@ -395,7 +356,7 @@ const useOrders = (): UseOrdersHook => {
         setLoading(false);
       }
     },
-    [refetchOrderById, fetchCustomerById, dataLocale]
+    [refetchOrderById, dataLocale]
   );
 
   const updateOrderState = useCallback(
@@ -455,11 +416,10 @@ const useOrders = (): UseOrdersHook => {
   return {
     fetchOrdersByStore,
     fetchOrderById,
-    fetchCustomerById,
     updateOrderState,
-    enrichOrdersWithCustomerNames,
     orders,
-    loading: loading || queryLoading || orderDetailLoading || customerLoading || updateLoading,
+    total,
+    loading: loading || queryLoading || orderDetailLoading || updateLoading,
     error,
   };
 };

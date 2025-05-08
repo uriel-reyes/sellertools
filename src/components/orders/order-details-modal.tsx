@@ -28,7 +28,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 }) => {
   const { orderId } = useParams<{ orderId?: string }>();
 
-  const { fetchOrderById } = useOrders();
+  const { fetchOrderById } = useOrders({});
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

@@ -1,23 +1,21 @@
-import React, { useEffect, useState } from 'react';
 import { InfoModalPage } from '@commercetools-frontend/application-components';
-import Text from '@commercetools-uikit/text';
-import Spacings from '@commercetools-uikit/spacings';
 import Card from '@commercetools-uikit/card';
 import Constraints from '@commercetools-uikit/constraints';
-import LoadingSpinner from '@commercetools-uikit/loading-spinner';
 import {
-  InformationIcon,
-  UsersIcon,
-  WorldIcon,
-  GearIcon,
-  TagIcon,
   CartIcon,
-  CloseIcon,
+  GearIcon,
+  InformationIcon,
+  TagIcon,
+  WorldIcon
 } from '@commercetools-uikit/icons';
-import useStoreCustomers from '../../hooks/use-store-customers';
-import styles from './customers.module.css';
+import LoadingSpinner from '@commercetools-uikit/loading-spinner';
+import Spacings from '@commercetools-uikit/spacings';
+import Text from '@commercetools-uikit/text';
+import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import useStoreCustomers from '../../hooks/use-store-customers';
 import { useClassNames } from '../../utils/use-classnames';
+import styles from './customers.module.css';
 // Define the Order interface
 interface Order {
   id: string;
@@ -79,7 +77,7 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({
   onBack,
 }) => {
   const { customerId } = useParams<{ customerId: string }>();
-  const { fetchCustomerOrders, fetchCustomerById } = useStoreCustomers();
+  const { fetchCustomerOrders, fetchCustomerById } = useStoreCustomers({});
   const [customerOrders, setCustomerOrders] = useState<Order[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [customer, setCustomer] = useState<Customer | null>(null);

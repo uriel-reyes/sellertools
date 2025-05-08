@@ -4,6 +4,7 @@ import { useMcQuery, useMcMutation } from '@commercetools-frontend/application-s
 import { GRAPHQL_TARGETS } from '@commercetools-frontend/constants';
 import gql from 'graphql-tag';
 import logger from '../../utils/logger';
+import { TDataTableSortingState, TState } from '@commercetools-uikit/hooks';
 
 // GraphQL query to fetch products with their prices (both current and staged)
 const GET_PRODUCTS_WITH_PRICES = gql`
@@ -199,7 +200,7 @@ interface UsePriceManagementResult {
   error: Error | null;
 }
 
-const usePriceManagement = (): UsePriceManagementResult => {
+const usePriceManagement = ({ page, perPage }: { page?: TState, perPage?: TState}): UsePriceManagementResult => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const { dataLocale } = useApplicationContext((context) => ({

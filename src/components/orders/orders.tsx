@@ -14,6 +14,9 @@ import styles from './orders.module.css';
 import { useHistory } from 'react-router-dom';
 import { formatPrice } from '../../utils/price';
 import { useAuthContext } from '../../contexts/auth-context';
+import { usePaginationState } from '@commercetools-uikit/hooks';
+import { useDataTableSortingState } from '@commercetools-uikit/hooks';
+import { Pagination } from '@commercetools-uikit/pagination';
 interface OrdersProps {
   onBack: () => void;
   linkToWelcome: string;
@@ -29,11 +32,14 @@ const ORDER_STATES = [
 const Orders: React.FC<OrdersProps> = ({ onBack, linkToWelcome }) => {
   const { push } = useHistory();
   const { storeKey } = useAuthContext();
-  const { fetchOrdersByStore, updateOrderState, orders, loading, error } = useOrders();
+  const { page, perPage } = usePaginationState();
+  const tableSorting = useDataTableSortingState();
+  const { fetchOrdersByStore, updateOrderState, orders, loading, error, total } = useOrders({page, perPage, tableSorting});
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [statusUpdateSuccess, setStatusUpdateSuccess] = useState<string | null>(null);
   const [statusUpdateError, setStatusUpdateError] = useState<string | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<string>('');
+
 
   useEffect(() => {
     if (storeKey) {
@@ -101,10 +107,10 @@ const Orders: React.FC<OrdersProps> = ({ onBack, linkToWelcome }) => {
 
   // Define columns for the table
   const columns = [
-    { key: 'date', label: 'Date' },
-    { key: 'orderNumber', label: 'Order Number' },
+    { key: 'createdAt', label: 'Date', isSortable: true },
+    { key: 'orderNumber', label: 'Order Number', isSortable: true },
     { key: 'customerName', label: 'Customer' },
-    { key: 'total', label: 'Total' },
+    { key: 'total', label: 'Total'},
     { 
       key: 'status', 
       label: 'Status', 
@@ -140,9 +146,9 @@ const Orders: React.FC<OrdersProps> = ({ onBack, linkToWelcome }) => {
     })
     .map(order => ({
       id: order.id,
-      date: order.createdAt,
+      createdAt: order.createdAt,
       orderNumber: order.orderNumber || 'N/A',
-      customerName: order.customerName || order.customerEmail || 'Unknown',
+      customerName: order.customer?.firstName + ' ' + order.customer?.lastName || order.customerEmail || 'Unknown',
       total: formatPrice(order.totalPrice.centAmount, order.totalPrice.currencyCode),
       status: order.orderState,
       rawData: order
@@ -209,10 +215,19 @@ const Orders: React.FC<OrdersProps> = ({ onBack, linkToWelcome }) => {
               columns={columns}
               rows={rows}
               onRowClick={handleRowClick}
+              onSortChange={tableSorting.onChange}
+              sortDirection={tableSorting.value?.order}
+              sortedBy={tableSorting.value?.key}
               maxHeight="80vh"
               maxWidth="100%"
             />
-            
+            <Pagination
+              page={page.value}
+              onPageChange={page.onChange}
+              perPage={perPage.value}
+              onPerPageChange={perPage.onChange}
+              totalItems={total}
+            />
           </div>
         )}
       </Spacings.Stack>
