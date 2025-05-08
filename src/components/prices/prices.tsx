@@ -235,7 +235,7 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
     { key: 'sku', label: 'SKU', width: "15%" },
     { 
       key: 'masterPrice', 
-      label: 'Master Price', 
+      label: 'Cost', 
       renderItem: (item: ProductPriceData) => (
         <Text.Body>
           {item.masterPrice 
@@ -247,7 +247,7 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
     },
     { 
       key: 'currentPrice', 
-      label: 'Store Price', 
+      label: 'Your Price', 
       renderItem: (item: ProductPriceData) => (
         <Text.Body>
           {item.currentPrice 
@@ -259,7 +259,7 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
     },
     {
       key: 'profitMargin',
-      label: 'Profit',
+      label: '(+/-)',
       renderItem: (item: ProductPriceData) => (
         <Text.Body>
           {calculateProfitMargin(
@@ -309,13 +309,13 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
         </div>
         
         {/* Search bar */}
-        <div className={styles.searchContainer}>
+        <div className={styles.searchContainer} style={{ maxWidth: '600px' }}>
           <form 
             onSubmit={(event) => {
               event.preventDefault();
               executeSearch(searchQuery);
             }}
-            style={{ flex: 1, maxWidth: '600px' }}
+            style={{ flex: 1 }}
           >
             <TextField
               value={searchQuery}
@@ -375,8 +375,6 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
               rows={products}
               maxHeight="70vh"
               maxWidth="100%"
-              horizontalConstraint="scale"
-              style={{ width: '100%', tableLayout: 'fixed' }}
             />
             <div className={styles.tableFooter}>
               <Text.Detail>
