@@ -100,8 +100,8 @@
 .checkboxContainer {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  padding: 8px 16px 8px 16px;
+  justify-content: center;
+  margin-top: 10px;
 }
 
 .checkboxLabelHidden {

@@ -1,8 +1,9 @@
-import { useCallback, useState } from 'react';
+import { useMcMutation, useMcQuery } from '@commercetools-frontend/application-shell';
 import { useApplicationContext } from '@commercetools-frontend/application-shell-connectors';
-import { useMcQuery, useMcMutation } from '@commercetools-frontend/application-shell';
 import { GRAPHQL_TARGETS } from '@commercetools-frontend/constants';
+import { TState } from '@commercetools-uikit/hooks';
 import gql from 'graphql-tag';
+import { useCallback, useState } from 'react';
 import logger from '../../utils/logger';
 
 // Define GraphQL response types
@@ -71,10 +72,10 @@ interface SearchFilterInput {
 
 // GraphQL query to fetch products from product selection with dynamic key
 const GET_STORE_PRODUCTS_QUERY = gql`
-  query GetProductSelection($storeKey: String!) {
+  query GetProductSelection($storeKey: String!, $limit: Int, $offset: Int) {
     productSelection(key: $storeKey) {
       id
-      productRefs {
+      productRefs (limit: $limit, offset: $offset) {
         results {
           product {
             id
@@ -173,27 +174,7 @@ interface UseStoreProductsResult {
   error: Error | null;
 }
 
-// Helper function to get the best available image from a product
-const getBestProductImage = (product: any): string => {
-  // Try masterVariant images first
-  if (product.masterVariant?.images?.length > 0) {
-    return product.masterVariant.images[0].url;
-  }
-  
-  // Try other variants if available
-  if (product.variants?.length > 0) {
-    for (const variant of product.variants) {
-      if (variant.images?.length > 0) {
-        return variant.images[0].url;
-      }
-    }
-  }
-  
-  // Fallback to placeholder
-  return 'https://via.placeholder.com/80';
-};
-
-const useStoreProducts = (): UseStoreProductsResult => {
+const useStoreProducts = ({page, perPage}: {page?: TState, perPage?: TState}): UseStoreProductsResult => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const { dataLocale } = useApplicationContext((context) => ({
@@ -201,9 +182,7 @@ const useStoreProducts = (): UseStoreProductsResult => {
   }));
 
   const { refetch } = useMcQuery(GET_STORE_PRODUCTS_QUERY, {
-    variables: {
-      storeKey: 'placeholder', // This will be overridden in fetchStoreProducts
-    },
+
     context: {
       target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
     },
@@ -252,6 +231,8 @@ const useStoreProducts = (): UseStoreProductsResult => {
         logger.info(`Fetching products for store: ${storeKey}`);
         const { data } = await refetch({
           storeKey,
+          limit: perPage?.value,
+          offset: page?.value,
         }) as { data: ProductSelectionResponse };
 
         if (
@@ -305,7 +286,7 @@ const useStoreProducts = (): UseStoreProductsResult => {
         setLoading(false);
       }
     },
-    [dataLocale, refetch]
+    [dataLocale, refetch, perPage?.value, page?.value]
   );
 
   const addProductsToStore = useCallback(

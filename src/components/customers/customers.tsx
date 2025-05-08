@@ -11,6 +11,9 @@ import useStoreCustomers from '../../hooks/use-store-customers';
 import styles from './customers.module.css';
 import { useAuthContext } from '../../contexts/auth-context';
 import { useHistory } from 'react-router-dom';
+import { usePaginationState } from '@commercetools-uikit/hooks';
+import { useDataTableSortingState } from '@commercetools-uikit/hooks';
+import { Pagination } from '@commercetools-uikit/pagination';
 interface CustomersProps {
   onBack: () => void;
   linkToWelcome: string;
@@ -18,7 +21,7 @@ interface CustomersProps {
 
 interface CustomerWithGroup {
   id: string;
-  name: string;
+  lastName: string;
   email: string;
   customerGroup?: string;
   rawData: any;
@@ -26,7 +29,9 @@ interface CustomerWithGroup {
 
 const Customers: React.FC<CustomersProps> = ({ onBack, linkToWelcome }) => {
   const history = useHistory();
-  const { fetchCustomersByStore, fetchCustomerGroupById, customers, loading, error } = useStoreCustomers();
+  const { page, perPage } = usePaginationState();
+  const tableSorting = useDataTableSortingState();
+  const { fetchCustomersByStore, customers, loading, error, total } = useStoreCustomers({page, perPage, tableSorting});
   const { storeKey } = useAuthContext();
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [lastRefreshed, setLastRefreshed] = useState<string>('');
@@ -50,35 +55,18 @@ const Customers: React.FC<CustomersProps> = ({ onBack, linkToWelcome }) => {
     const enrichCustomersWithGroups = async () => {
       if (customers.length === 0) return;
       
-      setLoadingGroups(true);
-      
-      const enhanced = await Promise.all(
-        customers.map(async (customer) => {
-          let groupName = 'N/A';
-          
-          if (customer.customerGroup?.id) {
-            const group = await fetchCustomerGroupById(customer.customerGroup.id);
-            if (group) {
-              groupName = group.name;
-            }
-          }
-          
-          return {
-            id: customer.id,
-            name: `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'N/A',
-            email: customer.email,
-            customerGroup: groupName,
-            rawData: customer
-          };
-        })
-      );
-      
-      setEnhancedCustomers(enhanced);
+      setEnhancedCustomers(customers.map(customer => ({
+        id: customer.id,
+        lastName: `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'N/A',
+        email: customer.email,
+        'customerGroup.id': customer.customerGroup?.name || 'N/A',
+        rawData: customer
+      })));
       setLoadingGroups(false);
     };
     
     enrichCustomersWithGroups();
-  }, [customers, fetchCustomerGroupById]);
+  }, [customers]);
 
   const handleRowClick = (row: any) => {
     // Skip handling if we don't have the raw data
@@ -89,8 +77,6 @@ const Customers: React.FC<CustomersProps> = ({ onBack, linkToWelcome }) => {
     // Navigate to the customer details page
     history.push(`${linkToWelcome}/customers/${row.id}`);
   };
-
-
 
 
   const handleRefreshCustomers = () => {
@@ -104,9 +90,9 @@ const Customers: React.FC<CustomersProps> = ({ onBack, linkToWelcome }) => {
 
   // Define columns for the table
   const columns = [
-    { key: 'name', label: 'Customer Name' },
-    { key: 'email', label: 'Email' },
-    { key: 'customerGroup', label: 'Customer Group' }
+    { key: 'lastName', label: 'Customer Name', isSortable: true },
+    { key: 'email', label: 'Email', isSortable: true },
+    { key: 'customerGroup.id', label: 'Customer Group', isSortable: true }
   ];
 
   const isLoading = loading || isFirstLoad || loadingGroups;
@@ -160,8 +146,18 @@ const Customers: React.FC<CustomersProps> = ({ onBack, linkToWelcome }) => {
               columns={columns}
               rows={enhancedCustomers}
               onRowClick={handleRowClick}
+              onSortChange={tableSorting.onChange}
+              sortDirection={tableSorting.value?.order}
+              sortedBy={tableSorting.value?.key}
               maxHeight="80vh"
               maxWidth="100%"
+            />
+            <Pagination
+              page={page.value}
+              onPageChange={page.onChange}
+              perPage={perPage.value}
+              onPerPageChange={perPage.onChange}
+              totalItems={total}
             />
           </div>
         )}

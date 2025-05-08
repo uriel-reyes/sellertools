@@ -1,19 +1,18 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { useIntl } from 'react-intl';
 import DataTable from '@commercetools-uikit/data-table';
+import { usePaginationState } from '@commercetools-uikit/hooks';
+import { RefreshIcon } from '@commercetools-uikit/icons';
 import LoadingSpinner from '@commercetools-uikit/loading-spinner';
-import Text from '@commercetools-uikit/text';
-import Spacings from '@commercetools-uikit/spacings';
+import { ErrorMessage } from '@commercetools-uikit/messages';
 import PrimaryButton from '@commercetools-uikit/primary-button';
 import SecondaryButton from '@commercetools-uikit/secondary-button';
-import { RefreshIcon, SearchIcon } from '@commercetools-uikit/icons';
-import { ErrorMessage } from '@commercetools-uikit/messages';
-import TextField from '@commercetools-uikit/text-field';
+import Spacings from '@commercetools-uikit/spacings';
+import Text from '@commercetools-uikit/text';
+import SearchTextInput from '@commercetools-uikit/search-text-input';
+import React, { useEffect, useRef, useState } from 'react';
+import { useAuthContext } from '../../contexts/auth-context';
 import usePriceManagement from '../../hooks/use-price-management/use-price-management';
 import useStoreProducts from '../../hooks/use-store-products/use-store-products';
 import styles from './prices.module.css';
-import { useAuthContext } from '../../contexts/auth-context';
-
 interface PricesProps {
   linkToWelcome: string;
   onBack: () => void;
@@ -133,12 +132,14 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
   const [error, setError] = useState<Error | null>(null);
   const [products, setProducts] = useState<ProductPriceData[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const { page, perPage } = usePaginationState();
   
   // Ref for debouncing search
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  const { fetchProductsWithPrices, updateProductPrice } = usePriceManagement();
-  const { searchProducts } = useStoreProducts();
+  const { fetchProductsWithPrices, updateProductPrice } = usePriceManagement({ page, perPage });
+  const { searchProducts } = useStoreProducts({});
   
   // Clean up the search timeout when component unmounts
   useEffect(() => {
@@ -310,15 +311,14 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
         
         {/* Search bar */}
         <div className={styles.searchContainer} style={{ maxWidth: '600px' }}>
-          <form 
-            onSubmit={(event) => {
-              event.preventDefault();
-              executeSearch(searchQuery);
-            }}
-            style={{ flex: 1 }}
-          >
-            <TextField
+          
+            <SearchTextInput
               value={searchQuery}
+              onSubmit={executeSearch}
+              onReset={() => {
+                setSearchQuery('');
+                fetchProducts();
+              }}
               onChange={(event) => {
                 const newValue = event.target.value;
                 setSearchQuery(newValue);
@@ -332,11 +332,8 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
                   executeSearch(newValue);
                 }, 500); // 500ms debounce
               }}
-              title="Search"
-              horizontalConstraint="scale"
               placeholder="Search products..."
             />
-          </form>
         </div>
 
         {/* Initial loading state */}
