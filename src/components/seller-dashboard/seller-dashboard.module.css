@@ -44,20 +44,22 @@
 
 .iconContainer {
   padding: var(--spacing-m);
-  background-color: var(--color-accent-30);
+  background-color: var(--color-primary);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: var(--spacing-m);
-  color: var(--color-primary);
-  width: 80px;
-  height: 80px;
+  width: 88px;
+  height: 88px;
   flex-shrink: 0;
 }
 
-.emoji {
-  font-size: 36px;
+.iconWrapper {
+  transform: scale(1.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .dashboardTitle {
