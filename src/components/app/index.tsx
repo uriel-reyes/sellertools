@@ -12,6 +12,8 @@ import Promotions from '../promotions/promotions';
 import Reports from '../reports/index';
 import SellerDashboard from '../seller-dashboard/seller-dashboard';
 import Welcome from '../welcome/welcome';
+import Configuration from '../configuration';
+
 const App = () => {
   const match = useRouteMatch();
   const { push, goBack } = useHistory();
@@ -61,6 +63,9 @@ const App = () => {
           </Route>
           <Route path={`${match.path}/reports`} exact>
             <Reports onBack={goBack} linkToWelcome={match.url} />
+          </Route>
+          <Route path={`${match.path}/configuration`} exact>
+            <Configuration onBack={goBack} linkToWelcome={match.url} />
           </Route>
           <Route>
             <SellerDashboard onNavigate={handleNavigate} />

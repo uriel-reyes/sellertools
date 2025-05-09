@@ -26,7 +26,8 @@ const config = {
       'view_stores', 
       'view_orders', 
       'view_product_selections',
-      'view_cart_discounts'
+      'view_cart_discounts',
+      'view_business_units'
     ],
     manage: [
       'manage_products', 
@@ -34,7 +35,8 @@ const config = {
       'manage_stores', 
       'manage_orders', 
       'manage_product_selections',
-      'manage_cart_discounts'
+      'manage_cart_discounts',
+      'manage_business_units'
     ],
   },
   headers:{

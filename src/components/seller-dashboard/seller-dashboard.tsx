@@ -12,7 +12,8 @@ import {
   TagIcon, 
   FrontendStudioIcon, 
   GraphIcon,
-  LogoutIcon
+  LogoutIcon,
+  GearIcon
 } from '@commercetools-uikit/icons';
 import PrimaryButton from '@commercetools-uikit/primary-button';
 import SecondaryButton from '@commercetools-uikit/secondary-button';
@@ -108,6 +109,12 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate }) => {
       title: intl.formatMessage(messages.viewReports),
       icon: <GraphIcon />,
       onClick: () => handleNavigation('/reports'),
+    },
+    {
+      id: 'configuration',
+      title: intl.formatMessage(messages.storeConfiguration),
+      icon: <GearIcon />,
+      onClick: () => handleNavigation('/configuration'),
     },
   ];
 

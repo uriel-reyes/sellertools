@@ -37,6 +37,10 @@ export default defineMessages({
     id: 'SellerDashboard.viewReports',
     defaultMessage: 'View Reports',
   },
+  storeConfiguration: {
+    id: 'SellerDashboard.storeConfiguration',
+    defaultMessage: 'Store Configuration',
+  },
   logout: {
     id: 'SellerDashboard.logout',
     defaultMessage: 'Logout',

@@ -27,6 +27,20 @@ This application addresses the need for store-specific management tools in a mul
 - Support for detecting store references through customer's custom fields
 - Automatic redirect to dashboard after successful authentication
 
+### Store Configuration
+- Complete store configuration management interface
+- Update store information:
+  - Store name and branding details
+  - Address information (street, city, state, zipcode)
+  - Contact information (phone number)
+  - Business hours (opening and closing times)
+  - Payment processing details (Stripe Account ID)
+- Real-time validation and feedback
+- Automatic detection of changes with optimistic UI updates
+- Robust error handling with clear user messaging
+- BusinessUnit data integration with GraphQL
+- Custom fields support for extensible data storage
+
 ### Order Management
 - Comprehensive order listing with:
   - Date and time information
@@ -414,6 +428,185 @@ const startTime = performance.now();
 // ... operation to measure ...
 logger.performance('Data processing', startTime);
 ```
+
+## Extending the Store Configuration
+
+The Store Configuration form has been designed to be scalable and adaptable to different project requirements. This section explains how to extend it to support additional or different custom fields.
+
+### Current Implementation
+
+The current Store Configuration component (`src/components/configuration/configuration.tsx`) handles:
+
+1. **Basic Store Information**:
+   - Store name from BusinessUnit
+
+2. **Address Information**:
+   - Street number, street name, city, state, zipcode, phone number
+
+3. **Custom Fields**:
+   - Hours of operation (opening and closing times)
+   - Stripe Account ID
+
+### Making the Form Scalable
+
+To make the Store Configuration form support different custom fields based on project requirements:
+
+#### 1. Dynamic Custom Field Detection
+
+Implement a dynamic approach to detect and render custom fields:
+
+```typescript
+// Example of dynamic custom field handling
+useEffect(() => {
+  if (businessUnit && businessUnit.custom && businessUnit.custom.customFieldsRaw) {
+    // Create a map of all available custom fields
+    const customFieldsMap = businessUnit.custom.customFieldsRaw.reduce((acc, field) => {
+      acc[field.name] = field.value;
+      return acc;
+    }, {} as Record<string, any>);
+    
+    // Update form state with all detected custom fields
+    setFormCustomFields(customFieldsMap);
+  }
+}, [businessUnit]);
+```
+
+#### 2. Custom Field Registry
+
+Create a registry of supported custom fields with their UI components:
+
+```typescript
+// Custom field registry with field definitions
+const CUSTOM_FIELD_REGISTRY = {
+  'hours-of-operation': {
+    type: 'timeRange',
+    label: 'Hours of Operation',
+    component: TimeRangeField,
+    valueTransformer: (value) => [value[0].substring(0, 5), value[1].substring(0, 5)],
+    submitTransformer: (value) => [`${value[0]}:00`, `${value[1]}:00`],
+  },
+  'stripeAccountId': {
+    type: 'text',
+    label: 'Stripe Account ID',
+    component: TextField,
+    description: 'Your Stripe payment processing account ID',
+  },
+  // Add more custom fields as needed
+};
+```
+
+#### 3. Dynamic Field Rendering
+
+Render fields dynamically based on the registry:
+
+```jsx
+// Dynamic field rendering example
+{Object.entries(CUSTOM_FIELD_REGISTRY).map(([fieldName, fieldConfig]) => {
+  const FieldComponent = fieldConfig.component;
+  return (
+    <FieldComponent
+      key={fieldName}
+      title={intl.formatMessage({ id: `Configuration.${fieldName}`, defaultMessage: fieldConfig.label })}
+      value={formData[fieldName] || ''}
+      onChange={handleCustomFieldChange(fieldName)}
+      description={fieldConfig.description}
+      horizontalConstraint={13}
+      isDisabled={isSaving}
+    />
+  );
+})}
+```
+
+#### 4. Project-Specific Configuration
+
+Create a project-specific configuration file to define which custom fields should be enabled:
+
+```typescript
+// src/config/store-config-fields.ts
+export const ENABLED_CUSTOM_FIELDS = [
+  'hours-of-operation',
+  'stripeAccountId',
+  // Project-specific fields
+  'deliveryRadius',
+  'minimumOrderValue',
+  'acceptedPaymentMethods',
+];
+
+// Conditionally include fields based on project
+export const shouldShowField = (fieldName: string): boolean => {
+  return ENABLED_CUSTOM_FIELDS.includes(fieldName);
+};
+```
+
+#### 5. Field Type Handling
+
+Implement handlers for different field types:
+
+```typescript
+// Field type-specific handlers
+const getFieldHandler = (fieldType: string) => {
+  switch (fieldType) {
+    case 'timeRange':
+      return handleTimeRangeChange;
+    case 'multiSelect':
+      return handleMultiSelectChange;
+    case 'money':
+      return handleMoneyChange;
+    default:
+      return handleTextChange;
+  }
+};
+```
+
+#### 6. Custom Field Value Processing
+
+Implement proper transformers for saving different field types:
+
+```typescript
+// Prepare custom fields for saving
+const prepareCustomFieldsForSave = () => {
+  const customFields: Record<string, any> = {};
+  
+  Object.entries(formData.customFields || {}).forEach(([fieldName, fieldValue]) => {
+    const fieldConfig = CUSTOM_FIELD_REGISTRY[fieldName];
+    if (fieldConfig && fieldConfig.submitTransformer) {
+      // Transform the value using field-specific logic
+      customFields[fieldName] = fieldConfig.submitTransformer(fieldValue);
+    } else {
+      // Use the value as-is
+      customFields[fieldName] = fieldValue;
+    }
+  });
+  
+  return customFields;
+};
+```
+
+### Implementation Steps for New Custom Fields
+
+To add a new custom field to the Store Configuration form:
+
+1. **Define the Custom Type in commercetools**:
+   - Create or update the BusinessUnit custom type with the new field
+
+2. **Add to Field Registry**:
+   - Add the field definition to the CUSTOM_FIELD_REGISTRY
+   - Define appropriate component, label, and transformers
+
+3. **Add to Enabled Fields**:
+   - Add the field name to ENABLED_CUSTOM_FIELDS in the config
+
+4. **Add Localization**:
+   - Add labels and placeholders to messages.ts for internationalization
+
+5. **Implement Field-Specific Logic**:
+   - Add any special handling required for the field type
+
+6. **Test the Field Functionality**:
+   - Verify the field appears correctly
+   - Confirm data is saved and retrieved properly
+
+This architecture allows for completely different custom fields in different projects without modifying the core configuration component.
 
 ## Getting Started
 
