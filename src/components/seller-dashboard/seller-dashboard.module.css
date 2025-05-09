@@ -65,4 +65,21 @@
 .dashboardTitle {
   text-align: center;
   margin-bottom: var(--spacing-l);
+}
+
+.logoutContainer {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--spacing-l);
+}
+
+.logoutButton {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  transition: all 0.2s ease;
+}
+
+.logoutButton:hover {
+  opacity: 0.8;
 } 

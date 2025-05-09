@@ -1,5 +1,6 @@
 import React from 'react';
 import { useIntl } from 'react-intl';
+import { useHistory } from 'react-router-dom';
 import Spacings from '@commercetools-uikit/spacings';
 import Card from '@commercetools-uikit/card';
 import Text from '@commercetools-uikit/text';
@@ -10,8 +11,12 @@ import {
   CoinsIcon, 
   TagIcon, 
   FrontendStudioIcon, 
-  GraphIcon 
+  GraphIcon,
+  LogoutIcon
 } from '@commercetools-uikit/icons';
+import PrimaryButton from '@commercetools-uikit/primary-button';
+import SecondaryButton from '@commercetools-uikit/secondary-button';
+import { useAuthContext } from '../../contexts/auth-context';
 import styles from './seller-dashboard.module.css';
 import messages from './messages';
 
@@ -40,11 +45,18 @@ type SellerDashboardProps = {
 
 const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate }) => {
   const intl = useIntl();
+  const history = useHistory();
+  const { logout } = useAuthContext();
 
   const handleNavigation = (route: string) => {
     onNavigate(route);
   };
 
+  const handleLogout = () => {
+    logout();
+    // Redirect to the root/welcome page
+    history.push('/');
+  };
 
   // Dashboard items with UI Kit icons
   const dashboardItems = [
@@ -102,6 +114,15 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate }) => {
   return (
     <div className={styles.dashboardContainer}>
       <Spacings.Stack scale="xl">
+        <div className={styles.logoutContainer}>
+          <SecondaryButton
+            label={intl.formatMessage(messages.logout)}
+            onClick={handleLogout}
+            iconLeft={<LogoutIcon />}
+            className={styles.logoutButton}
+          />
+        </div>
+
         <div className={styles.dashboardTitle}>
           <Text.Headline as="h1">{intl.formatMessage(messages.title)}</Text.Headline>
         </div>

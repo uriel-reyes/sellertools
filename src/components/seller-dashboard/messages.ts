@@ -37,4 +37,8 @@ export default defineMessages({
     id: 'SellerDashboard.viewReports',
     defaultMessage: 'View Reports',
   },
+  logout: {
+    id: 'SellerDashboard.logout',
+    defaultMessage: 'Logout',
+  },
 }); 
