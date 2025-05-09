@@ -10,22 +10,23 @@ sellertools is a powerful multi-vendor application built on the commercetools Me
 
 ## Purpose
 
-This application addresses the need for store-specific management tools in a multi-vendor commercetools environment. It allows sellers to:
+sellertools addresses the needs of businesses operating multi-seller models by providing a unified management interface built on commercetools. The application enables:
 
-- Authenticate with their store credentials
+- Streamlined management across multiple business models (B2B2C, marketplaces, franchises, field sales)
+- Empowerment of individual sellers with their own dedicated management tools
+- Scalable architecture that adapts to different business requirements
+- Simplified integration with the commercetools ecosystem
+
+Third-party sellers can use the platform to:
 - View and manage orders specific to their store
 - Track order statuses and update them as needed
 - Access customer information associated with their orders
-- Manage product selections for their store, adding or removing products from a master catalog
+- Manage product selections and pricing for their store
+- Create and manage store-specific promotions
+- View sales reporting
+- View, manage and edit store content such as banners, logos, images and more
 
 ## Features
-
-### Store-Based Authentication
-- Secure login system for sellers and store managers
-- Authentication through standard customerSignIn implementation
-- Store association verification after login
-- Support for detecting store references through customer's custom fields
-- Automatic redirect to dashboard after successful authentication
 
 ### Store Configuration
 - Complete store configuration management interface
