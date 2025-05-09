@@ -16,6 +16,7 @@ import Spacings from '@commercetools-uikit/spacings';
 import Text from '@commercetools-uikit/text';
 import { FormattedMessage } from 'react-intl';
 import { useBusinessUnitContext } from '../../contexts/business-unit-context';
+import AiAssistant from '../ai-assistant';
 
 const App = () => {
   const match = useRouteMatch();
@@ -45,6 +46,7 @@ const App = () => {
   }
 
   return (
+    <>
     <Switch>
       <Route path={`${match.path}/orders/:orderId`} exact>
         <OrderDetailsModal onBack={goBack} linkToWelcome={match.url} />
@@ -90,6 +92,8 @@ const App = () => {
         <SellerDashboard onNavigate={handleNavigate} />
       </Route>
     </Switch>
+    <AiAssistant />
+    </>
   );
 };
 

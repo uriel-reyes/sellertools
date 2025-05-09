@@ -5,7 +5,6 @@ import {
 } from '@commercetools-frontend/application-shell';
 import type { ApplicationWindow } from '@commercetools-frontend/constants';
 import loadMessages from '../../load-messages';
-
 declare let window: ApplicationWindow;
 
 // Here we split up the main (app) bundle with the actual application business logic.
