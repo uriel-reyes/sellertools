@@ -154,50 +154,19 @@ This application addresses the need for store-specific management tools in a mul
 
 ### Promotion Management
 - Create and manage store-specific product discounts
-- Support for both percentage and fixed amount discount types:
-  - Percentage discounts use permyriad value (10000 = 100%)
-  - Fixed amount discounts specify currency and cent amount
-- Apply discounts to all products or specific products based on conditions
-- Multiple condition types with operators:
-  - Product SKUs with various operators (is, is not, contains, does not contain)
-  - Category keys with containment predicates
-- Combine multiple conditions with AND logic
-- Channel-specific filtering for seller's products
-- Sort order control to prioritize discounts
-- Real-time validation and feedback
-- **Active Status Management**:
-  - Interactive toggle controls to immediately activate or deactivate promotions
-  - Visual status indicators showing current state (active/inactive)
-  - Optimistic UI updates with backend synchronization
-  - Prevention of race conditions through toggle state tracking
-  - Automatic data refresh after status changes
-  - Real-time error handling with clear user feedback
-- **Promotion Editing**:
-  - Edit existing promotions by clicking on their row in the table
-  - All fields are available for modification including name, description, and conditions
-  - Pre-populated form with existing promotion values
-  - Intelligent comparison to only send changed fields to the API
-  - Proper handling of different discount types (percentage vs. fixed amount)
-  - Support for parsing and editing existing promotion predicates
-- **Multi-select and Bulk Actions**:
-  - Select multiple promotions using checkboxes in the table
-  - Bulk action dropdown with options to Activate, Deactivate, or Delete multiple promotions
-  - Confirmation dialogs to prevent accidental bulk operations
-  - Efficient batch processing of multiple promotions
-  - Clear feedback on bulk operation results
-- **Delete Functionality**:
-  - Individual promotion deletion via actions menu
-  - Bulk deletion of multiple selected promotions
-  - Confirmation dialogs to prevent accidental deletion
-  - Proper cleanup of promotion resources in commercetools
-- **Enhanced User Experience**:
-  - Improved money input field for fixed amount discounts
-  - Native number input controls with proper decimal handling
-  - Support for entering precise dollar amounts (e.g., $12.25)
-  - Proper conversion between dollars and cents for the commercetools API
-  - Consistent formatting and input validation
-  - Simplified and streamlined UI with improved visual hierarchy
-  - Automatic retry mechanism for handling sort order conflicts
+- Support for percentage and fixed amount discount types
+- Apply discounts to all products or specific products with conditions:
+  - Filter by SKUs or categories
+  - Combine multiple conditions with AND logic
+  - Channel-specific filtering for seller's products
+- Status management with toggle controls for activation/deactivation
+- Editing capabilities with pre-populated forms and field comparison
+- Bulk actions (activate, deactivate, delete) with confirmation dialogs
+- Delete functionality with proper resource cleanup
+- User experience enhancements:
+  - Money input with proper decimal handling
+  - Streamlined UI with improved visual hierarchy
+  - Real-time validation and feedback
 
 ## Configuration Requirements
 
@@ -431,182 +400,19 @@ logger.performance('Data processing', startTime);
 
 ## Extending the Store Configuration
 
-The Store Configuration form has been designed to be scalable and adaptable to different project requirements. This section explains how to extend it to support additional or different custom fields.
+The Store Configuration form currently supports two custom fields:
 
-### Current Implementation
+1. **Hours of Operation**: For setting the opening and closing times of the store
+2. **Stripe Account ID**: For connecting the store to a payment processing account
 
-The current Store Configuration component (`src/components/configuration/configuration.tsx`) handles:
+This implementation can be extended to support additional custom fields based on project requirements. The form architecture allows for defining different sets of custom fields without modifying the core configuration component.
 
-1. **Basic Store Information**:
-   - Store name from BusinessUnit
+To add new custom fields, you would need to:
+1. Define the custom type in commercetools
+2. Update the form to handle the new fields
+3. Add appropriate validation and transformers for the field type
 
-2. **Address Information**:
-   - Street number, street name, city, state, zipcode, phone number
-
-3. **Custom Fields**:
-   - Hours of operation (opening and closing times)
-   - Stripe Account ID
-
-### Making the Form Scalable
-
-To make the Store Configuration form support different custom fields based on project requirements:
-
-#### 1. Dynamic Custom Field Detection
-
-Implement a dynamic approach to detect and render custom fields:
-
-```typescript
-// Example of dynamic custom field handling
-useEffect(() => {
-  if (businessUnit && businessUnit.custom && businessUnit.custom.customFieldsRaw) {
-    // Create a map of all available custom fields
-    const customFieldsMap = businessUnit.custom.customFieldsRaw.reduce((acc, field) => {
-      acc[field.name] = field.value;
-      return acc;
-    }, {} as Record<string, any>);
-    
-    // Update form state with all detected custom fields
-    setFormCustomFields(customFieldsMap);
-  }
-}, [businessUnit]);
-```
-
-#### 2. Custom Field Registry
-
-Create a registry of supported custom fields with their UI components:
-
-```typescript
-// Custom field registry with field definitions
-const CUSTOM_FIELD_REGISTRY = {
-  'hours-of-operation': {
-    type: 'timeRange',
-    label: 'Hours of Operation',
-    component: TimeRangeField,
-    valueTransformer: (value) => [value[0].substring(0, 5), value[1].substring(0, 5)],
-    submitTransformer: (value) => [`${value[0]}:00`, `${value[1]}:00`],
-  },
-  'stripeAccountId': {
-    type: 'text',
-    label: 'Stripe Account ID',
-    component: TextField,
-    description: 'Your Stripe payment processing account ID',
-  },
-  // Add more custom fields as needed
-};
-```
-
-#### 3. Dynamic Field Rendering
-
-Render fields dynamically based on the registry:
-
-```jsx
-// Dynamic field rendering example
-{Object.entries(CUSTOM_FIELD_REGISTRY).map(([fieldName, fieldConfig]) => {
-  const FieldComponent = fieldConfig.component;
-  return (
-    <FieldComponent
-      key={fieldName}
-      title={intl.formatMessage({ id: `Configuration.${fieldName}`, defaultMessage: fieldConfig.label })}
-      value={formData[fieldName] || ''}
-      onChange={handleCustomFieldChange(fieldName)}
-      description={fieldConfig.description}
-      horizontalConstraint={13}
-      isDisabled={isSaving}
-    />
-  );
-})}
-```
-
-#### 4. Project-Specific Configuration
-
-Create a project-specific configuration file to define which custom fields should be enabled:
-
-```typescript
-// src/config/store-config-fields.ts
-export const ENABLED_CUSTOM_FIELDS = [
-  'hours-of-operation',
-  'stripeAccountId',
-  // Project-specific fields
-  'deliveryRadius',
-  'minimumOrderValue',
-  'acceptedPaymentMethods',
-];
-
-// Conditionally include fields based on project
-export const shouldShowField = (fieldName: string): boolean => {
-  return ENABLED_CUSTOM_FIELDS.includes(fieldName);
-};
-```
-
-#### 5. Field Type Handling
-
-Implement handlers for different field types:
-
-```typescript
-// Field type-specific handlers
-const getFieldHandler = (fieldType: string) => {
-  switch (fieldType) {
-    case 'timeRange':
-      return handleTimeRangeChange;
-    case 'multiSelect':
-      return handleMultiSelectChange;
-    case 'money':
-      return handleMoneyChange;
-    default:
-      return handleTextChange;
-  }
-};
-```
-
-#### 6. Custom Field Value Processing
-
-Implement proper transformers for saving different field types:
-
-```typescript
-// Prepare custom fields for saving
-const prepareCustomFieldsForSave = () => {
-  const customFields: Record<string, any> = {};
-  
-  Object.entries(formData.customFields || {}).forEach(([fieldName, fieldValue]) => {
-    const fieldConfig = CUSTOM_FIELD_REGISTRY[fieldName];
-    if (fieldConfig && fieldConfig.submitTransformer) {
-      // Transform the value using field-specific logic
-      customFields[fieldName] = fieldConfig.submitTransformer(fieldValue);
-    } else {
-      // Use the value as-is
-      customFields[fieldName] = fieldValue;
-    }
-  });
-  
-  return customFields;
-};
-```
-
-### Implementation Steps for New Custom Fields
-
-To add a new custom field to the Store Configuration form:
-
-1. **Define the Custom Type in commercetools**:
-   - Create or update the BusinessUnit custom type with the new field
-
-2. **Add to Field Registry**:
-   - Add the field definition to the CUSTOM_FIELD_REGISTRY
-   - Define appropriate component, label, and transformers
-
-3. **Add to Enabled Fields**:
-   - Add the field name to ENABLED_CUSTOM_FIELDS in the config
-
-4. **Add Localization**:
-   - Add labels and placeholders to messages.ts for internationalization
-
-5. **Implement Field-Specific Logic**:
-   - Add any special handling required for the field type
-
-6. **Test the Field Functionality**:
-   - Verify the field appears correctly
-   - Confirm data is saved and retrieved properly
-
-This architecture allows for completely different custom fields in different projects without modifying the core configuration component.
+This flexible approach makes the Store Configuration adaptable to different business needs across projects.
 
 ## Getting Started
 
