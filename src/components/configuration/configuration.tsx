@@ -14,12 +14,9 @@ import { useShowNotification } from '@commercetools-frontend/actions-global';
 import { DOMAINS } from '@commercetools-frontend/constants';
 import { InfoModalPage } from '@commercetools-frontend/application-components';
 import { useAuthContext } from '../../contexts/auth-context';
-import useBusinessUnit from '../../hooks/use-business-unit';
+import useCustomerBusinessUnits from '../../hooks/use-customer-business-units';
 import styles from './configuration.module.css';
 import messages from './messages';
-
-// Hardcoded business unit ID (to be replaced with dynamic ID in the future)
-const BUSINESS_UNIT_ID = '9ce49afb-bdc1-4faa-ac51-44a6fdfdaeaf';
 
 type ConfigurationProps = {
   onBack: () => void;
@@ -45,6 +42,12 @@ type CustomField = {
   value: string | string[] | unknown;
 };
 
+// Define type for business unit for the selector
+interface BusinessUnit {
+  id: string;
+  name: string;
+}
+
 // Generate time options for select fields
 const generateTimeOptions = () => {
   const options = [];
@@ -62,11 +65,19 @@ const generateTimeOptions = () => {
 const Configuration: React.FC<ConfigurationProps> = ({ onBack }) => {
   const intl = useIntl();
   const showNotification = useShowNotification();
-  const { storeKey } = useAuthContext();
+  const { customerDetails } = useAuthContext();
   const timeOptions = generateTimeOptions();
   
-  // Get business unit data using the hook
-  const { businessUnit, loading, error, fetchBusinessUnit, updateBusinessUnit } = useBusinessUnit();
+  // Get business units data using the hook
+  const { 
+    businessUnits, 
+    selectedBusinessUnit, 
+    loading, 
+    error, 
+    fetchBusinessUnitsByCustomerId, 
+    selectBusinessUnit,
+    updateBusinessUnit 
+  } = useCustomerBusinessUnits();
   
   // Track if saving is in progress
   const [isSaving, setIsSaving] = useState(false);
@@ -88,23 +99,32 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack }) => {
   // Track original data to detect changes
   const [originalData, setOriginalData] = useState<StoreConfigData | null>(null);
 
-  // Fetch business unit data on component mount
+  // Fetch business units data on component mount using customer ID from auth context
   useEffect(() => {
-    fetchBusinessUnit(BUSINESS_UNIT_ID);
-  }, [fetchBusinessUnit]);
+    if (customerDetails?.id) {
+      fetchBusinessUnitsByCustomerId(customerDetails.id);
+    } else {
+      console.error('No customer ID available in auth context');
+      showNotification({
+        kind: 'error',
+        domain: DOMAINS.SIDE,
+        text: intl.formatMessage(messages.errorNoCustomerId),
+      });
+    }
+  }, [fetchBusinessUnitsByCustomerId, customerDetails, showNotification, intl]);
 
-  // Update form data when business unit data is fetched
+  // Update form data when selected business unit changes
   useEffect(() => {
-    if (businessUnit) {
-      const address = businessUnit.addresses[0] || {};
+    if (selectedBusinessUnit) {
+      const address = selectedBusinessUnit.addresses[0] || {};
       let openTime = '09:00';
       let closeTime = '17:00';
       let stripeAccountId = '';
 
       // Extract custom fields
-      if (businessUnit.custom && businessUnit.custom.customFieldsRaw) {
+      if (selectedBusinessUnit.custom && selectedBusinessUnit.custom.customFieldsRaw) {
         // Get hours of operation
-        const hoursField = businessUnit.custom.customFieldsRaw.find(
+        const hoursField = selectedBusinessUnit.custom.customFieldsRaw.find(
           (field: CustomField) => field.name === 'hours-of-operation'
         );
         if (hoursField && Array.isArray(hoursField.value) && hoursField.value.length >= 2) {
@@ -114,7 +134,7 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack }) => {
         }
 
         // Get Stripe Account ID
-        const stripeField = businessUnit.custom.customFieldsRaw.find(
+        const stripeField = selectedBusinessUnit.custom.customFieldsRaw.find(
           (field: CustomField) => field.name === 'stripeAccountId'
         );
         if (stripeField && typeof stripeField.value === 'string') {
@@ -124,7 +144,7 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack }) => {
 
       // Update form data with business unit data
       const newFormData = {
-        name: businessUnit.name || '',
+        name: selectedBusinessUnit.name || '',
         streetNumber: address.streetNumber || '',
         street: address.streetName || '',
         city: address.city || '',
@@ -139,7 +159,7 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack }) => {
       setFormData(newFormData);
       setOriginalData(newFormData);
     }
-  }, [businessUnit]);
+  }, [selectedBusinessUnit]);
 
   // Form field handlers
   const handleChange = (field: keyof StoreConfigData) => (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -179,6 +199,15 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack }) => {
       return;
     }
     
+    if (!selectedBusinessUnit) {
+      showNotification({
+        kind: 'error',
+        domain: DOMAINS.SIDE,
+        text: 'No business unit selected',
+      });
+      return;
+    }
+    
     setIsSaving(true);
     
     try {
@@ -203,7 +232,7 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack }) => {
       
       // Update business unit
       const updatedBusinessUnit = await updateBusinessUnit(
-        BUSINESS_UNIT_ID,
+        selectedBusinessUnit.id,
         addressData,
         customFields
       );
@@ -263,6 +292,24 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack }) => {
     );
   }
 
+  // Show message if no business units were found
+  if (businessUnits.length === 0 && !loading && !error) {
+    return (
+      <div className={styles.configurationContainer}>
+        <Spacings.Stack scale="l">
+          <ContentNotification type="info">
+            <Text.Body>No business units found for this customer.</Text.Body>
+          </ContentNotification>
+          <SecondaryButton
+            label={intl.formatMessage(messages.backToWelcome)}
+            onClick={onBack}
+            iconLeft={<BackIcon />}
+          />
+        </Spacings.Stack>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.configurationContainer}>
       <Spacings.Stack scale="xl">
@@ -279,6 +326,30 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack }) => {
             className={styles.backButton}
           />
         </div>
+
+        {/* Business unit selector if multiple business units available */}
+        {businessUnits.length > 1 && (
+          <Card>
+            <Spacings.Stack scale="m">
+              <Text.Headline as="h2">Select Business Unit</Text.Headline>
+              <SelectField
+                title="Business Unit"
+                value={selectedBusinessUnit?.id || ''}
+                onChange={(event) => {
+                  const selectedId = event.target.value;
+                  if (typeof selectedId === 'string') {
+                    selectBusinessUnit(selectedId);
+                  }
+                }}
+                options={businessUnits.map((unit: BusinessUnit) => ({
+                  value: unit.id,
+                  label: unit.name
+                }))}
+                isDisabled={isSaving}
+              />
+            </Spacings.Stack>
+          </Card>
+        )}
 
         <Card>
           <Spacings.Stack scale="l">

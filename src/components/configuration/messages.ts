@@ -101,4 +101,8 @@ export default defineMessages({
     id: 'Configuration.errorSaving',
     defaultMessage: 'Error saving configuration',
   },
+  errorNoCustomerId: {
+    id: 'Configuration.errorNoCustomerId',
+    defaultMessage: 'No customer ID available',
+  },
 }); 

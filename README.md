@@ -39,7 +39,11 @@ Third-party sellers can use the platform to:
 - Real-time validation and feedback
 - Automatic detection of changes with optimistic UI updates
 - Robust error handling with clear user messaging
-- BusinessUnit data integration with GraphQL
+- Dynamic business unit fetching:
+  - Retrieves all business units associated with the logged-in customer
+  - Automatically selects the first business unit by default
+  - Provides a selector when multiple business units are available
+  - No hardcoded business unit IDs
 - Custom fields support for extensible data storage
 
 ### Order Management
@@ -210,6 +214,28 @@ Sellers (customers who manage stores) are not directly assigned to stores in thi
 3. **Authentication Flow**:
    - When a seller logs in, the application reads this custom field
    - If valid, the seller is granted access to manage that store
+
+### Business Unit Integration
+
+The Store Configuration feature now leverages a dynamic approach for business unit management:
+
+1. **Customer-Based Business Unit Discovery**:
+   - Business units are fetched based on the customer ID of the logged-in user
+   - Uses GraphQL query with `associates(customer(id="..."))` filter
+   - No hardcoded business unit IDs required in the codebase
+
+2. **Multiple Business Units Support**:
+   - Automatically handles scenarios where a customer is associated with multiple business units
+   - Provides a dropdown selector for choosing between business units
+   - Persists selections across user sessions
+
+3. **Technical Implementation**:
+   - Custom hook (`useCustomerBusinessUnits`) that manages the business unit lifecycle
+   - GraphQL queries for both customer verification and business unit fetching
+   - Support for updating business unit data with properly structured update actions
+   - Proper error handling for various scenarios (missing customer ID, no business units, etc.)
+
+This approach makes the application more flexible and maintainable by eliminating hardcoded references and supporting a wider range of business scenarios where sellers might be associated with multiple business units.
 
 ## UI Design Patterns
 
