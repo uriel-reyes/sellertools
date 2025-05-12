@@ -3,6 +3,7 @@ import { useApplicationContext } from '@commercetools-frontend/application-shell
 import { useMcQuery, useMcMutation } from '@commercetools-frontend/application-shell';
 import { GRAPHQL_TARGETS } from '@commercetools-frontend/constants';
 import gql from 'graphql-tag';
+import { ApolloError } from '@apollo/client';
 
 // Define the interface for the business unit address
 interface BusinessUnitAddress {
@@ -140,6 +141,24 @@ interface UseCustomerBusinessUnitsHook {
   ) => Promise<BusinessUnit | null>;
 }
 
+// Helper function to validate and format action objects for the GraphQL mutation
+const validateActions = (actions: Array<Record<string, any>>): Array<Record<string, any>> => {
+  return actions.map(action => {
+    // Ensure each action only has one key at the top level
+    const keys = Object.keys(action);
+    if (keys.length !== 1) {
+      console.error('Invalid action format. Each action must have exactly one top-level key.', action);
+      throw new Error('Invalid action format');
+    }
+    
+    const actionType = keys[0];
+    const actionData = action[actionType];
+    
+    // Format: { actionType: { ...actionData } }
+    return { [actionType]: actionData };
+  });
+};
+
 const useCustomerBusinessUnits = (): UseCustomerBusinessUnitsHook => {
   const [businessUnits, setBusinessUnits] = useState<BusinessUnit[]>([]);
   const [selectedBusinessUnit, setSelectedBusinessUnit] = useState<BusinessUnit | null>(null);
@@ -274,14 +293,39 @@ const useCustomerBusinessUnits = (): UseCustomerBusinessUnitsHook => {
         }
       }
       
-      // If there are custom field updates, add setCustomField actions
-      for (const [key, value] of Object.entries(customFields)) {
-        actions.push({
-          setCustomField: {
-            name: key,
-            value: value
+      // Handle custom fields updates
+      if (Object.keys(customFields).length > 0) {
+        // Convert custom field values to properly escaped JSON strings
+        const preparedFields = Object.entries(customFields).map(([name, value]) => ({
+          name,
+          value: JSON.stringify(value)
+        }));
+        
+        // Check if business unit already has a custom type
+        const hasCustomType = unit.custom && unit.custom.customFieldsRaw.length > 0;
+        
+        if (!hasCustomType) {
+          // If no custom type exists yet, set it with all fields at once
+          actions.push({
+            setCustomType: {
+              type: {
+                key: 'seller-store-configuration',
+                typeId: 'type'
+              },
+              fields: preparedFields
+            }
+          });
+        } else {
+          // If custom type already exists, update individual fields
+          for (const { name, value } of preparedFields) {
+            actions.push({
+              setCustomField: {
+                name,
+                value
+              }
+            });
           }
-        });
+        }
       }
       
       if (actions.length === 0) {
@@ -289,35 +333,53 @@ const useCustomerBusinessUnits = (): UseCustomerBusinessUnitsHook => {
         return unit;
       }
       
-      console.log('Executing update with actions:', JSON.stringify(actions, null, 2));
+      const validatedActions = validateActions(actions);
+      console.log('Executing update with actions:', JSON.stringify(validatedActions, null, 2));
       
-      // Execute mutation
-      const result = await executeUpdateBusinessUnit({
-        variables: {
-          id: businessUnitId,
-          version: unit.version,
-          actions: actions
+      try {
+        // Execute mutation
+        const result = await executeUpdateBusinessUnit({
+          variables: {
+            id: businessUnitId,
+            version: unit.version,
+            actions: validatedActions
+          }
+        });
+        
+        // Update state with new data
+        if (result.data?.updateBusinessUnit) {
+          const updatedUnit = result.data.updateBusinessUnit;
+          
+          console.log('Business unit updated successfully:', JSON.stringify(updatedUnit, null, 2));
+          
+          // Update business units array
+          setBusinessUnits(prev => 
+            prev.map(bu => bu.id === updatedUnit.id ? updatedUnit : bu)
+          );
+          
+          // Update selected business unit if it's the one that was updated
+          if (selectedBusinessUnit?.id === updatedUnit.id) {
+            setSelectedBusinessUnit(updatedUnit);
+          }
+          
+          return updatedUnit;
+        } else {
+          console.error('Update mutation returned successfully but no data was returned');
+          return null;
         }
-      });
-      
-      // Update state with new data
-      if (result.data?.updateBusinessUnit) {
-        const updatedUnit = result.data.updateBusinessUnit;
-        
-        // Update business units array
-        setBusinessUnits(prev => 
-          prev.map(bu => bu.id === updatedUnit.id ? updatedUnit : bu)
-        );
-        
-        // Update selected business unit if it's the one that was updated
-        if (selectedBusinessUnit?.id === updatedUnit.id) {
-          setSelectedBusinessUnit(updatedUnit);
+      } catch (mutationError) {
+        console.error('GraphQL mutation error:', mutationError);
+        // Log detailed information about the error for debugging
+        if (mutationError instanceof ApolloError) {
+          if (mutationError.graphQLErrors) {
+            console.error('GraphQL errors:', JSON.stringify(mutationError.graphQLErrors, null, 2));
+          }
+          if (mutationError.networkError) {
+            console.error('Network error:', mutationError.networkError);
+          }
         }
-        
-        return updatedUnit;
+        throw mutationError;
       }
-      
-      return null;
     } catch (err) {
       console.error('Error updating business unit:', err);
       throw err;
