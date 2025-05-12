@@ -6,7 +6,8 @@ import {
   GearIcon,
   InformationIcon,
   TagIcon,
-  WorldIcon
+  WorldIcon,
+  HeartIcon
 } from '@commercetools-uikit/icons';
 import LoadingSpinner from '@commercetools-uikit/loading-spinner';
 import Spacings from '@commercetools-uikit/spacings';
@@ -14,8 +15,12 @@ import Text from '@commercetools-uikit/text';
 import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import useStoreCustomers from '../../hooks/use-store-customers';
+import useCustomerPets from '../../hooks/use-customer-pets';
+import type { PetInfo } from '../../hooks/use-customer-pets';
 import { useClassNames } from '../../utils/use-classnames';
 import styles from './customers.module.css';
+import PetCard from './pet-card';
+
 // Define the Order interface
 interface Order {
   id: string;
@@ -78,16 +83,19 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({
 }) => {
   const { customerId } = useParams<{ customerId: string }>();
   const { fetchCustomerOrders, fetchCustomerById } = useStoreCustomers({});
+  const { fetchPetsByCustomerId, pets, loading: loadingPets } = useCustomerPets();
   const [customerOrders, setCustomerOrders] = useState<Order[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [customer, setCustomer] = useState<Customer | null>(null);
-  // Fetch customer orders when modal opens
+  
+  // Fetch customer data, orders, and pets when modal opens
   useEffect(() => {
     if (customerId) {
       setLoadingOrders(true);
       fetchCustomerById(customerId).then((customer) => {
         setCustomer(customer);
       });
+      
       fetchCustomerOrders(customerId)
         .then((orders) => {
           setCustomerOrders(orders);
@@ -95,8 +103,11 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({
         .finally(() => {
           setLoadingOrders(false);
         });
+      
+      // Fetch pet data
+      fetchPetsByCustomerId(customerId);
     }
-  }, [customerId, fetchCustomerOrders]);
+  }, [customerId, fetchCustomerOrders, fetchCustomerById, fetchPetsByCustomerId]);
 
   const formatAddress = (address: any) => {
     if (!address) return 'Not available';
@@ -162,7 +173,7 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({
         <Text.Body isBold>{label}</Text.Body>
       </div>
       <div className={styles.detailValue}>
-        <Text.Body>{value}</Text.Body>
+        <Text.Body>{value || 'N/A'}</Text.Body>
       </div>
     </div>
   );
@@ -188,10 +199,7 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({
         }`}
         onClose={onBack}
         isOpen={true}
-        
       >
-        {/* Remove the custom close button */}
-
         <Constraints.Horizontal max="scale">
           <Spacings.Stack scale="m">
             {/* Customer Information Section */}
@@ -201,7 +209,7 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({
                   <Spacings.Inline alignItems="center" scale="xs">
                     <InformationIcon size="medium" color="neutral60" />
                     <div className={styles.sectionHeader}>
-                      <Text.Subheadline isBold>
+                      <Text.Subheadline as="h4" isBold>
                         Customer Information
                       </Text.Subheadline>
                     </div>
@@ -236,7 +244,7 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({
                   <Spacings.Inline alignItems="center" scale="xs">
                     <GearIcon size="medium" color="neutral60" />
                     <div className={styles.sectionHeader}>
-                      <Text.Subheadline isBold>
+                      <Text.Subheadline as="h4" isBold>
                         Account Details
                       </Text.Subheadline>
                     </div>
@@ -278,7 +286,7 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({
                     <Spacings.Inline alignItems="center" scale="xs">
                       <WorldIcon size="medium" color="neutral60" />
                       <div className={styles.sectionHeader}>
-                        <Text.Subheadline isBold>Addresses</Text.Subheadline>
+                        <Text.Subheadline as="h4" isBold>Addresses</Text.Subheadline>
                       </div>
                     </Spacings.Inline>
                   </div>
@@ -305,7 +313,7 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({
                         className={styles.addressCard}
                       >
                         <Spacings.Stack scale="xs">
-                          <Text.Subheadline>
+                          <Text.Subheadline as="h5">
                             Address {index + 1}
                           </Text.Subheadline>
                           <Text.Body>{formatAddress(address)}</Text.Body>
@@ -327,7 +335,7 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({
                       <Spacings.Inline alignItems="center" scale="xs">
                         <TagIcon size="medium" color="neutral60" />
                         <div className={styles.sectionHeader}>
-                          <Text.Subheadline isBold>
+                          <Text.Subheadline as="h4" isBold>
                             Custom Fields
                           </Text.Subheadline>
                         </div>
@@ -354,7 +362,7 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({
                   <Spacings.Inline alignItems="center" scale="xs">
                     <CartIcon size="medium" color="neutral60" />
                     <div className={styles.sectionHeader}>
-                      <Text.Subheadline isBold>Recent Orders</Text.Subheadline>
+                      <Text.Subheadline as="h4" isBold>Recent Orders</Text.Subheadline>
                     </div>
                   </Spacings.Inline>
                 </div>
@@ -370,14 +378,14 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({
                 ) : (
                   <div className={styles.addressesGrid}>
                     {customerOrders.slice(0, 5).map((order) => (
-                      <Link to={`${linkToWelcome}/orders/${order.id}`} >
-                        <Card key={order.id} className={useClassNames(styles.addressCard, styles.link)}>
+                      <Link key={order.id} to={`${linkToWelcome}/orders/${order.id}`}>
+                        <Card className={useClassNames(styles.addressCard, styles.link)}>
                           <Spacings.Stack scale="s">
                             <Spacings.Inline
                               justifyContent="space-between"
                               alignItems="center"
                             >
-                              <Text.Subheadline>
+                              <Text.Subheadline as="h5">
                                 {order.orderNumber || order.id.slice(0, 8)}
                               </Text.Subheadline>
                               <div
@@ -396,11 +404,42 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({
                               {formatPrice(
                                 order.totalPrice.centAmount,
                                 order.totalPrice.currencyCode
-                              )}
+                              ) || 'N/A'}
                             </Text.Body>
                           </Spacings.Stack>
                         </Card>
                       </Link>
+                    ))}
+                  </div>
+                )}
+              </Spacings.Stack>
+            </Card>
+
+            {/* Pets Section */}
+            <Card>
+              <Spacings.Stack scale="m">
+                <div className={styles.sectionDivider}>
+                  <Spacings.Inline alignItems="center" scale="xs">
+                    <HeartIcon size="medium" color="neutral60" />
+                    <div className={styles.sectionHeader}>
+                      <Text.Subheadline as="h4" isBold>Pets</Text.Subheadline>
+                    </div>
+                  </Spacings.Inline>
+                </div>
+
+                {loadingPets ? (
+                  <div className={styles.petLoadingContainer}>
+                    <LoadingSpinner scale="s" />
+                    <Text.Body>Loading pet information...</Text.Body>
+                  </div>
+                ) : pets.length === 0 ? (
+                  <div className={styles.emptyMessage}>
+                    <Text.Body>No pets found for this customer</Text.Body>
+                  </div>
+                ) : (
+                  <div className={styles.petsDetailGrid}>
+                    {pets.map((pet) => (
+                      <PetCard key={`pet-${pet.id}`} pet={pet} />
                     ))}
                   </div>
                 )}

@@ -162,8 +162,8 @@ Third-party sellers can use the platform to:
 - Support for percentage and fixed amount discount types
 - Apply discounts to all products or specific products with conditions:
   - Filter by SKUs or categories
-  - Combine multiple conditions with AND logic
-  - Channel-specific filtering for seller's products
+- Combine multiple conditions with AND logic
+- Channel-specific filtering for seller's products
 - Status management with toggle controls for activation/deactivation
 - Editing capabilities with pre-populated forms and field comparison
 - Bulk actions (activate, deactivate, delete) with confirmation dialogs
@@ -171,7 +171,7 @@ Third-party sellers can use the platform to:
 - User experience enhancements:
   - Money input with proper decimal handling
   - Streamlined UI with improved visual hierarchy
-  - Real-time validation and feedback
+- Real-time validation and feedback
 
 ## Configuration Requirements
 
@@ -427,19 +427,103 @@ logger.performance('Data processing', startTime);
 
 ## Extending the Store Configuration
 
-The Store Configuration form currently supports two custom fields:
+The Store Configuration form supports capturing and updating business unit data including address information and custom fields. The implementation leverages the `useCustomerBusinessUnits` hook which provides a robust GraphQL-based approach for managing business unit data.
 
-1. **Hours of Operation**: For setting the opening and closing times of the store
-2. **Stripe Account ID**: For connecting the store to a payment processing account
+### Required Setup for Business Unit Mutations
 
-This implementation can be extended to support additional custom fields based on project requirements. The form architecture allows for defining different sets of custom fields without modifying the core configuration component.
+To properly implement and extend the business unit functionality, the following configurations are required:
 
-To add new custom fields, you would need to:
-1. Define the custom type in commercetools
-2. Update the form to handle the new fields
-3. Add appropriate validation and transformers for the field type
+1. **Custom Type for Store Configuration**:
+   - Create a custom type with key `seller-store-configuration` in commercetools
+   - Add fields for any store-specific configuration data:
+     - `hours-of-operation`: Field type String (for store opening hours)
+     - `stripe-account-id`: Field type String (for payment processing)
 
-This flexible approach makes the Store Configuration adaptable to different business needs across projects.
+2. **GraphQL Schema Permissions**:
+   - Ensure your API client has the following permissions:
+     - `view_business_units` - Required for fetching business units
+     - `manage_business_units` - Required for updating business units
+
+3. **Business Unit Structure**:
+   - The implementation assumes a business unit structure with:
+     - At least one address per business unit (the first address is used by default)
+     - Default address fields: streetNumber, streetName, city, state, postalCode, phone
+     - Country code (defaults to "US" in the current implementation)
+
+4. **Mutation Structure**:
+   - The mutation implementation builds proper update actions:
+   
+   ```graphql
+   mutation UpdateBusinessUnit($id: String!, $version: Long!, $actions: [BusinessUnitUpdateAction!]!) {
+     updateBusinessUnit(id: $id, version: $version, actions: $actions) {
+       id
+       version
+       name
+       addresses {
+         id
+         streetNumber
+         streetName
+         city
+         state
+         postalCode
+         phone
+         country
+       }
+       custom {
+         customFieldsRaw {
+           name
+           value
+         }
+       }
+     }
+   }
+   ```
+
+   - For address updates, it uses either:
+     - `changeAddress` action when an existing address is found
+     - `addAddress` action when no address exists yet
+   
+   - For custom fields, it uses either:
+     - `setCustomType` action when no custom type is assigned yet
+     - `setCustomField` actions for individual field updates when the type exists
+
+### Extending with Additional Fields
+
+To add new custom fields to the business unit configuration:
+
+1. **Update the custom type in commercetools**:
+   - Add new field definitions to the `seller-store-configuration` type
+
+2. **Update the form component**:
+   - Add new form fields in the UI component
+   - Include the new fields in the state management
+
+3. **Include the new fields in the update operation**:
+   - When calling `updateBusinessUnit`, include the new fields in the customFields object:
+   
+   ```javascript
+   const result = await updateBusinessUnit(
+     selectedBusinessUnit.id,
+     addressData,
+     {
+       'hours-of-operation': hoursOfOperation,
+       'stripe-account-id': stripeAccountId,
+       'your-new-field': newFieldValue,
+     }
+   );
+   ```
+
+The hook automatically handles proper conversion of the field values to JSON strings and builds the correct mutation actions based on whether the custom type already exists on the business unit.
+
+### Error Handling
+
+The implementation includes comprehensive error handling for both GraphQL and network errors:
+
+- Detailed error logs for debugging
+- Proper type checking and validation
+- Custom error messages for different failure scenarios
+
+This approach ensures that the Store Configuration remains robust and adaptable to different business scenarios while providing clear feedback during development and usage.
 
 ## Getting Started
 
