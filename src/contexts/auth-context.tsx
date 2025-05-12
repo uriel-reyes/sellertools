@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo } from 'react';
 import { TCustomer } from '../types/generated/ctp';
 
 // Type for customer details in the context
@@ -77,29 +77,39 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
-  const setAuthState = (
-    loggedIn: boolean,
-    details: CustomerDetails | null,
-    key: string | null
-  ) => {
-    setIsLoggedIn(loggedIn);
-    setCustomerDetails(details);
-    setStoreKey(key);
-    
-    try {
-      const authData = {
-        isLoggedIn: loggedIn,
-        customerDetails: details,
-        storeKey: key
-      };
+  const setAuthState = useCallback(
+    (loggedIn: boolean, details: CustomerDetails | null, key: string | null) => {
+      // Only update state if values have actually changed
+      if (loggedIn !== isLoggedIn) {
+        setIsLoggedIn(loggedIn);
+      }
       
-      sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
-    } catch (error) {
-      console.error('Failed to save auth state to session storage:', error);
-    }
-  };
+      // Deep compare customer details to avoid unnecessary renders
+      const detailsChanged = JSON.stringify(details) !== JSON.stringify(customerDetails);
+      if (detailsChanged) {
+        setCustomerDetails(details);
+      }
+      
+      if (key !== storeKey) {
+        setStoreKey(key);
+      }
+      
+      try {
+        const authData = {
+          isLoggedIn: loggedIn,
+          customerDetails: details,
+          storeKey: key
+        };
+        
+        sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
+      } catch (error) {
+        console.error('Failed to save auth state to session storage:', error);
+      }
+    }, 
+    [isLoggedIn, customerDetails, storeKey]
+  );
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setIsLoggedIn(false);
     setCustomerDetails(null);
     setStoreKey(null);
@@ -109,18 +119,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Failed to clear auth state from session storage:', error);
     }
-  };
+  }, []);
+
+  // Memoize the context value to prevent unnecessary re-renders
+  const contextValue = useMemo(
+    () => ({
+      isLoggedIn,
+      storeKey,
+      customerDetails,
+      setAuthState,
+      logout,
+    }),
+    [isLoggedIn, storeKey, customerDetails, setAuthState, logout]
+  );
 
   return (
-    <AuthContext.Provider
-      value={{
-        isLoggedIn,
-        storeKey,
-        customerDetails,
-        setAuthState,
-        logout,
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

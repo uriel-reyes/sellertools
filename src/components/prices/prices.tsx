@@ -132,13 +132,11 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
   const [error, setError] = useState<Error | null>(null);
   const [products, setProducts] = useState<ProductPriceData[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-
-  const { page, perPage } = usePaginationState();
   
   // Ref for debouncing search
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  const { fetchProductsWithPrices, updateProductPrice } = usePriceManagement({ page, perPage });
+  const { fetchProductsWithPrices, updateProductPrice } = usePriceManagement();
   const { searchProducts } = useStoreProducts({});
   
   // Clean up the search timeout when component unmounts
@@ -162,7 +160,11 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
   };
   
   useEffect(() => {
-    fetchProducts();
+    if (storeKey) {
+      console.log(`Store key changed to "${storeKey}" - fetching products for this store`);
+      setIsInitialLoading(true);
+      fetchProducts();
+    }
   }, [storeKey]);
   
   const handlePriceChange = async (

@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useIntl } from 'react-intl';
 import { useHistory } from 'react-router-dom';
 import Spacings from '@commercetools-uikit/spacings';
 import Card from '@commercetools-uikit/card';
 import Text from '@commercetools-uikit/text';
+import SelectField from '@commercetools-uikit/select-field';
 import { 
   CartIcon, 
   UsersIcon, 
@@ -17,7 +18,9 @@ import {
 } from '@commercetools-uikit/icons';
 import PrimaryButton from '@commercetools-uikit/primary-button';
 import SecondaryButton from '@commercetools-uikit/secondary-button';
+import LoadingSpinner from '@commercetools-uikit/loading-spinner';
 import { useAuthContext } from '../../contexts/auth-context';
+import { useBusinessUnitContext } from '../../contexts/business-unit-context';
 import styles from './seller-dashboard.module.css';
 import messages from './messages';
 
@@ -44,12 +47,29 @@ type SellerDashboardProps = {
   onNavigate: (route: string) => void;
 };
 
+// Define the custom event type for SelectField
+type TCustomEvent = {
+  target: {
+    id?: string;
+    name?: string;
+    value?: string | string[] | null;
+  };
+  persist: () => void;
+};
+
 const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate }) => {
   const intl = useIntl();
   const history = useHistory();
   const { logout } = useAuthContext();
+  const { 
+    businessUnits, 
+    selectedBusinessUnit, 
+    loading, 
+    error, 
+    selectBusinessUnit
+  } = useBusinessUnitContext();
 
-  const handleNavigation = (route: string) => {
+  const handleNavigate = (route: string) => {
     onNavigate(route);
   };
 
@@ -59,62 +79,80 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate }) => {
     history.push('/');
   };
 
+  // Memoize business unit options to prevent unnecessary re-renders
+  const businessUnitOptions = useMemo(() => {
+    return businessUnits.map((bu) => ({
+      label: bu.name,
+      value: bu.id,
+    }));
+  }, [businessUnits]);
+
+  const handleBusinessUnitChange = (event: TCustomEvent) => {
+    const businessUnitId = event.target.value as string;
+    if (businessUnitId) {
+      // Only update if value has changed
+      if (businessUnitId !== selectedBusinessUnit?.id) {
+        selectBusinessUnit(businessUnitId);
+      }
+    }
+  };
+
   // Dashboard items with UI Kit icons
   const dashboardItems = [
     {
       id: 'orders',
       title: intl.formatMessage(messages.viewOrders),
       icon: <CartIcon />,
-      onClick: () => handleNavigation('/orders'),
+      onClick: () => handleNavigate('/orders'),
     },
     {
       id: 'customers',
       title: intl.formatMessage(messages.manageCustomers),
       icon: <UsersIcon />,
-      onClick: () => handleNavigation('/customers'),
+      onClick: () => handleNavigate('/customers'),
     },
     {
       id: 'products',
       title: intl.formatMessage(messages.selectProducts),
       icon: <ListWithSearchIcon />,
-      onClick: () => handleNavigation('/products'),
+      onClick: () => handleNavigate('/products'),
     },
     {
       id: 'prices',
       title: intl.formatMessage(messages.managePrices),
       icon: <CoinsIcon />,
-      onClick: () => handleNavigation('/prices'),
+      onClick: () => handleNavigate('/prices'),
     },
     // Temporarily hiding price list management card
     // {
     //   id: 'pricelists',
     //   title: intl.formatMessage(messages.managePriceLists),
     //   icon: <CoinsIcon />,
-    //   onClick: () => handleNavigation('/price-lists'),
+    //   onClick: () => handleNavigate('/price-lists'),
     // },
     {
       id: 'promotions',
       title: intl.formatMessage(messages.managePromotions),
       icon: <TagIcon />,
-      onClick: () => handleNavigation('/promotions'),
+      onClick: () => handleNavigate('/promotions'),
     },
     {
       id: 'content',
       title: intl.formatMessage(messages.manageContent),
       icon: <FrontendStudioIcon />,
-      onClick: () => handleNavigation('/content'),
+      onClick: () => handleNavigate('/content'),
     },
     {
       id: 'reports',
       title: intl.formatMessage(messages.viewReports),
       icon: <GraphIcon />,
-      onClick: () => handleNavigation('/reports'),
+      onClick: () => handleNavigate('/reports'),
     },
     {
       id: 'configuration',
       title: intl.formatMessage(messages.storeConfiguration),
       icon: <GearIcon />,
-      onClick: () => handleNavigation('/configuration'),
+      onClick: () => handleNavigate('/configuration'),
     },
   ];
 
@@ -130,8 +168,33 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate }) => {
           />
         </div>
 
-        <div className={styles.dashboardTitle}>
-          <Text.Headline as="h1">{intl.formatMessage(messages.title)}</Text.Headline>
+        <div className={styles.headerContainer}>
+          <div className={styles.dashboardTitle}>
+            <Text.Headline as="h1">{intl.formatMessage(messages.title)}</Text.Headline>
+          </div>
+        </div>
+        
+        <div className={styles.businessUnitContainer}>
+          {loading ? (
+            <Spacings.Inline alignItems="center">
+              <LoadingSpinner />
+              <Text.Body>{intl.formatMessage(messages.loadingBusinessUnits)}</Text.Body>
+            </Spacings.Inline>
+          ) : businessUnits.length > 0 ? (
+            <div className={styles.businessUnitSelector}>
+              <SelectField
+                title={intl.formatMessage(messages.businessUnitSelector)}
+                name="businessUnitSelector"
+                value={selectedBusinessUnit?.id || ''}
+                options={businessUnitOptions}
+                onChange={handleBusinessUnitChange}
+                horizontalConstraint={13}
+                iconLeft={<UsersIcon />}
+              />
+            </div>
+          ) : (
+            <Text.Body>{intl.formatMessage(messages.noBusinessUnits)}</Text.Body>
+          )}
         </div>
         
         <div className={styles.dashboardGrid}>

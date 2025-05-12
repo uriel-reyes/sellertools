@@ -62,10 +62,39 @@
   justify-content: center;
 }
 
+.headerContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: var(--spacing-m);
+}
+
 .dashboardTitle {
   text-align: center;
+}
+
+.businessUnitContainer {
+  display: flex;
+  justify-content: flex-start;
+  margin-left: var(--spacing-l);
   margin-bottom: var(--spacing-l);
-} 
+}
+
+.businessUnitSelector {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-s);
+  width: 350px;
+}
+
+.businessUnitSelector label {
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.businessUnitSelector select {
+  width: 100%;
+}
 
 .logoutContainer {
   display: flex;

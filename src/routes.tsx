@@ -3,6 +3,8 @@ import type { ReactNode } from 'react';
 import { useRouteMatch } from 'react-router-dom';
 import App from './components/app';
 import { AuthProvider } from './contexts/auth-context';
+import { BusinessUnitProvider } from './contexts/business-unit-context';
+
 type ApplicationRoutesProps = {
   children?: ReactNode;
 };
@@ -22,9 +24,11 @@ const ApplicationRoutes = (_props: ApplicationRoutesProps) => {
 
   return (
     <AuthProvider>
+      <BusinessUnitProvider>
       <Spacings.Inset scale="l">
         <App />
       </Spacings.Inset>
+      </BusinessUnitProvider>
     </AuthProvider>
   );
 };

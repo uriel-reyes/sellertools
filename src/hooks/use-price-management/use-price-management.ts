@@ -4,7 +4,11 @@ import { useMcQuery, useMcMutation } from '@commercetools-frontend/application-s
 import { GRAPHQL_TARGETS } from '@commercetools-frontend/constants';
 import gql from 'graphql-tag';
 import logger from '../../utils/logger';
-import { TDataTableSortingState, TState } from '@commercetools-uikit/hooks';
+
+// Constants
+const DEFAULT_CURRENCY_CODE = "USD";
+const DEFAULT_COUNTRY_CODE = "US";
+const MASTER_STORE_CHANNEL_KEY = "master-store";
 
 // GraphQL query to fetch products with their prices (both current and staged)
 const GET_PRODUCTS_WITH_PRICES = gql`
@@ -195,17 +199,67 @@ interface ProductPriceData {
 // Define the hook interface
 interface UsePriceManagementResult {
   fetchProductsWithPrices: (storeKey: string) => Promise<ProductPriceData[]>;
-  updateProductPrice: (productId: string, version: number, price: number, channelKey: string, priceId?: string) => Promise<boolean>;
+  updateProductPrice: (
+    productId: string, 
+    version: number, 
+    price: number, 
+    channelKey: string, 
+    priceId?: string
+  ) => Promise<boolean>;
   loading: boolean;
   error: Error | null;
 }
 
-const usePriceManagement = ({ page, perPage }: { page?: TState, perPage?: TState}): UsePriceManagementResult => {
+/**
+ * Helper function to find a price by channel key and currency code
+ */
+const findPriceByChannelKey = (
+  current: ProductPrice[] | undefined, 
+  staged: ProductPrice[] | undefined, 
+  channelKey: string, 
+  currencyCode: string = DEFAULT_CURRENCY_CODE
+): ProductPrice | undefined => {
+  // Look in current prices first
+  const currentPrice = current?.find(p => 
+    p.channel?.key === channelKey && p.value.currencyCode === currencyCode
+  );
+  
+  if (currentPrice) return currentPrice;
+  
+  // Look in staged prices if not found in current
+  return staged?.find(p => 
+    p.channel?.key === channelKey && p.value.currencyCode === currencyCode
+  );
+};
+
+/**
+ * Price management hook for fetching and updating product prices
+ */
+const usePriceManagement = (): UsePriceManagementResult => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const { dataLocale } = useApplicationContext((context) => ({
     dataLocale: context.dataLocale ?? 'en-US',
   }));
+
+  // Helper function for error handling
+  const handleError = (err: unknown, defaultMessage: string): Error => {
+    const errorObj = err instanceof Error ? err : new Error(defaultMessage);
+    logger.error(defaultMessage, err);
+    
+    // Log additional details for Apollo errors
+    if (err instanceof Error) {
+      const anyErr = err as any;
+      if (anyErr.graphQLErrors) {
+        logger.error('GraphQL Errors:', JSON.stringify(anyErr.graphQLErrors));
+      }
+      if (anyErr.networkError) {
+        logger.error('Network Error:', anyErr.networkError);
+      }
+    }
+    
+    return errorObj;
+  };
 
   const { refetch } = useMcQuery<GetProductsWithPricesResponse>(GET_PRODUCTS_WITH_PRICES, {
     variables: {
@@ -233,6 +287,9 @@ const usePriceManagement = ({ page, perPage }: { page?: TState, perPage?: TState
     },
   });
 
+  /**
+   * Fetches products with their prices for a specific store
+   */
   const fetchProductsWithPrices = useCallback(
     async (storeKey: string): Promise<ProductPriceData[]> => {
       setLoading(true);
@@ -254,32 +311,23 @@ const usePriceManagement = ({ page, perPage }: { page?: TState, perPage?: TState
               const currentMasterVariant = product.masterData.current.masterVariant;
               const stagedMasterVariant = product.masterData.staged?.masterVariant;
               
-              // Check current prices first
-              let storePrice = currentMasterVariant.prices?.find(
-                (price) => price.channel?.key === storeKey
-              );
-
-              // If no price found in current, check staged prices
-              if (!storePrice && stagedMasterVariant?.prices) {
-                storePrice = stagedMasterVariant.prices.find(
-                  (price) => price.channel?.key === storeKey
-                );
-                if (storePrice) {
-                  logger.info(`Found price in staged data for product ${product.id}`);
-                }
-              }
-              
-              // Find master store price
-              let masterStorePrice = currentMasterVariant.prices?.find(
-                (price) => price.channel?.key === "master-store"
+              // Find store price using helper function
+              const storePrice = findPriceByChannelKey(
+                currentMasterVariant.prices,
+                stagedMasterVariant?.prices,
+                storeKey
               );
               
-              // If no master price found in current, check staged
-              if (!masterStorePrice && stagedMasterVariant?.prices) {
-                masterStorePrice = stagedMasterVariant.prices.find(
-                  (price) => price.channel?.key === "master-store"
-                );
+              if (storePrice && storePrice.channel?.key !== currentMasterVariant.prices?.[0]?.channel?.key) {
+                logger.info(`Found price in staged data for product ${product.id}`);
               }
+              
+              // Find master store price using helper function
+              const masterStorePrice = findPriceByChannelKey(
+                currentMasterVariant.prices,
+                stagedMasterVariant?.prices,
+                MASTER_STORE_CHANNEL_KEY
+              );
 
               return {
                 id: product.id,
@@ -308,25 +356,34 @@ const usePriceManagement = ({ page, perPage }: { page?: TState, perPage?: TState
         logger.info(`No products found for store ${storeKey}`);
         return [];
       } catch (err) {
-        logger.error(`Error fetching products with prices for store ${storeKey}:`, err);
-        setError(err instanceof Error ? err : new Error(`Unknown error loading products for store ${storeKey}`));
+        const error = handleError(err, `Error fetching products with prices for store ${storeKey}`);
+        setError(error);
         return [];
       } finally {
         setLoading(false);
       }
     },
-    [dataLocale, refetch]
+    [refetch]
   );
 
+  /**
+   * Updates a product price for a specific channel
+   */
   const updateProductPrice = useCallback(
-    async (productId: string, version: number, price: number, channelKey: string, priceId?: string): Promise<boolean> => {
+    async (
+      productId: string, 
+      version: number, 
+      price: number, 
+      channelKey: string, 
+      priceId?: string
+    ): Promise<boolean> => {
       setLoading(true);
       setError(null);
 
       try {
         logger.info(`Updating price for product ${productId} with channel ${channelKey}`);
         
-        // Always fetch the product's current prices to ensure we have the latest data
+        // Get the latest product data and version
         const { data } = await getProductPrices({
           id: productId,
         });
@@ -335,7 +392,7 @@ const usePriceManagement = ({ page, perPage }: { page?: TState, perPage?: TState
           throw new Error(`Could not fetch product data for ID ${productId}`);
         }
         
-        // Get the latest version from the response
+        // Use the latest version from the server
         let latestVersion = data.product.version;
         logger.info(`Initial product version: ${latestVersion}`);
         
@@ -343,128 +400,92 @@ const usePriceManagement = ({ page, perPage }: { page?: TState, perPage?: TState
         const currentPrices = data.product.masterData.current.masterVariant.prices || [];
         const stagedPrices = data.product.masterData.staged?.masterVariant.prices || [];
         
-        // First look for a price with matching channel key
+        // Find existing price ID if not provided
         let existingPriceId = priceId;
         
         if (!existingPriceId) {
-          // Look in current prices first
-          const currentPriceWithChannel = currentPrices.find(p => 
-            p.channel?.key === channelKey && p.value.currencyCode === "USD"
+          const existingPrice = findPriceByChannelKey(
+            currentPrices,
+            stagedPrices,
+            channelKey
           );
           
-          if (currentPriceWithChannel) {
-            existingPriceId = currentPriceWithChannel.id;
-            logger.info(`Found existing price in current variant with ID ${existingPriceId} for channel ${channelKey}`);
-          } else {
-            // Look in staged prices if not found in current
-            const stagedPriceWithChannel = stagedPrices.find(p => 
-              p.channel?.key === channelKey && p.value.currencyCode === "USD"
-            );
-            
-            if (stagedPriceWithChannel) {
-              existingPriceId = stagedPriceWithChannel.id;
-              logger.info(`Found existing price in staged variant with ID ${existingPriceId} for channel ${channelKey}`);
-            }
+          if (existingPrice) {
+            existingPriceId = existingPrice.id;
+            logger.info(`Found existing price with ID ${existingPriceId} for channel ${channelKey}`);
           }
         }
         
         // Convert price to cents
         const priceInCents = Math.round(price * 100);
+        const actions = [];
         
-        // STEP 1: If there's an existing price, remove it first in a separate update
+        // Create actions based on whether we're updating or creating
         if (existingPriceId) {
-          logger.info(`Removing existing price with ID ${existingPriceId} in separate operation`);
-          
-          // Create remove action
-          const removeAction = {
-            removePrice: {
-              priceId: existingPriceId
-            }
-          };
-          
-          // Execute removal as separate operation
-          const removeResult = await updateProduct({
-            variables: {
-              id: productId,
-              version: latestVersion,
-              actions: [
-                removeAction,
-                // Publish action to ensure removal is visible
-                {
-                  publish: {
-                    scope: "All"
+          // Change existing price - more efficient than remove + add
+          actions.push({
+            changePrice: {
+              priceId: existingPriceId,
+              price: {
+                value: {
+                  centPrecision: {
+                    centAmount: priceInCents,
+                    currencyCode: DEFAULT_CURRENCY_CODE
                   }
+                },
+                country: DEFAULT_COUNTRY_CODE,
+                channel: {
+                  typeId: "channel",
+                  key: channelKey
                 }
-              ]
-            }
-          }) as { data: UpdateProductResponse };
-          
-          // Update version number for next operation
-          latestVersion = removeResult.data.updateProduct.version;
-          logger.info(`Price removed. New product version: ${latestVersion}`);
-          
-          // Small delay to ensure commercetools processes the change
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
-        
-        // STEP 2: Add the new price in a separate operation
-        logger.info(`Adding new price for channel ${channelKey} with amount ${priceInCents}`);
-        
-        const addPriceAction = {
-          addPrice: {
-            variantId: 1, // Master variant
-            price: {
-              value: {
-                centPrecision: {
-                  centAmount: priceInCents,
-                  currencyCode: "USD"
-                }
-              },
-              channel: {
-                typeId: "channel",
-                key: channelKey
               }
             }
-          }
-        };
+          });
+          logger.info(`Updating existing price ID ${existingPriceId} to ${priceInCents} cents`);
+        } else {
+          // Add new price
+          actions.push({
+            addPrice: {
+              variantId: 1, // Master variant
+              price: {
+                value: {
+                  centPrecision: {
+                    centAmount: priceInCents,
+                    currencyCode: DEFAULT_CURRENCY_CODE
+                  }
+                },
+                country: DEFAULT_COUNTRY_CODE,
+                channel: {
+                  typeId: "channel",
+                  key: channelKey
+                }
+              }
+            }
+          });
+          logger.info(`Adding new price of ${priceInCents} cents for channel ${channelKey}`);
+        }
         
         // Add publish action to apply changes
-        const publishAction = {
+        actions.push({
           publish: {
             scope: "All"
           }
-        };
+        });
         
-        // Execute the mutation to add the new price
+        // Execute the mutation to update the price
         const result = await updateProduct({
           variables: {
             id: productId,
             version: latestVersion,
-            actions: [addPriceAction, publishAction],
+            actions: actions,
           },
         });
         
         logger.info('Product price updated successfully:', result);
         return true;
       } catch (err) {
-        logger.error(`Error updating price for product ${productId}:`, err);
-        
-        // Additional error logging
-        if (err instanceof Error) {
-          logger.error('Error message:', err.message);
-          logger.error('Error stack:', err.stack);
-          
-          // Try to extract more details if it's an Apollo error
-          const anyErr = err as any;
-          if (anyErr.graphQLErrors) {
-            logger.error('GraphQL Errors:', JSON.stringify(anyErr.graphQLErrors));
-          }
-          if (anyErr.networkError) {
-            logger.error('Network Error:', anyErr.networkError);
-          }
-        }
-        
-        setError(err instanceof Error ? err : new Error(`Unknown error updating price for product ${productId}`));
+        const error = handleError(err, `Error updating price for product ${productId}`);
+        setError(error);
         return false;
       } finally {
         setLoading(false);

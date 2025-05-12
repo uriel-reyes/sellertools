@@ -217,15 +217,11 @@ const useCustomerBusinessUnits = (): UseCustomerBusinessUnitsHook => {
         
         if (businessUnitsResult?.data?.businessUnits?.results) {
           const units = businessUnitsResult.data.businessUnits.results;
-          console.log('Fetched business units:', JSON.stringify(units, null, 2));
+          console.log('Fetched business units:', units);
           setBusinessUnits(units);
           
-          // If there are any business units, select the first one by default
-          if (units.length > 0) {
-            setSelectedBusinessUnit(units[0]);
-          } else {
-            setSelectedBusinessUnit(null);
-          }
+          // Don't automatically select the first unit - let the context handle this
+          // to avoid multiple selection events
         }
       } else {
         setError(new Error('Customer not found'));
@@ -240,13 +236,16 @@ const useCustomerBusinessUnits = (): UseCustomerBusinessUnitsHook => {
   
   // Function to select a specific business unit by ID
   const selectBusinessUnit = useCallback((businessUnitId: string) => {
-    const unit = businessUnits.find(unit => unit.id === businessUnitId);
-    if (unit) {
-      setSelectedBusinessUnit(unit);
-    } else {
-      console.warn(`Business unit with ID ${businessUnitId} not found`);
+    // Only update if the ID is different than current selection
+    if (selectedBusinessUnit?.id !== businessUnitId) {
+      const unit = businessUnits.find(unit => unit.id === businessUnitId);
+      if (unit) {
+        setSelectedBusinessUnit(unit);
+      } else {
+        console.warn(`Business unit with ID ${businessUnitId} not found`);
+      }
     }
-  }, [businessUnits]);
+  }, [businessUnits, selectedBusinessUnit]);
 
   // Function to update business unit
   const updateBusinessUnit = useCallback(async (

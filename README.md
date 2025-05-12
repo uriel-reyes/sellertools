@@ -173,6 +173,70 @@ Third-party sellers can use the platform to:
   - Streamlined UI with improved visual hierarchy
 - Real-time validation and feedback
 
+### Seller Dashboard
+
+The Seller Dashboard serves as the central hub for third-party sellers, providing easy access to all seller tools through an intuitive, card-based interface.
+
+#### Dashboard Structure
+
+- **Header Section**:
+  - Clean, organized layout with prominent title
+  - Logout button in the top-right corner for quick access
+  - Business Unit Selector below the dashboard title for multi-business unit accounts
+
+- **Business Unit Management**:
+  - Dropdown selector for users with multiple business units
+  - Displays all business units associated with the logged-in seller
+  - Automatically selects the first business unit by default
+  - Preserves selection between sessions for consistent user experience
+  - Updates the store context throughout the application when changed
+
+- **Technical Implementation**:
+  - React context-based architecture:
+    - `business-unit-context.tsx` manages business unit state
+    - `auth-context.tsx` handles store selection and propagation
+  - GraphQL integration for real-time data:
+    - Fetches business units associated with the current user
+    - Retrieves store information for each business unit
+  - Performance optimizations:
+    - Memoized business unit options
+    - State update batching to prevent unnecessary renders
+    - Store information caching to reduce API calls
+    - Selective updates only when values change
+
+- **Navigation Cards**:
+  - Large, clearly labeled cards for easy access to different tools
+  - Visual icons representing each functional area
+  - Interactive hover effects for improved user experience
+  - Streamlined navigation to specialized management views
+
+#### Business Unit Selection Flow
+
+The dashboard employs a sophisticated business unit selection mechanism:
+
+1. **Initialization Process**:
+   - On user login, the system fetches all business units associated with the user
+   - For first-time users, it automatically selects the first business unit
+   - For returning users, it restores their previous selection from session storage
+
+2. **Store Context Handling**:
+   - Each business unit is associated with specific stores in the commercetools platform
+   - When a business unit is selected, the system fetches its associated stores
+   - The first store is automatically set as the active store in the auth context
+   - This active store context is used by all other components for queries and mutations
+
+3. **State Persistence**:
+   - Business unit selections are saved to session storage
+   - This ensures consistent user experience across page refreshes and navigation
+   - The system handles edge cases like deleted business units or changed associations
+
+4. **User Experience**:
+   - Clear visual feedback when switching between business units
+   - Consistent store context across the entire application
+   - Proper error handling for missing or inaccessible business units
+
+The seller dashboard provides a unified entry point to all seller functionality while maintaining proper context isolation between different business units and their associated stores.
+
 ## Configuration Requirements
 
 ### Store Setup
@@ -554,6 +618,7 @@ Ensure you have the following scopes configured in your custom-application-confi
 - `view_product_selections`, `manage_product_selections`
 - `view_published_products`
 - `view_product_discounts`, `manage_product_discounts`
+- `view_business_units`, `manage_business_units`
 
 ## Development Resources
 - [commercetools Custom Applications Documentation](https://docs.commercetools.com/merchant-center-customizations/custom-applications)

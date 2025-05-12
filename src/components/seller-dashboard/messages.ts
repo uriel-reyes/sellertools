@@ -5,6 +5,22 @@ export default defineMessages({
     id: 'SellerDashboard.title',
     defaultMessage: 'Seller Dashboard',
   },
+  businessUnitSelector: {
+    id: 'SellerDashboard.businessUnitSelector',
+    defaultMessage: 'Business Unit:',
+  },
+  businessUnitSelectorPlaceholder: {
+    id: 'SellerDashboard.businessUnitSelectorPlaceholder',
+    defaultMessage: 'Select a business unit',
+  },
+  noBusinessUnits: {
+    id: 'SellerDashboard.noBusinessUnits',
+    defaultMessage: 'No business units available',
+  },
+  loadingBusinessUnits: {
+    id: 'SellerDashboard.loadingBusinessUnits',
+    defaultMessage: 'Loading business units...',
+  },
   viewOrders: {
     id: 'SellerDashboard.viewOrders',
     defaultMessage: 'Manage Orders',
@@ -44,5 +60,9 @@ export default defineMessages({
   logout: {
     id: 'SellerDashboard.logout',
     defaultMessage: 'Logout',
+  },
+  storeSelector: {
+    id: 'SellerDashboard.storeSelector',
+    defaultMessage: 'Store:',
   },
 }); 
