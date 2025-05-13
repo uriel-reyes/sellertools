@@ -8,30 +8,7 @@
 
 sellertools is a powerful multi-vendor application built on the commercetools Merchant Center Apps framework, offering businesses the tools they need to streamline B2B2C, marketplace, franchise, field sales, and other multi-seller models. The platform provides third-party sellers with a dedicated dashboard featuring order management, intuitive product selection, store configuration tools, and promotional capabilities—empowering sellers to efficiently manage their complete business operations while maintaining brand consistency and operational control across your distributed selling network.
 
-## Purpose
-
-sellertools addresses the needs of businesses operating multi-seller models by providing a unified management interface built on commercetools. The application enables:
-
-- Streamlined management across multiple business models (B2B2C, marketplaces, franchises, field sales, and more!)
-- Empowerment of individual sellers with their own dedicated management tools
-- Scalable architecture that adapts to different business requirements
-- Simplified integration with the commercetools ecosystem
-
-Third-party sellers can use the platform to:
-- View and manage orders specific to their store
-- Track order statuses and update them as needed
-- Access customer information associated with their orders
-- Manage product selections and pricing for their store
-- Create and manage store-specific promotions
-- View sales reporting
-- View, manage and edit store content such as banners, logos, images and more
-
 ## Features
-
-### Store Configuration
-- Complete store configuration management interface
-- Update store information
-- Custom fields support for extensible data storage
 
 ### Order Management
 - Comprehensive order list, including a detailed view
@@ -41,14 +18,6 @@ Third-party sellers can use the platform to:
 - Real-time refresh of order data
 - Interactive status dropdown for order state changes
 - Real-time updates to the commercetools backend
-
-### Customer Management
-- View customers associated with the seller's store
-- Detailed customer profile information with intuitive card-based interface
-- Address information displayed in user-friendly cards
-- Recently placed orders displayed within the customer profile
-- Custom fields display for extended customer information
-- Streamlined account details for better focus on key information
 
 ### Product Management
 - **Product Selection**:
@@ -92,6 +61,10 @@ Third-party sellers can use the platform to:
     }
     ```
 
+- **Price Management**:
+  - Channel-specific pricing for products in a seller's store
+  - Clear visual indication of products with and without pricing
+
 - **Product Creation**:
   - Form-based interface for creating new products
   - Image URL preview functionality
@@ -108,10 +81,6 @@ Third-party sellers can use the platform to:
     }]
     ```
 
-- **Price Management**:
-  - Channel-specific pricing for products in a seller's store
-  - Clear visual indication of products with and without pricing
-
 ### Promotion Management
 - Create and manage store-specific product discounts
 - Support for percentage and fixed amount discount types
@@ -123,41 +92,20 @@ Third-party sellers can use the platform to:
 - Editing capabilities with pre-populated forms and field comparison
 - Bulk actions (activate, deactivate, delete)
 
-### Business Unit Integration
+### Customer Management
+- View customers associated with the seller's store
+- Detailed customer profile information with intuitive card-based interface
+- Address information displayed in user-friendly cards
+- Recently placed orders displayed within the customer profile
+- Custom fields display for extended customer information
+- Streamlined account details for better focus on key information
 
-The application employs a sophisticated business unit selection mechanism:
+### Store Configuration
+- Complete store configuration management interface
+- Update store information
+- Custom fields support for extensible data storage
 
-#### Customer-Based Business Unit Discovery
-- Business units are fetched based on the customer ID of the logged-in user
-- Uses GraphQL query with `associates(customer(id="..."))` filter
-- No hardcoded business unit IDs required in the codebase
-
-#### Multiple Business Units Support
-- Automatically handles scenarios where a customer is associated with multiple business units
-- Dropdown selector for choosing between business units
-- Preserves selection between sessions for consistent user experience
-- Automatically selects the first business unit by default
-
-#### Store Context Handling
-- Each business unit is associated with specific stores in the commercetools platform
-- When a business unit is selected, the system fetches its associated stores
-- The first store is automatically set as the active store in the auth context
-- This active store context is used by all other components for queries and mutations
-
-#### Technical Implementation
-- React context-based architecture:
-  - `business-unit-context.tsx` manages business unit state
-  - `auth-context.tsx` handles store selection and propagation
-- Custom hook (`useCustomerBusinessUnits`) that manages the business unit lifecycle
-- GraphQL integration for real-time data fetching
-- Performance optimizations:
-  - Memoized business unit options
-  - State update batching to prevent unnecessary renders
-  - Store information caching to reduce API calls
-
-This approach makes the application more flexible and maintainable by eliminating hardcoded references and supporting a wider range of business scenarios where sellers might be associated with multiple business units.
-
-## Configuration Requirements
+## Setup & Configuration
 
 ### Seller Setup
 
@@ -199,38 +147,58 @@ Sellers (customers who manage stores) are not directly assigned to stores in thi
    - When a seller logs in, the application reads this custom field
    - If valid, the seller is granted access to manage that store
 
-## Business Unit Configuration
+### Business Unit Integration
 
-The business unit structure serves as the container for seller-specific information, enabling robust extensibility:
+The application employs a sophisticated business unit selection mechanism:
+
+#### Customer-Based Business Unit Discovery
+- Business units are fetched based on the customer ID of the logged-in user
+- Uses GraphQL query with `associates(customer(id="..."))` filter
+- No hardcoded business unit IDs required in the codebase
+
+#### Multiple Business Units Support
+- Automatically handles scenarios where a customer is associated with multiple business units
+- Dropdown selector for choosing between business units
+- Preserves selection between sessions for consistent user experience
+- Automatically selects the first business unit by default
+
+#### Store Context Handling
+- Each business unit is associated with specific stores in the commercetools platform
+- When a business unit is selected, the system fetches its associated stores
+- The first store is automatically set as the active store in the auth context
+- This active store context is used by all other components for queries and mutations
+
+#### Technical Implementation
+- React context-based architecture:
+  - `business-unit-context.tsx` manages business unit state
+  - `auth-context.tsx` handles store selection and propagation
+- Custom hook (`useCustomerBusinessUnits`) that manages the business unit lifecycle
+- GraphQL integration for real-time data fetching
+- Performance optimizations:
+  - Memoized business unit options
+  - State update batching to prevent unnecessary renders
+  - Store information caching to reduce API calls
 
 ### Business Unit as Seller Data Container
 
-The application leverages business units to store crucial seller-specific information:
+The business unit structure serves as the container for seller-specific information, enabling robust extensibility:
+
 - Payment gateway credentials (e.g., Stripe account IDs)
 - Shipping provider account information 
-- Tax configuration settings
 - Commission rates and payment terms
 - Seller contact and support details
-- Operating hours and availability settings
 
-### Implementation Architecture
+**Custom Type Framework**:
+- Business units are extended with a `seller-store-configuration` custom type
+- This type can be expanded with any field needed for seller operations
+- Provides structured data storage with appropriate typing
 
-- **Custom Type Framework**:
-  - Business units are extended with a `seller-store-configuration` custom type
-  - This type can be expanded with any field needed for seller operations
-  - Provides structured data storage with appropriate typing
+**Data Access Pattern**:
+- The `useCustomerBusinessUnits` hook provides a centralized access point
+- Handles authentication, authorization, and data validation
+- Maintains proper state management throughout the application
 
-- **Flexible GraphQL Integration**:
-  - Complete GraphQL mutation support for all custom fields
-  - Automatic handling of different update scenarios (create/update)
-  - Proper versioning to prevent concurrent modification issues
-
-- **Data Access Pattern**:
-  - The `useCustomerBusinessUnits` hook provides a centralized access point
-  - Handles authentication, authorization, and data validation
-  - Maintains proper state management throughout the application
-
-### Adding New Seller Capabilities
+#### Adding New Seller Capabilities
 
 To extend business units with new seller functionality:
 
@@ -270,6 +238,66 @@ Ensure you have the following scopes configured in your custom-application-confi
 - `view_published_products`
 - `view_product_discounts`, `manage_product_discounts`
 - `view_business_units`, `manage_business_units`
+
+## UI & Implementation Patterns
+
+The application implements consistent design and implementation patterns across all features:
+
+### Enhanced User Experience
+- **Search Experience**:
+  - Persistent tables during search with loading indicators
+  - Debounced search to prevent excessive API calls
+  - Width-constrained search fields (600px maximum) for better visual balance
+
+- **Table Rendering**:
+  - Optimized column width distribution
+  - Enhanced cell styling with proper overflow handling
+  - Fixed image dimensions for consistent presentation
+  - Responsive horizontal scrolling for small screen support
+
+- **CSS Refinements**:
+  - Table container improvements for proper width distribution
+  - Box-sizing rules for consistent column rendering
+  - Text overflow handling for long content in cells
+  - Mobile-responsive adjustments for smaller screens
+
+### Component Patterns
+- **Header Components**:
+  - Left section: Title and navigation elements
+  - Right section: Action buttons and controls
+  - Consistent context information display
+
+- **Form Patterns**:
+  - Card-based sectional layout
+  - Consistent field spacing and validation
+  - Standard button placement (Cancel on left, Submit on right)
+
+- **Modal Patterns**:
+  - Standardized header with title and close button
+  - Properly padded content areas with appropriate scrolling
+  - Size appropriate to content (small, medium, large)
+
+### Error Handling
+- **API Error Handling**:
+  - GraphQL error extraction and formatting
+  - Network error detection with appropriate messaging
+  - Detailed error logging in development
+
+- **Form Validation**:
+  - Field-level validation with immediate feedback
+  - Form-level validation before submission
+  - Clear, actionable error messages
+
+- **Optimistic UI Updates**:
+  - Temporary state updates before API confirmation
+  - Rollback on error with appropriate notifications
+  - Loading indicators during async operations
+
+### Performance Optimizations
+- **Logging Control**:
+  - Environment-aware logging (development vs. production)
+  - Different log levels (log, info, warn, error, debug, performance)
+  - Suppressed informational logs in production
 
 ## Development Resources
 - [commercetools Custom Applications Documentation](https://docs.commercetools.com/merchant-center-customizations/custom-applications)
