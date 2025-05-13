@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://commercetools.com/">
-    <img alt="commercetools logo" src="https://unpkg.com/@commercetools-frontend/assets/logos/commercetools_primary-logo_horizontal_RGB.png">
+    <img alt="commercetools logo" src="https://commercetools.com/_build/images/logos/commercetools-logo-2024.svg?v4">
   </a>
 </p>
 
