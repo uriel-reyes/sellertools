@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import DataTable from '@commercetools-uikit/data-table';
 import LoadingSpinner from '@commercetools-uikit/loading-spinner';
 import Text from '@commercetools-uikit/text';
@@ -34,12 +34,28 @@ const Orders: React.FC<OrdersProps> = ({ onBack, linkToWelcome }) => {
   const { storeKey } = useAuthContext();
   const { page, perPage } = usePaginationState();
   const tableSorting = useDataTableSortingState();
-  const { fetchOrdersByStore, updateOrderState, orders, loading, error, total } = useOrders({page, perPage, tableSorting});
+  const { 
+    fetchOrdersByStore, 
+    updateOrderState, 
+    transitionOrderState, 
+    fetchOrderStates, 
+    orders, 
+    orderStates, 
+    loading, 
+    error, 
+    total 
+  } = useOrders({page, perPage, tableSorting});
+  
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [statusUpdateSuccess, setStatusUpdateSuccess] = useState<string | null>(null);
   const [statusUpdateError, setStatusUpdateError] = useState<string | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<string>('');
+  const [updatingOrderIds, setUpdatingOrderIds] = useState<Record<string, boolean>>({});
 
+  useEffect(() => {
+    // Load order states on component mount
+    fetchOrderStates();
+  }, [fetchOrderStates]);
 
   useEffect(() => {
     if (storeKey) {
@@ -75,13 +91,17 @@ const Orders: React.FC<OrdersProps> = ({ onBack, linkToWelcome }) => {
     push(`${linkToWelcome}/orders/${row.rawData.id}`);
   };
 
-  const handleStatusChange = async (event: any, orderId: string, version: number) => {
+  // Modified handle functions to show loading state - memoized with useCallback
+  const handleStatusChange = useCallback(async (event: any, orderId: string, version: number) => {
     const newState = event.target.value;
     
     if (!newState) return;
     
     setStatusUpdateSuccess(null);
     setStatusUpdateError(null);
+    
+    // Set this specific order as updating
+    setUpdatingOrderIds(prev => ({ ...prev, [orderId]: true }));
     
     try {
       const result = await updateOrderState(orderId, version, newState);
@@ -93,24 +113,92 @@ const Orders: React.FC<OrdersProps> = ({ onBack, linkToWelcome }) => {
       }
     } catch (err) {
       setStatusUpdateError(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      // Clear the updating state
+      setUpdatingOrderIds(prev => ({ ...prev, [orderId]: false }));
     }
-  };
+  }, [updateOrderState, setStatusUpdateSuccess, setStatusUpdateError, setUpdatingOrderIds]);
 
-  const handleRefreshOrders = () => {
+  const handleStateChange = useCallback(async (event: any, orderId: string, version: number) => {
+    const newStateKey = event.target.value;
+    
+    if (!newStateKey) return;
+    
+    setStatusUpdateSuccess(null);
+    setStatusUpdateError(null);
+    
+    // Set this specific order as updating
+    setUpdatingOrderIds(prev => ({ ...prev, [orderId]: true }));
+    
+    try {
+      const result = await transitionOrderState(orderId, version, newStateKey);
+      
+      if (result) {
+        const stateName = orderStates.find(state => state.key === newStateKey)?.name || newStateKey;
+        setStatusUpdateSuccess(`Order ${orderId} state updated to ${stateName}`);
+      } else {
+        setStatusUpdateError(`Failed to update order ${orderId} state`);
+      }
+    } catch (err) {
+      setStatusUpdateError(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      // Clear the updating state
+      setUpdatingOrderIds(prev => ({ ...prev, [orderId]: false }));
+    }
+  }, [transitionOrderState, orderStates, setStatusUpdateSuccess, setStatusUpdateError, setUpdatingOrderIds]);
+
+  const handleRefreshOrders = useCallback(() => {
     if (storeKey) {
       console.log(`Manually refreshing orders for store: ${storeKey}`);
       fetchOrdersByStore(storeKey).then(() => {
         setLastRefreshed(new Date().toLocaleString());
       });
     }
-  };
+  }, [storeKey, fetchOrdersByStore, setLastRefreshed]);
 
-  // Define columns for the table
-  const columns = [
+  // Map order states to select options - memoized
+  const orderStateOptions = useMemo(() => 
+    orderStates.map(state => ({
+      value: state.key,
+      label: state.name
+    })), 
+    [orderStates]
+  );
+
+  // Define columns for the table - memoized
+  const columns = useMemo(() => [
     { key: 'createdAt', label: 'Date', isSortable: true },
     { key: 'orderNumber', label: 'Order Number', isSortable: true },
     { key: 'customerName', label: 'Customer' },
     { key: 'total', label: 'Total'},
+    { 
+      key: 'state', 
+      label: 'State', 
+      renderItem: (row: any) => {
+        const handleStateClick = (e: React.MouseEvent) => {
+          // Stop the click from propagating to the row
+          e.stopPropagation();
+        };
+        
+        const isUpdating = updatingOrderIds[row.id] === true;
+        
+        return (
+          <div onClick={handleStateClick} className={isUpdating ? styles.selectLoading : undefined}>
+            <SelectField
+              title=""
+              name={`state-${row.id}`}
+              value={row.stateKey || ''}
+              options={orderStateOptions}
+              onChange={(event) => handleStateChange(event, row.rawData.id, row.rawData.version)}
+              data-testid={`state-selector-${row.id}`}
+              horizontalConstraint="scale"
+              isDisabled={orderStateOptions.length === 0 || isUpdating}
+              hasWarning={isUpdating}
+            />
+          </div>
+        );
+      }
+    },
     { 
       key: 'status', 
       label: 'Status', 
@@ -120,39 +208,48 @@ const Orders: React.FC<OrdersProps> = ({ onBack, linkToWelcome }) => {
           e.stopPropagation();
         };
         
+        const isUpdating = updatingOrderIds[row.id] === true;
+        
         return (
-          <div onClick={handleStatusClick}>
+          <div onClick={handleStatusClick} className={isUpdating ? styles.selectLoading : undefined}>
             <SelectField
-              title="Status"
+              title=""
               name={`status-${row.id}`}
               value={row.status}
               options={ORDER_STATES}
               onChange={(event) => handleStatusChange(event, row.rawData.id, row.rawData.version)}
               data-testid={`status-selector-${row.id}`}
               horizontalConstraint="scale"
+              isDisabled={isUpdating}
+              hasWarning={isUpdating}
             />
           </div>
         );
       }
     },
-  ];
+  ], [orderStateOptions, updatingOrderIds, handleStateChange, handleStatusChange]);
 
-  // Map orders to simple row format
-  const rows = orders
-    .filter(order => {
-      // Double-check that the order belongs to this store
-      // This is a safety measure in case the API returns orders from other stores
-      return true; // The filtering should be handled by the API query
-    })
-    .map(order => ({
-      id: order.id,
-      createdAt: order.createdAt,
-      orderNumber: order.orderNumber || 'N/A',
-      customerName: order.customer?.firstName + ' ' + order.customer?.lastName || order.customerEmail || 'Unknown',
-      total: formatPrice(order.totalPrice.centAmount, order.totalPrice.currencyCode),
-      status: order.orderState,
-      rawData: order
-    }));
+  // Map orders to simple row format - memoized
+  const rows = useMemo(() => 
+    orders
+      .filter(order => {
+        // Double-check that the order belongs to this store
+        // This is a safety measure in case the API returns orders from other stores
+        return true; // The filtering should be handled by the API query
+      })
+      .map(order => ({
+        id: order.id,
+        createdAt: order.createdAt,
+        orderNumber: order.orderNumber || 'N/A',
+        customerName: order.customer?.firstName + ' ' + order.customer?.lastName || order.customerEmail || 'Unknown',
+        total: formatPrice(order.totalPrice.centAmount, order.totalPrice.currencyCode),
+        stateName: order.state?.name || 'Not set',
+        stateKey: order.state?.key || '',
+        status: order.orderState,
+        rawData: order
+      })),
+    [orders]
+  );
 
   return (
     <div className={styles.ordersContainer}>
@@ -160,7 +257,7 @@ const Orders: React.FC<OrdersProps> = ({ onBack, linkToWelcome }) => {
         <div className={styles.header}>
           <div>
             <Text.Headline as="h1">Orders</Text.Headline>
-            <Text.Subheadline>
+            <Text.Subheadline as="h4">
               Store: <span className={styles.storeKeyHighlight}>{storeKey}</span>
             </Text.Subheadline>
             {lastRefreshed && (

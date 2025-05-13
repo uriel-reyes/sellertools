@@ -148,7 +148,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                 <Spacings.Inline alignItems="center" scale="xs">
                   <InformationIcon size="medium" color="neutral60" />
                   <div className={styles.sectionHeader}>
-                    <Text.Subheadline isBold>
+                    <Text.Subheadline as="h4" isBold>
                       Order Information
                     </Text.Subheadline>
                   </div>
@@ -190,13 +190,39 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                     </div>
                   </Spacings.Inline>
                 )}
+
+                <Spacings.Inline alignItems="flex-start">
+                  <div className={styles.detailSection}>
+                    <div className={styles.detailLabel}>
+                      <Text.Body isBold>State</Text.Body>
+                    </div>
+                    <div className={styles.detailValue}>
+                      {order.state?.name ? (
+                        <span className={styles.stateBadge}>{order.state.name}</span>
+                      ) : (
+                        <Text.Body>Not set</Text.Body>
+                      )}
+                    </div>
+                  </div>
+                </Spacings.Inline>
+
+                <Spacings.Inline alignItems="flex-start">
+                  <div className={styles.detailSection}>
+                    <div className={styles.detailLabel}>
+                      <Text.Body isBold>Status</Text.Body>
+                    </div>
+                    <div className={styles.detailValue}>
+                      <Text.Body>{order.orderState}</Text.Body>
+                    </div>
+                  </div>
+                </Spacings.Inline>
               </Spacings.Stack>
 
               <div className={styles.sectionDivider}>
                 <Spacings.Inline alignItems="center" scale="xs">
                   <UsersIcon size="medium" color="neutral60" />
                   <div className={styles.sectionHeader}>
-                    <Text.Subheadline isBold>
+                    <Text.Subheadline as="h4" isBold>
                       Customer Information
                     </Text.Subheadline>
                   </div>
@@ -244,7 +270,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                 <Spacings.Inline alignItems="center" scale="xs">
                   <WorldIcon size="medium" color="neutral60" />
                   <div className={styles.sectionHeader}>
-                    <Text.Subheadline isBold>Addresses</Text.Subheadline>
+                    <Text.Subheadline as="h4" isBold>Addresses</Text.Subheadline>
                   </div>
                 </Spacings.Inline>
               </div>
@@ -277,7 +303,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                     <Spacings.Inline alignItems="center" scale="xs">
                       <CartIcon size="medium" color="neutral60" />
                       <div className={styles.sectionHeader}>
-                        <Text.Subheadline isBold>Line Items</Text.Subheadline>
+                        <Text.Subheadline as="h4" isBold>Line Items</Text.Subheadline>
                       </div>
                     </Spacings.Inline>
                   </div>
@@ -298,7 +324,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                   <Spacings.Inline alignItems="center" scale="xs">
                     <CoinsIcon size="medium" color="neutral60" />
                     <div className={styles.sectionHeader}>
-                      <Text.Subheadline isBold>Order Total</Text.Subheadline>
+                      <Text.Subheadline as="h4" isBold>Order Total</Text.Subheadline>
                     </div>
                   </Spacings.Inline>
                   <Text.Headline as="h3" tone="primary">

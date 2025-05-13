@@ -59,6 +59,16 @@
   margin-top: var(--spacing-xs);
 }
 
+.orderState {
+  display: inline-block;
+  padding: var(--spacing-xs) var(--spacing-m);
+  border-radius: var(--border-radius-6);
+  background-color: #f2f2f2;
+  color: #333;
+  font-weight: bold;
+  margin-right: var(--spacing-s);
+}
+
 .open {
   background-color: #e6f7ff;
   color: #0070cc;
@@ -193,6 +203,17 @@
   color: var(--color-neutral-40);
 }
 
+/* State badge for order state value */
+.stateBadge {
+  display: inline-block;
+  padding: var(--spacing-xs) var(--spacing-s);
+  border-radius: var(--border-radius-6);
+  background-color: #eaf4fc;
+  color: #0070cc;
+  font-size: 13px;
+  font-weight: bold;
+}
+
 /* Hide only the specific header buttons in modal headers */
 :global([data-testid="order-details-modal"]) :global(.css-dq4vwv-PageHeader) :global(.css-l5nm51-getStyles),
 :global([data-testid="order-details-modal"]) :global(.css-l5nm51-getStyles) {
@@ -202,4 +223,33 @@
 /* Maintain padding fix only for order details modal */
 :global([data-testid="order-details-modal"]) :global(.modal-page-content) {
   padding-bottom: 0 !important;
+}
+
+.selectLoading {
+  position: relative;
+}
+
+.selectLoading::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.15);
+  pointer-events: none;
+  border-radius: var(--border-radius-6);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.3;
+  }
+  100% {
+    opacity: 0;
+  }
 } 

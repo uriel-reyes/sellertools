@@ -16,6 +16,10 @@ interface Order {
     currencyCode: string;
   };
   orderState: string;
+  state?: {
+    name: string;
+    key: string;
+  };
   customerId?: string;
   customerEmail?: string;
   customerName?: string;
@@ -44,6 +48,10 @@ const GET_STORE_ORDERS = gql`
           currencyCode
         }
         orderState
+        state {
+          name(locale: "en-US")
+          key
+        }
         customerId
         customerEmail
          customer {
@@ -69,6 +77,10 @@ const GET_ORDER_BY_ID = gql`
         currencyCode
       }
       orderState
+      state {
+        name(locale: "en-US")
+        key
+      }
       customerId
       customerEmail
       lineItems {
@@ -121,13 +133,58 @@ const UPDATE_ORDER_STATE = gql`
       id
       version
       orderState
+      state {
+        name(locale: "en-US")
+        key
+      }
     }
   }
 `;
 
+// GraphQL mutation to transition order state
+const TRANSITION_ORDER_STATE = gql`
+  mutation TransitionOrderState($id: String!, $version: Long!, $actions: [OrderUpdateAction!]!) {
+    updateOrder(id: $id, version: $version, actions: $actions) {
+      id
+      version
+      orderState
+      state {
+        name(locale: "en-US")
+        key
+      }
+    }
+  }
+`;
+
+// Get available states query
+const GET_ORDER_STATES = gql`
+  query GetOrderStates {
+    states(where: "type=\\\"OrderState\\\"") {
+      results {
+        id
+        key
+        name(locale: "en-US")
+        description(locale: "en-US")
+      }
+    }
+  }
+`;
 
 interface OrderDetailResponse {
   order: Order;
+}
+
+interface OrderState {
+  id: string;
+  key: string;
+  name: string;
+  description?: string;
+}
+
+interface OrderStatesResponse {
+  states: {
+    results: OrderState[];
+  };
 }
 
 interface UseOrdersHook {
@@ -135,8 +192,11 @@ interface UseOrdersHook {
   fetchOrderById: (orderId: string) => Promise<Order | null>;
   // fetchCustomerById: (customerId: string) => Promise<Customer | null>;
   updateOrderState: (orderId: string, version: number, newState: string) => Promise<boolean>;
+  transitionOrderState: (orderId: string, version: number, stateKey: string) => Promise<boolean>;
+  fetchOrderStates: () => Promise<OrderState[]>;
   // enrichOrdersWithCustomerNames: (orders: Order[]) => Promise<Order[]>;
   orders: Order[];
+  orderStates: OrderState[];
   total: number;
   loading: boolean;
   error: Error | null;
@@ -144,6 +204,7 @@ interface UseOrdersHook {
 
 const useOrders = ( {page, perPage, tableSorting}: { page?: {value: number}, perPage?: {value: number}, tableSorting?: TDataTableSortingState}): UseOrdersHook => {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [orderStates, setOrderStates] = useState<OrderState[]>([]);
   const [total, setTotal] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -173,6 +234,15 @@ const useOrders = ( {page, perPage, tableSorting}: { page?: {value: number}, per
     }
   );
 
+  const { refetch: refetchOrderStates, loading: statesLoading } = useMcQuery<OrderStatesResponse>(
+    GET_ORDER_STATES, 
+    {
+      context: {
+        target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
+      },
+      skip: true, // Skip on initial render
+    }
+  );
 
   const [executeUpdateOrderState, { loading: updateLoading }] = useMcMutation(
     UPDATE_ORDER_STATE,
@@ -182,82 +252,15 @@ const useOrders = ( {page, perPage, tableSorting}: { page?: {value: number}, per
       },
     }
   );
-  //   async (customerId: string): Promise<Customer | null> => {
-  //     if (!customerId) {
-  //       return null;
-  //     }
-      
-  //     try {
-  //       console.log(`Fetching customer details for ID: ${customerId}`);
-        
-  //       const { data, error: apiError } = await refetchCustomerById({ 
-  //         id: customerId
-  //       });
-        
-  //       if (apiError) {
-  //         console.error('API Error fetching customer details:', apiError);
-  //         return null;
-  //       }
-        
-  //       if (!data?.customer) {
-  //         console.log('Customer not found');
-  //         return null;
-  //       }
-        
-  //       console.log('Customer details retrieved');
-  //       return data.customer;
-  //     } catch (err) {
-  //       console.error('Error in fetchCustomerById:', err);
-  //       return null;
-  //     }
-  //   },
-  //   [refetchCustomerById]
-  // );
 
-  // const enrichOrdersWithCustomerNames = useCallback(
-  //   async (ordersList: Order[]): Promise<Order[]> => {
-  //     try {
-  //       const enrichedOrders = await Promise.all(
-  //         ordersList.map(async (order) => {
-  //           if (!order.customerId) {
-  //             return {
-  //               ...order,
-  //               customerName: order.customerEmail || 'Guest',
-  //             };
-  //           }
-            
-  //           const customer = await fetchCustomerById(order.customerId);
-            
-  //           if (!customer) {
-  //             return {
-  //               ...order,
-  //               customerName: order.customerEmail || 'Unknown',
-  //             };
-  //           }
-            
-  //           const customerName = [customer.firstName, customer.lastName]
-  //             .filter(Boolean)
-  //             .join(' ') || customer.email || 'Unknown';
-            
-  //           return {
-  //             ...order,
-  //             customerName,
-  //           };
-  //         })
-  //       );
-        
-  //       return enrichedOrders;
-  //     } catch (err) {
-  //       console.error('Error enriching orders with customer names:', err);
-  //       // Return original orders without enrichment
-  //       return ordersList.map(order => ({
-  //         ...order,
-  //         customerName: order.customerEmail || 'Unknown',
-  //       }));
-  //     }
-  //   },
-  //   [fetchCustomerById]
-  // );
+  const [executeTransitionOrderState, { loading: transitionLoading }] = useMcMutation(
+    TRANSITION_ORDER_STATE,
+    {
+      context: {
+        target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
+      },
+    }
+  );
 
   const fetchOrdersByStore = useCallback(
     async (storeKey: string): Promise<Order[]> => {
@@ -359,6 +362,120 @@ const useOrders = ( {page, perPage, tableSorting}: { page?: {value: number}, per
     [refetchOrderById, dataLocale]
   );
 
+  const fetchOrderStates = useCallback(async (): Promise<OrderState[]> => {
+    try {
+      console.log('Fetching available order states');
+      
+      const { data, error: apiError } = await refetchOrderStates();
+      
+      if (apiError) {
+        console.error('API Error fetching order states:', apiError);
+        throw apiError;
+      }
+      
+      if (!data?.states?.results) {
+        console.log('No order states found');
+        return [];
+      }
+      
+      console.log('Order states retrieved:', data.states.results.length);
+      setOrderStates(data.states.results);
+      return data.states.results;
+    } catch (err) {
+      console.error('Error in fetchOrderStates:', err);
+      return [];
+    }
+  }, [refetchOrderStates]);
+
+  const transitionOrderState = useCallback(
+    async (orderId: string, version: number, stateKey: string): Promise<boolean> => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        console.log(`Transitioning order ${orderId} to state: ${stateKey}`);
+        
+        // Find the state name for optimistic update
+        const stateName = orderStates.find(state => state.key === stateKey)?.name || '';
+        
+        // Perform an optimistic update immediately
+        setOrders(prevOrders => 
+          prevOrders.map(order => 
+            order.id === orderId 
+              ? { 
+                  ...order, 
+                  state: {
+                    key: stateKey,
+                    name: stateName
+                  }
+                } 
+              : order
+          )
+        );
+        
+        const response = await executeTransitionOrderState({
+          variables: {
+            id: orderId,
+            version: version,
+            actions: [
+              {
+                transitionState: {
+                  state: {
+                    typeId: "state",
+                    key: stateKey
+                  }
+                },
+              },
+            ],
+          },
+        });
+        
+        if (!response || response.errors) {
+          console.error('Error transitioning order state:', response?.errors);
+          
+          // Revert to previous state if there was an error
+          setOrders(prevOrders => 
+            prevOrders.map(order => 
+              order.id === orderId && order.state?.key === stateKey
+                ? { 
+                    ...order, 
+                    state: undefined // Reset state since API call failed
+                  } 
+                : order
+            )
+          );
+          
+          throw new Error('Failed to transition order state');
+        }
+        
+        console.log('Order state transitioned successfully');
+        
+        // Update with the actual version from the API response
+        setOrders(prevOrders => 
+          prevOrders.map(order => 
+            order.id === orderId 
+              ? { 
+                  ...order, 
+                  state: (response.data as any).updateOrder.state,
+                  version: (response.data as any).updateOrder.version
+                } 
+              : order
+          )
+        );
+        
+        return true;
+      } catch (err) {
+        console.error('Error in transitionOrderState:', err);
+        const errorObject = err instanceof Error ? err : new Error('Unknown error transitioning order state');
+        setError(errorObject);
+        return false;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [executeTransitionOrderState, orderStates]
+  );
+
   const updateOrderState = useCallback(
     async (orderId: string, version: number, newState: string): Promise<boolean> => {
       setLoading(true);
@@ -366,6 +483,18 @@ const useOrders = ( {page, perPage, tableSorting}: { page?: {value: number}, per
       
       try {
         console.log(`Updating order ${orderId} to state: ${newState}`);
+        
+        // Perform an optimistic update immediately
+        setOrders(prevOrders => 
+          prevOrders.map(order => 
+            order.id === orderId 
+              ? { 
+                  ...order, 
+                  orderState: newState,
+                } 
+              : order
+          )
+        );
         
         const response = await executeUpdateOrderState({
           variables: {
@@ -383,11 +512,25 @@ const useOrders = ( {page, perPage, tableSorting}: { page?: {value: number}, per
         
         if (!response || response.errors) {
           console.error('Error updating order state:', response?.errors);
+          
+          // Revert to previous state if there was an error
+          setOrders(prevOrders => 
+            prevOrders.map(order => 
+              order.id === orderId && order.orderState === newState
+                ? { 
+                    ...order, 
+                    orderState: order.orderState, // Reset to previous state
+                  } 
+                : order
+            )
+          );
+          
           throw new Error('Failed to update order state');
         }
         
         console.log('Order state updated successfully');
         
+        // Update with actual version from API
         setOrders(prevOrders => 
           prevOrders.map(order => 
             order.id === orderId 
@@ -417,9 +560,12 @@ const useOrders = ( {page, perPage, tableSorting}: { page?: {value: number}, per
     fetchOrdersByStore,
     fetchOrderById,
     updateOrderState,
+    transitionOrderState,
+    fetchOrderStates,
     orders,
+    orderStates,
     total,
-    loading: loading || queryLoading || orderDetailLoading || updateLoading,
+    loading: loading || queryLoading || orderDetailLoading || updateLoading || transitionLoading || statesLoading,
     error,
   };
 };
