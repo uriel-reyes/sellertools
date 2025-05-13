@@ -12,7 +12,7 @@ sellertools is a powerful multi-vendor application built on the commercetools Me
 
 sellertools addresses the needs of businesses operating multi-seller models by providing a unified management interface built on commercetools. The application enables:
 
-- Streamlined management across multiple business models (B2B2C, marketplaces, franchises, field sales)
+- Streamlined management across multiple business models (B2B2C, marketplaces, franchises, field sales, and more!)
 - Empowerment of individual sellers with their own dedicated management tools
 - Scalable architecture that adapts to different business requirements
 - Simplified integration with the commercetools ecosystem
@@ -30,36 +30,16 @@ Third-party sellers can use the platform to:
 
 ### Store Configuration
 - Complete store configuration management interface
-- Update store information:
-  - Store name and branding details
-  - Address information (street, city, state, zipcode)
-  - Contact information (phone number)
-  - Business hours (opening and closing times)
-  - Payment processing details (Stripe Account ID)
-- Real-time validation and feedback
-- Automatic detection of changes with optimistic UI updates
-- Robust error handling with clear user messaging
-- Dynamic business unit fetching:
-  - Retrieves all business units associated with the logged-in customer
-  - Automatically selects the first business unit by default
-  - Provides a selector when multiple business units are available
-  - No hardcoded business unit IDs
+- Update store information
 - Custom fields support for extensible data storage
 
 ### Order Management
-- Comprehensive order listing with:
-  - Date and time information
-  - Order numbers and customer details
-  - Order totals and status indicators
-- Advanced filtering and sorting capabilities
-- Real-time refresh of order data
-- Enhanced order details view with:
-  - Product images from commercetools platform
+- Comprehensive order list, including a detailed view
   - Line item breakdown with pricing
   - Shipping and billing address information
   - Customer details for each order
+- Real-time refresh of order data
 - Interactive status dropdown for order state changes
-- Visual indicators for different order statuses
 - Real-time updates to the commercetools backend
 
 ### Customer Management
@@ -111,31 +91,11 @@ Third-party sellers can use the platform to:
       }
     }
     ```
-  - Advanced features:
-    - Fuzzy matching enabled for partial word search
-    - Locale-specific handling (en-US prioritized with fallbacks)
-    - Zero-delay keystroke processing (immediate search triggering)
-    - Advanced race condition handling:
-      - Request abandonment for outdated searches when typing quickly
-      - Search token tracking to process only the latest results
-      - Pending search counter for proper loading state management
-    - Robust error handling and recovery
-    - Cache-busting for product images to prevent browser caching issues
-    - Unique image identification via product ID to handle identical image URLs
-  - User experience optimizations:
-    - Immediate search feedback
-    - Contextual empty state messaging based on search terms
-    - Loading indicators during search operations
-    - Result count display showing matches found
 
 - **Product Creation**:
   - Form-based interface for creating new products
-  - Direct integration with commercetools GraphQL API
-  - Fields for name, description, SKU, price, and images
-  - Automatic currency formatting and validation
   - Image URL preview functionality
-  - Proper locale handling for multi-language support (en-us)
-  - Automatic product publishing with `publish: true` flag
+  - Automatic addition to the store's product selection
   - Proper implementation of commercetools' money format:
     ```graphql
     prices: [{
@@ -147,15 +107,10 @@ Third-party sellers can use the platform to:
       }
     }]
     ```
-  - Automatic addition to the store's product selection
 
 - **Price Management**:
   - Channel-specific pricing for products in a seller's store
-  - Update prices for individual products with real-time validation
-  - View both current (published) and staged (unpublished) prices
   - Clear visual indication of products with and without pricing
-  - Secure pricing updates with optimistic UI feedback
-  - Comprehensive validation for duplicate price scopes
 
 ### Promotion Management
 - Create and manage store-specific product discounts
@@ -166,12 +121,7 @@ Third-party sellers can use the platform to:
 - Channel-specific filtering for seller's products
 - Status management with toggle controls for activation/deactivation
 - Editing capabilities with pre-populated forms and field comparison
-- Bulk actions (activate, deactivate, delete) with confirmation dialogs
-- Delete functionality with proper resource cleanup
-- User experience enhancements:
-  - Money input with proper decimal handling
-  - Streamlined UI with improved visual hierarchy
-- Real-time validation and feedback
+- Bulk actions (activate, deactivate, delete)
 
 ### Seller Dashboard
 
