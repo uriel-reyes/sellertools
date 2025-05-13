@@ -157,95 +157,88 @@ The application employs a sophisticated business unit selection mechanism:
 
 This approach makes the application more flexible and maintainable by eliminating hardcoded references and supporting a wider range of business scenarios where sellers might be associated with multiple business units.
 
-## Extending the Store Configuration
+## Configuration Requirements
 
-The Store Configuration form supports capturing and updating business unit data including address information and custom fields. The implementation leverages the `useCustomerBusinessUnits` hook which provides a robust GraphQL-based approach for managing business unit data.
+### Seller Setup
 
-### Required Setup for Business Unit Mutations
+This application requires a specific configuration for stores, channels, and product selections:
 
-To properly implement and extend the business unit functionality, the following configurations are required:
+1. **Store Creation**:
+   - Create a store in commercetools with a unique key (e.g., `seller-store-1`)
+   - The store key is used as the identifier for all seller-related operations
 
-1. **Custom Type for Store Configuration**:
-   - Create a custom type with key `seller-store-configuration` in commercetools
-   - Add fields for any store-specific configuration data:
-     - `hours-of-operation`: Field type String (for store opening hours)
-     - `stripe-account-id`: Field type String (for payment processing)
+2. **Channel Alignment**:
+   - Create a distribution channel with the same key as the store
+   - Associate this channel with the store
+   - Ensure the channel has roles of "InventorySupply" and "ProductDistribution"
+   - This alignment is essential for proper pricing and product distribution
 
-2. **GraphQL Schema Permissions**:
-   - Ensure your API client has the following permissions:
-     - `view_business_units` - Required for fetching business units
-     - `manage_business_units` - Required for updating business units
+3. **Product Selection Setup**:
+   - Create a product selection with the same key as the store
+   - This alignment of keys (store, channel, product selection) is essential
 
-3. **Business Unit Structure**:
-   - The implementation assumes a business unit structure with:
-     - At least one address per business unit (the first address is used by default)
-     - Default address fields: streetNumber, streetName, city, state, postalCode, phone
-     - Country code (defaults to "US" in the current implementation)
+4. **Product Variant Configuration**:
+   - The application manages pricing exclusively through the master variant
+   - All channel-specific prices are attached to the master variant
+   - This approach simplifies price management while allowing seller-specific pricing
 
-4. **Mutation Structure**:
-   - The mutation implementation builds proper update actions:
-   
-   ```graphql
-   mutation UpdateBusinessUnit($id: String!, $version: Long!, $actions: [BusinessUnitUpdateAction!]!) {
-     updateBusinessUnit(id: $id, version: $version, actions: $actions) {
-       id
-       version
-       name
-       addresses {
-         id
-         streetNumber
-         streetName
-         city
-         state
-         postalCode
-         phone
-         country
-       }
-       custom {
-         customFieldsRaw {
-           name
-           value
-         }
-       }
-     }
-   }
-   ```
+### Seller Association
 
-   - For address updates, it uses either:
-     - `changeAddress` action when an existing address is found
-     - `addAddress` action when no address exists yet
-   
-   - For custom fields, it uses either:
-     - `setCustomType` action when no custom type is assigned yet
-     - `setCustomField` actions for individual field updates when the type exists
+Sellers (customers who manage stores) are not directly assigned to stores in this implementation. Instead:
 
-### Extending with Additional Fields
+1. **Custom Type Requirements**:
+   - Create a custom type for customers named `seller-store-association`
+   - Add a field named `store-key` of type String to this custom type
+   - Label: "Store Key", Required: No
 
-To add new custom fields to the business unit configuration:
+2. **Customer Configuration**:
+   - Apply the custom type to seller customer records
+   - Set the `store-key` field to match the store key they should manage
 
-1. **Update the custom type in commercetools**:
-   - Add new field definitions to the `seller-store-configuration` type
+3. **Authentication Flow**:
+   - When a seller logs in, the application reads this custom field
+   - If valid, the seller is granted access to manage that store
 
-2. **Update the form component**:
-   - Add new form fields in the UI component
-   - Include the new fields in the state management
+## Business Unit Configuration
 
-3. **Include the new fields in the update operation**:
-   - When calling `updateBusinessUnit`, include the new fields in the customFields object:
-   
-   ```javascript
-   const result = await updateBusinessUnit(
-     selectedBusinessUnit.id,
-     addressData,
-     {
-       'hours-of-operation': hoursOfOperation,
-       'stripe-account-id': stripeAccountId,
-       'your-new-field': newFieldValue,
-     }
-   );
-   ```
+The business unit structure serves as the container for seller-specific information, enabling robust extensibility:
 
-The hook automatically handles proper conversion of the field values to JSON strings and builds the correct mutation actions based on whether the custom type already exists on the business unit.
+### Business Unit as Seller Data Container
+
+The application leverages business units to store crucial seller-specific information:
+- Payment gateway credentials (e.g., Stripe account IDs)
+- Shipping provider account information 
+- Tax configuration settings
+- Commission rates and payment terms
+- Seller contact and support details
+- Operating hours and availability settings
+
+### Implementation Architecture
+
+- **Custom Type Framework**:
+  - Business units are extended with a `seller-store-configuration` custom type
+  - This type can be expanded with any field needed for seller operations
+  - Provides structured data storage with appropriate typing
+
+- **Flexible GraphQL Integration**:
+  - Complete GraphQL mutation support for all custom fields
+  - Automatic handling of different update scenarios (create/update)
+  - Proper versioning to prevent concurrent modification issues
+
+- **Data Access Pattern**:
+  - The `useCustomerBusinessUnits` hook provides a centralized access point
+  - Handles authentication, authorization, and data validation
+  - Maintains proper state management throughout the application
+
+### Adding New Seller Capabilities
+
+To extend business units with new seller functionality:
+
+1. Add necessary custom fields to the `seller-store-configuration` type
+2. Update the configuration form to capture the new data
+3. Integrate the new fields with relevant application features
+
+This extensible approach enables the platform to rapidly adapt to different business models and seller requirements without requiring core application changes.
 
 ## Getting Started
 
