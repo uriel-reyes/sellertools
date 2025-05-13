@@ -21,7 +21,7 @@ interface ProductFormProps {
 }
 
 // Product type definition (from provided JSON)
-const PRODUCT_TYPE_ID = '73ff8823-7771-45c8-89bd-acb7521c42bf';
+const PRODUCT_TYPE_ID = '9a68fe2c-d9b7-4fae-8819-85a31f797a7b';
 
 // Product data structure
 interface ProductFormData {
