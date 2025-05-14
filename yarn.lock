@@ -1086,10 +1086,10 @@
     "@babel/runtime" "^7.17.9"
     "@babel/runtime-corejs3" "^7.17.9"
 
-"@commercetools-demo/cms-asset@0.7.2":
-  version "0.7.2"
-  resolved "https://registry.yarnpkg.com/@commercetools-demo/cms-asset/-/cms-asset-0.7.2.tgz#cf5381d35108dcf5097cfdc2c321858a7937d3d0"
-  integrity sha512-EQGl2m2qVzEybDTEjWwTA84aQ02PD97VDfH4L460vQbh+SFcHEFiZhgOZgmW8TXwqkFbKWoL6CMJEvd36IjqgQ==
+"@commercetools-demo/cms-asset@0.7.3":
+  version "0.7.3"
+  resolved "https://registry.yarnpkg.com/@commercetools-demo/cms-asset/-/cms-asset-0.7.3.tgz#ee023c794ac2cc88584a75fb92ab4e39b00c6119"
+  integrity sha512-6oJayiheIkw69ARx48Prf0L1tJNquZ8+40oiPuzel3w956QjlicbOY9OV3MPBHdKyK7ZasCybXl0gSKMP0/P7g==
   dependencies:
     "@commercetools/platform-sdk" "^4.0.0"
     "@commercetools/sdk-client-v2" "^2.0.0"
