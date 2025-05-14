@@ -232,7 +232,7 @@ const useStoreProducts = ({page, perPage}: {page?: TState, perPage?: TState}): U
         const { data } = await refetch({
           storeKey,
           limit: perPage?.value,
-          offset: page?.value,
+          offset:  ((page?.value || 1) - 1) * (perPage?.value || 20)
         }) as { data: ProductSelectionResponse };
 
         if (

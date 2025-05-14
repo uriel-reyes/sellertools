@@ -277,7 +277,7 @@ const useOrders = ( {page, perPage, tableSorting}: { page?: {value: number}, per
           where: whereCondition,
           sort: tableSorting?.value ? [tableSorting.value.key + ' ' + tableSorting.value.order] : ['createdAt desc'],
           limit: perPage?.value,
-          offset: page?.value
+          offset:  ((page?.value || 1) - 1) * (perPage?.value || 20)
         });
         
         if (apiError) {

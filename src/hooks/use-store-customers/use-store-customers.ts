@@ -214,7 +214,7 @@ const useStoreCustomers = ( {page, perPage, tableSorting}: { page?: {value: numb
           where: whereCondition,
           sort: tableSorting?.value ? [tableSorting.value.key + ' ' + tableSorting.value.order] : ['createdAt desc'],
           limit: perPage?.value,
-          offset: page?.value
+          offset:  ((page?.value || 1) - 1) * (perPage?.value || 20)
         });
         
         if (apiError) {
