@@ -166,17 +166,22 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({
     value,
   }: {
     label: string;
-    value: React.ReactNode;
-  }) => (
-    <div className={styles.detailItem}>
-      <div className={styles.detailLabel}>
-        <Text.Body isBold>{label}</Text.Body>
+    value?: string | object;
+  }) => {
+    if (typeof value === 'object') {
+      return null;
+    }
+    return (
+      <div className={styles.detailItem}>
+        <div className={styles.detailLabel}>
+          <Text.Body isBold>{label}</Text.Body>
+        </div>
+        <div className={styles.detailValue}>
+          <Text.Body>{value || 'N/A'}</Text.Body>
+        </div>
       </div>
-      <div className={styles.detailValue}>
-        <Text.Body>{value || 'N/A'}</Text.Body>
-      </div>
-    </div>
-  );
+    )
+  };
 
   // Get order status class based on state
   const getOrderStatusClass = (state: string) => {
@@ -343,7 +348,7 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({
                     </div>
 
                     <div className={styles.detailGrid}>
-                      {customer.custom.customFieldsRaw.map((field) => (
+                      {customer.custom?.customFieldsRaw?.map((field) => (
                         <DetailItem
                           key={field.name}
                           label={field.name}
