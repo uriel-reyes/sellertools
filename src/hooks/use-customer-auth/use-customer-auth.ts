@@ -1,115 +1,104 @@
-import { useCallback, useState } from 'react';
-import { useApplicationContext } from '@commercetools-frontend/application-shell-connectors';
-import { useMcMutation } from '@commercetools-frontend/application-shell';
+import { ApolloError } from '@apollo/client';
+import { useMcLazyQuery, useMcQuery } from '@commercetools-frontend/application-shell-connectors';
 import { GRAPHQL_TARGETS } from '@commercetools-frontend/constants';
-import { TCustomerSignInDraft, TCustomerSignInResult } from '../../types/generated/ctp';
 import gql from 'graphql-tag';
+import { TCustomer } from '../../types/generated/ctp';
+
+type TCustomerSearchResult = {
+  results?: (TCustomer & {customerGroupAssignments: {customerGroup: {key: string}}[]})[];
+  total: number;
+};
+
+type TMCUser = {
+  id: string;
+  email: string;
+  createdAt: string;
+  firstName: string;
+  lastName: string;
+};
 
 interface UseCustomerAuthResult {
-  login: (email: string, password: string) => Promise<TCustomerSignInResult | null>;
-  error: Error | null;
-  loading: boolean;
-  errorCode: string | null;
+  mcLoggedInUser?: {
+    user: TMCUser;
+  };
+  mcLoggedInUserLoading: boolean;
+  mcLoggedInUserError?: ApolloError;
+  findCustomerByEmailLoading: boolean;
+  findCustomerByEmail: ({variables}: {variables: any}) => Promise<{data?: {customers?: TCustomerSearchResult}}>;
 }
 
 // Regular customer sign-in mutation
-const CUSTOMER_SIGN_IN = gql`
-  mutation CustomerSignIn($draft: CustomerSignInDraft!) {
-    customerSignIn(draft: $draft) {
-      customer {
+const FIND_CUSTOMER_BY_EMAIL = gql`
+  query FindCustomerByEmail ($where: String!) {
+    customers(where: $where) {
+      results {
         id
         email
         firstName
         lastName
         isEmailVerified
+        customerGroupAssignments {
+          customerGroup {
+            key
+          }
+        }
         custom {
           customFieldsRaw {
             name
             value
           }
         }
+        
       }
     }
   }
 `;
 
+// MC User query
+const FETCHED_LOGGED_IN_USER = gql`
+  query FetchLoggedInUser {
+    user: me {
+      id
+      email
+      createdAt
+      gravatarHash
+      firstName
+      lastName
+    }
+  }
+`;
+
 const useCustomerAuth = (): UseCustomerAuthResult => {
-  const [error, setError] = useState<Error | null>(null);
-  const [errorCode, setErrorCode] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const { dataLocale } = useApplicationContext();
+
   
   // Regular customer sign-in mutation
-  const [loginCustomer, { loading: regularLoading }] = useMcMutation<
-    { customerSignIn: TCustomerSignInResult },
-    { draft: TCustomerSignInDraft }
+  const [findCustomerByEmail, { loading: findCustomerByEmailLoading }] = useMcLazyQuery<
+    { customers: TCustomerSearchResult }
   >(
-    CUSTOMER_SIGN_IN,
+    FIND_CUSTOMER_BY_EMAIL,
     {
       context: {
         target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
       },
     }
   );
-
-  const login = useCallback(
-    async (email: string, password: string): Promise<TCustomerSignInResult | null> => {
-      try {
-        setError(null);
-        setErrorCode(null);
-        setLoading(true);
-        
-        console.log('Attempting to login with:', { 
-          email, 
-          password
-        });
-
-        console.log('Using standard authentication');
-        
-        const signInDraft = {
-          email,
-          password,
-        };
-        
-        const result = await loginCustomer({
-          variables: {
-            draft: signInDraft,
-          },
-        });
-        
-        console.log('Login result:', result ? 'Success' : 'No data returned');
-        return result.data?.customerSignIn || null;
-      } catch (err) {
-        console.error('Login error:', err);
-        
-        // Check for GraphQL error response
-        if (err && typeof err === 'object' && 'graphQLErrors' in err) {
-          const graphQLErrors = (err as any).graphQLErrors;
-          if (Array.isArray(graphQLErrors) && graphQLErrors.length > 0) {
-            const firstError = graphQLErrors[0];
-            console.error('GraphQL error details:', firstError);
-            
-            // Extract error code if available
-            if (firstError.extensions && firstError.extensions.code) {
-              setErrorCode(firstError.extensions.code);
-            }
-          }
-        }
-        
-        setError(err instanceof Error ? err : new Error('Unknown error during login'));
-        return null;
-      } finally {
-        setLoading(false);
-      }
-    },
-    [loginCustomer]
+  
+  // MC User query
+  const { data: mcLoggedInUser, loading: mcLoggedInUserLoading, error: mcLoggedInUserError } = useMcQuery<{user: TMCUser}>(
+    FETCHED_LOGGED_IN_USER,
+    {
+      context: {
+        target: GRAPHQL_TARGETS.MERCHANT_CENTER_BACKEND,
+      },
+    }
   );
 
   return {
-    login,
-    error,
-    loading: loading || regularLoading,
-    errorCode,
+    mcLoggedInUser,
+    mcLoggedInUserLoading,
+    mcLoggedInUserError,
+    findCustomerByEmailLoading,
+    findCustomerByEmail,
   };
 };
 

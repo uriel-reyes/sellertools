@@ -18,6 +18,7 @@ const config = {
   },
   additionalEnv: {
     CMS_API_URL: '${env:CMS_API_URL}',
+    SELLER_CUSTOMERGROUP_KEY: '${env:SELLER_CUSTOMERGROUP_KEY}',
   },
   oAuthScopes: {
     view: [
