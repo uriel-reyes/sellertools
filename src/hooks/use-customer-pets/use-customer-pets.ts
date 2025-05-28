@@ -1,5 +1,8 @@
 import { useCallback, useState } from 'react';
-import { useMcQuery, useMcMutation } from '@commercetools-frontend/application-shell';
+import {
+  useMcQuery,
+  useMcMutation,
+} from '@commercetools-frontend/application-shell';
 import { GRAPHQL_TARGETS } from '@commercetools-frontend/constants';
 import gql from 'graphql-tag';
 
@@ -112,10 +115,11 @@ interface UseCustomerPetsReturn {
 // Helper function to map custom object to PetInfo
 const mapCustomObjectToPetInfo = (customObject: any): PetInfo => {
   // Parse the value if it's a string
-  const value = typeof customObject.value === 'string' 
-    ? JSON.parse(customObject.value) 
-    : customObject.value;
-  
+  const value =
+    typeof customObject.value === 'string'
+      ? JSON.parse(customObject.value)
+      : customObject.value;
+
   return {
     id: customObject.id,
     key: customObject.key || '',
@@ -129,22 +133,25 @@ const mapCustomObjectToPetInfo = (customObject: any): PetInfo => {
     gender: value.gender || '',
     microchipId: value.microchipId || '',
     notes: value.notes || '',
-    vaccinationKeys: value.vaccinationKeys || [],   // Added to store vaccination keys
+    vaccinationKeys: value.vaccinationKeys || [], // Added to store vaccination keys
     prescriptionKeys: value.prescriptionKeys || [], // Added to store prescription keys
     vaccinations: [],
-    prescriptions: []
+    prescriptions: [],
   };
 };
 
 // Helper function to map custom object to Vaccination
-const mapCustomObjectToVaccination = (customObject: any): Vaccination | null => {
+const mapCustomObjectToVaccination = (
+  customObject: any
+): Vaccination | null => {
   if (!customObject) return null;
-  
+
   // Parse the value if it's a string
-  const value = typeof customObject.value === 'string' 
-    ? JSON.parse(customObject.value) 
-    : customObject.value;
-  
+  const value =
+    typeof customObject.value === 'string'
+      ? JSON.parse(customObject.value)
+      : customObject.value;
+
   return {
     id: customObject.id,
     key: customObject.key || '',
@@ -154,19 +161,22 @@ const mapCustomObjectToVaccination = (customObject: any): Vaccination | null => 
     expiryDate: value.expiryDate || value.endDate || '',
     veterinarian: value.veterinarian || value.prescribedBy || '',
     notes: value.notes || '',
-    active: value.active
+    active: value.active,
   };
 };
 
 // Helper function to map custom object to Prescription
-const mapCustomObjectToPrescription = (customObject: any): Prescription | null => {
+const mapCustomObjectToPrescription = (
+  customObject: any
+): Prescription | null => {
   if (!customObject) return null;
-  
+
   // Parse the value if it's a string
-  const value = typeof customObject.value === 'string' 
-    ? JSON.parse(customObject.value) 
-    : customObject.value;
-  
+  const value =
+    typeof customObject.value === 'string'
+      ? JSON.parse(customObject.value)
+      : customObject.value;
+
   return {
     id: customObject.id,
     key: customObject.key || '',
@@ -181,11 +191,13 @@ const mapCustomObjectToPrescription = (customObject: any): Prescription | null =
     refills: value.refills,
     active: value.active,
     authorized: value.authorized,
-    authorizedBy: value.authorizedBy || ''
+    authorizedBy: value.authorizedBy || '',
   };
 };
 
-const useCustomerPets = (options: UseCustomerPetsOptions = {}): UseCustomerPetsReturn => {
+const useCustomerPets = (
+  options: UseCustomerPetsOptions = {}
+): UseCustomerPetsReturn => {
   const [pets, setPets] = useState<PetInfo[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -216,10 +228,12 @@ const useCustomerPets = (options: UseCustomerPetsOptions = {}): UseCustomerPetsR
   const getCustomObject = useCallback(
     async (container: string, key: string) => {
       try {
-        console.log(`Fetching custom object with container: ${container}, key: ${key}`);
+        console.log(
+          `Fetching custom object with container: ${container}, key: ${key}`
+        );
         const response = await refetchCustomObject({ container, key });
         console.log(`Response for ${container}/${key}:`, response?.data);
-        
+
         return response?.data?.customObject || null;
       } catch (err) {
         console.error(`Error fetching custom object ${container}/${key}:`, err);
@@ -235,24 +249,35 @@ const useCustomerPets = (options: UseCustomerPetsOptions = {}): UseCustomerPetsR
       try {
         // Try using the pet's ID or key directly
         const vaccinationObject = await getCustomObject('vaccination', pet.key);
-        console.log(`Fetching vaccination with key: ${pet.key}`, vaccinationObject);
-        
+        console.log(
+          `Fetching vaccination with key: ${pet.key}`,
+          vaccinationObject
+        );
+
         if (vaccinationObject) {
           const vaccination = mapCustomObjectToVaccination(vaccinationObject);
           return vaccination ? [vaccination] : [];
         }
-        
+
         // If that fails, try using the pet's ID
         if (pet.id !== pet.key) {
-          const vaccinationByIdObject = await getCustomObject('vaccination', pet.id);
-          console.log(`Fetching vaccination with ID: ${pet.id}`, vaccinationByIdObject);
-          
+          const vaccinationByIdObject = await getCustomObject(
+            'vaccination',
+            pet.id
+          );
+          console.log(
+            `Fetching vaccination with ID: ${pet.id}`,
+            vaccinationByIdObject
+          );
+
           if (vaccinationByIdObject) {
-            const vaccination = mapCustomObjectToVaccination(vaccinationByIdObject);
+            const vaccination = mapCustomObjectToVaccination(
+              vaccinationByIdObject
+            );
             return vaccination ? [vaccination] : [];
           }
         }
-        
+
         return [];
       } catch (err) {
         console.error('Error fetching pet vaccination:', err);
@@ -267,25 +292,40 @@ const useCustomerPets = (options: UseCustomerPetsOptions = {}): UseCustomerPetsR
     async (pet: PetInfo): Promise<Prescription[]> => {
       try {
         // Try using the pet's ID or key directly
-        const prescriptionObject = await getCustomObject('prescription', pet.key);
-        console.log(`Fetching prescription with key: ${pet.key}`, prescriptionObject);
-        
+        const prescriptionObject = await getCustomObject(
+          'prescription',
+          pet.key
+        );
+        console.log(
+          `Fetching prescription with key: ${pet.key}`,
+          prescriptionObject
+        );
+
         if (prescriptionObject) {
-          const prescription = mapCustomObjectToPrescription(prescriptionObject);
+          const prescription =
+            mapCustomObjectToPrescription(prescriptionObject);
           return prescription ? [prescription] : [];
         }
-        
+
         // If that fails, try using the pet's ID
         if (pet.id !== pet.key) {
-          const prescriptionByIdObject = await getCustomObject('prescription', pet.id);
-          console.log(`Fetching prescription with ID: ${pet.id}`, prescriptionByIdObject);
-          
+          const prescriptionByIdObject = await getCustomObject(
+            'prescription',
+            pet.id
+          );
+          console.log(
+            `Fetching prescription with ID: ${pet.id}`,
+            prescriptionByIdObject
+          );
+
           if (prescriptionByIdObject) {
-            const prescription = mapCustomObjectToPrescription(prescriptionByIdObject);
+            const prescription = mapCustomObjectToPrescription(
+              prescriptionByIdObject
+            );
             return prescription ? [prescription] : [];
           }
         }
-        
+
         return [];
       } catch (err) {
         console.error('Error fetching pet prescription:', err);
@@ -300,52 +340,56 @@ const useCustomerPets = (options: UseCustomerPetsOptions = {}): UseCustomerPetsR
     async (customerId: string): Promise<PetInfo[]> => {
       setLoading(true);
       setError(null);
-      
+
       try {
         // Construct the where clause for the query to match the customer.id format
         const where = `value(customer(id="${customerId}"))`;
         console.log('Fetching pets with where clause:', where);
-        
+
         // Fetch pets
         const petsResponse = await refetchPets({ where });
         console.log('Pet response:', petsResponse?.data);
-        
+
         if (!petsResponse?.data?.customObjects?.results) {
           setPets([]);
           return [];
         }
-        
+
         // Map custom objects to pet info and fetch related data
         const petResults = petsResponse.data.customObjects.results;
         console.log('Found pets:', petResults.length);
         const enrichedPets: PetInfo[] = [];
-        
+
         // Process each pet
         for (const petObject of petResults) {
           // Map the basic pet info
           const petInfo = mapCustomObjectToPetInfo(petObject);
-          
+
           // Fetch vaccinations and prescriptions directly using the pet's identity
           const [vaccinations, prescriptions] = await Promise.all([
             getPetVaccinations(petInfo),
             getPetPrescriptions(petInfo),
           ]);
-          
+
           // Combine all data
           enrichedPets.push({
             ...petInfo,
             vaccinations,
-            prescriptions
+            prescriptions,
           });
         }
-        
-        console.log('Enriched pets with vaccinations and prescriptions:', enrichedPets);
-        
+
+        console.log(
+          'Enriched pets with vaccinations and prescriptions:',
+          enrichedPets
+        );
+
         // Update state
         setPets(enrichedPets);
         return enrichedPets;
       } catch (err) {
-        const error = err instanceof Error ? err : new Error('Error fetching pet data');
+        const error =
+          err instanceof Error ? err : new Error('Error fetching pet data');
         setError(error);
         if (options.onError) {
           options.onError(error);
@@ -363,8 +407,8 @@ const useCustomerPets = (options: UseCustomerPetsOptions = {}): UseCustomerPetsR
     pets,
     loading,
     error,
-    fetchPetsByCustomerId
+    fetchPetsByCustomerId,
   };
 };
 
-export default useCustomerPets; 
+export default useCustomerPets;

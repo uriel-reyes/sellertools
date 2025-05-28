@@ -31,7 +31,7 @@ const App = () => {
     push(`${refinedMatch}/${refinedroute}`);
   };
 
-  if ((!isLoggedIn || !storeKey ) && !isLoading && !businessUnitIsLoading) {
+  if ((!isLoggedIn || !storeKey) && !isLoading && !businessUnitIsLoading) {
     return (
       <Spacings.Stack>
         <Text.Body>

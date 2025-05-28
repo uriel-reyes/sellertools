@@ -7,7 +7,7 @@ import {
   CoinsIcon,
   InformationIcon,
   UsersIcon,
-  WorldIcon
+  WorldIcon,
 } from '@commercetools-uikit/icons';
 import LoadingSpinner from '@commercetools-uikit/loading-spinner';
 import Spacings from '@commercetools-uikit/spacings';
@@ -23,9 +23,7 @@ interface OrderDetailsModalProps {
   onBack: () => void;
 }
 
-const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
-  onBack,
-}) => {
+const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ onBack }) => {
   const { orderId } = useParams<{ orderId?: string }>();
 
   const { fetchOrderById } = useOrders({});
@@ -96,7 +94,6 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
   // Map line items to table rows
   const lineItemRows = useMemo(() => {
-
     return (
       order?.lineItems?.map((item: any) => ({
         id: item.id,
@@ -198,7 +195,9 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                     </div>
                     <div className={styles.detailValue}>
                       {order.state?.name ? (
-                        <span className={styles.stateBadge}>{order.state.name}</span>
+                        <span className={styles.stateBadge}>
+                          {order.state.name}
+                        </span>
                       ) : (
                         <Text.Body>Not set</Text.Body>
                       )}
@@ -270,7 +269,9 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                 <Spacings.Inline alignItems="center" scale="xs">
                   <WorldIcon size="medium" color="neutral60" />
                   <div className={styles.sectionHeader}>
-                    <Text.Subheadline as="h4" isBold>Addresses</Text.Subheadline>
+                    <Text.Subheadline as="h4" isBold>
+                      Addresses
+                    </Text.Subheadline>
                   </div>
                 </Spacings.Inline>
               </div>
@@ -303,7 +304,9 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                     <Spacings.Inline alignItems="center" scale="xs">
                       <CartIcon size="medium" color="neutral60" />
                       <div className={styles.sectionHeader}>
-                        <Text.Subheadline as="h4" isBold>Line Items</Text.Subheadline>
+                        <Text.Subheadline as="h4" isBold>
+                          Line Items
+                        </Text.Subheadline>
                       </div>
                     </Spacings.Inline>
                   </div>
@@ -324,7 +327,9 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                   <Spacings.Inline alignItems="center" scale="xs">
                     <CoinsIcon size="medium" color="neutral60" />
                     <div className={styles.sectionHeader}>
-                      <Text.Subheadline as="h4" isBold>Order Total</Text.Subheadline>
+                      <Text.Subheadline as="h4" isBold>
+                        Order Total
+                      </Text.Subheadline>
                     </div>
                   </Spacings.Inline>
                   <Text.Headline as="h3" tone="primary">

@@ -99,7 +99,12 @@ interface BusinessUnitProviderProps {
 export const BusinessUnitProvider: React.FC<BusinessUnitProviderProps> = ({
   children,
 }) => {
-  const { customerDetails, isLoggedIn, setStoreKey, storeKey: activeStoreKey } = useAuthContext();
+  const {
+    customerDetails,
+    isLoggedIn,
+    setStoreKey,
+    storeKey: activeStoreKey,
+  } = useAuthContext();
   const [isContextLoading, setIsContextLoading] = useState(false);
 
   const {
@@ -206,7 +211,13 @@ export const BusinessUnitProvider: React.FC<BusinessUnitProviderProps> = ({
         setIsContextLoading(false);
       }
     },
-    [isLoggedIn, businessUnitStoresCache, fetchStoreInfo, setStoreKey, activeStoreKey]
+    [
+      isLoggedIn,
+      businessUnitStoresCache,
+      fetchStoreInfo,
+      setStoreKey,
+      activeStoreKey,
+    ]
   );
 
   // Custom selectBusinessUnit function that also updates the storage
@@ -247,7 +258,6 @@ export const BusinessUnitProvider: React.FC<BusinessUnitProviderProps> = ({
       // If no business unit is selected, select the first one
       selectBusinessUnit(businessUnits[0].id);
       console.log('Selected business unit:', businessUnits[0]);
-
 
       try {
         // Save this selection to session storage

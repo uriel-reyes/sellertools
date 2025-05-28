@@ -25,7 +25,6 @@ const AUTH_STORAGE_KEY = '__seller_auth';
 export const convertToCustomerDetails = (
   customer: TCustomer
 ): CustomerDetails => {
-
   return {
     id: customer.id,
     email: customer.email,
@@ -40,7 +39,6 @@ interface AuthContextType {
   storeKey: string | null;
   setStoreKey: (storeKey: string) => void;
   customerDetails: CustomerDetails | null;
-  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -49,7 +47,6 @@ const AuthContext = createContext<AuthContextType>({
   storeKey: null,
   setStoreKey: () => {},
   customerDetails: null,
-  logout: () => {},
 });
 
 interface AuthProviderProps {
@@ -77,18 +74,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       SELLER_CUSTOMERGROUP_KEY: string;
     };
   } = useApplicationContext();
-
-  const logout = useCallback(() => {
-    setIsLoggedIn(false);
-    setCustomerDetails(null);
-    setStoreKey(null);
-
-    try {
-      sessionStorage.removeItem(AUTH_STORAGE_KEY);
-    } catch (error) {
-      console.error('Failed to clear auth state from session storage:', error);
-    }
-  }, []);
 
   useEffect(() => {
     try {
@@ -122,12 +107,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }).then((result) => {
         const customer = result.data?.customers?.results?.[0];
         if (customer) {
-          const customerGroupAssignments = result.data?.customers?.results?.[0].customerGroupAssignments
-          const isSeller = customerGroupAssignments?.some((assignment) => assignment.customerGroup.key === environment.SELLER_CUSTOMERGROUP_KEY);
+          const customerGroupAssignments =
+            result.data?.customers?.results?.[0].customerGroupAssignments;
+          const isSeller = customerGroupAssignments?.some(
+            (assignment) =>
+              assignment.customerGroup.key ===
+              environment.SELLER_CUSTOMERGROUP_KEY
+          );
           setIsLoggedIn(!!isSeller);
           setCustomerDetails(convertToCustomerDetails(customer));
         }
-        
       });
     }
   }, [mcLoggedInUser]);
@@ -139,10 +128,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       isLoading: mcLoggedInUserLoading || findCustomerByEmailLoading,
       storeKey,
       customerDetails,
-      logout,
       setStoreKey,
     }),
-    [isLoggedIn, storeKey, customerDetails, logout, setStoreKey]
+    [isLoggedIn, storeKey, customerDetails, setStoreKey]
   );
 
   if (mcLoggedInUserLoading || findCustomerByEmailLoading) {

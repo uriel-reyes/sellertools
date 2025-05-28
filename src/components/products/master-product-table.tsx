@@ -201,27 +201,26 @@ const MasterProductTable = () => {
 
         {/* Search bar */}
         <div className={styles.searchContainer}>
-            
-            <SearchTextInput
-              value={searchQuery}
-              onSubmit={handleSearch}
-              onReset={() => {
-                setSearchQuery('');
-                fetchMasterProducts();
-              }}
-              onChange={(event) => {
-                const newValue = event.target.value;
-                setSearchQuery(newValue);
+          <SearchTextInput
+            value={searchQuery}
+            onSubmit={handleSearch}
+            onReset={() => {
+              setSearchQuery('');
+              fetchMasterProducts();
+            }}
+            onChange={(event) => {
+              const newValue = event.target.value;
+              setSearchQuery(newValue);
 
-                // Immediately trigger search without debounce
-                if (!newValue.trim()) {
-                  fetchMasterProducts();
-                } else {
-                  handleSearch();
-                }
-              }}
-              placeholder="Search products..."
-            />
+              // Immediately trigger search without debounce
+              if (!newValue.trim()) {
+                fetchMasterProducts();
+              } else {
+                handleSearch();
+              }
+            }}
+            placeholder="Search products..."
+          />
         </div>
 
         <Text.Body>

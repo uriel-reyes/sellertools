@@ -46,7 +46,11 @@ export interface TopProduct {
 
 // GraphQL query to fetch store orders with products
 const GET_STORE_ORDERS_WITH_PRODUCTS = gql`
-  query GetStoreOrdersWithProducts($where: String, $sort: [String!], $locale: Locale!) {
+  query GetStoreOrdersWithProducts(
+    $where: String
+    $sort: [String!]
+    $locale: Locale!
+  ) {
     orders(where: $where, sort: $sort) {
       results {
         id
@@ -99,8 +103,21 @@ const getStartDateForPeriod = (period: TimePeriod): Date => {
 
 const getPeriodLabel = (period: TimePeriod): string => {
   const now = new Date();
-  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-  
+  const months = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
+
   switch (period) {
     case 'month':
       return months[now.getMonth()];
@@ -119,97 +136,108 @@ const useTopProducts = (): UseTopProductsHook => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [currentPeriod, setCurrentPeriod] = useState<string>('');
-  
-  const { dataLocale } = useApplicationContext(context => ({
+
+  const { dataLocale } = useApplicationContext((context) => ({
     dataLocale: context.dataLocale,
   }));
-  
-  const { refetch } = useMcQuery<OrdersResponse>(GET_STORE_ORDERS_WITH_PRODUCTS, {
-    context: {
-      target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
-    },
-    variables: {
-      locale: dataLocale,
-    },
-    skip: true, // Skip on initial render
-  });
 
-  const fetchTopProducts = useCallback(async (storeKey: string, period: TimePeriod) => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const startDate = getStartDateForPeriod(period);
-      const formattedStartDate = startDate.toISOString();
-      
-      // Create a where query for the store and date range
-      const whereQuery = `store(key="${storeKey}") AND createdAt >= "${formattedStartDate}"`;
-      
-      const { data } = await refetch({
-        where: whereQuery,
-        sort: ["createdAt desc"],
+  const { refetch } = useMcQuery<OrdersResponse>(
+    GET_STORE_ORDERS_WITH_PRODUCTS,
+    {
+      context: {
+        target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
+      },
+      variables: {
         locale: dataLocale,
-      });
-      
-      if (!data || !data.orders) {
-        setTopProducts([]);
-        return;
-      }
-      
-      const { results } = data.orders;
-      
-      // Initialize product map to track revenues
-      const productMap = new Map<string, {
-        productId: string;
-        name: string;
-        revenue: number;
-        quantity: number;
-        currencyCode: string;
-        imageUrl?: string;
-      }>();
-      
-      // Aggregate product data
-      results.forEach((order: Order) => {
-        if (!order.lineItems) return;
-        
-        order.lineItems.forEach((lineItem: LineItem) => {
-          if (!lineItem.productId) return;
-          
-          const productId = lineItem.productId;
-          const revenue = lineItem.totalPrice.centAmount / 100; // Convert cents to dollars
-          const imageUrl = lineItem.variant?.images?.[0]?.url;
-          
-          if (productMap.has(productId)) {
-            const product = productMap.get(productId)!;
-            product.revenue += revenue;
-            product.quantity += lineItem.quantity;
-          } else {
-            productMap.set(productId, {
-              productId,
-              name: lineItem.name,
-              revenue,
-              quantity: lineItem.quantity,
-              currencyCode: lineItem.totalPrice.currencyCode,
-              imageUrl,
-            });
-          }
-        });
-      });
-      
-      // Convert map to array and sort by revenue
-      const sortedProducts = Array.from(productMap.values())
-        .sort((a, b) => b.revenue - a.revenue)
-        .slice(0, 5); // Get top 5
-      
-      setTopProducts(sortedProducts);
-      setCurrentPeriod(getPeriodLabel(period));
-    } catch (err) {
-      console.error('Error fetching top products:', err);
-      setError(err instanceof Error ? err : new Error('Failed to fetch top products'));
-    } finally {
-      setLoading(false);
+      },
+      skip: true, // Skip on initial render
     }
-  }, [refetch, dataLocale]);
+  );
+
+  const fetchTopProducts = useCallback(
+    async (storeKey: string, period: TimePeriod) => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const startDate = getStartDateForPeriod(period);
+        const formattedStartDate = startDate.toISOString();
+
+        // Create a where query for the store and date range
+        const whereQuery = `store(key="${storeKey}") AND createdAt >= "${formattedStartDate}"`;
+
+        const { data } = await refetch({
+          where: whereQuery,
+          sort: ['createdAt desc'],
+          locale: dataLocale,
+        });
+
+        if (!data || !data.orders) {
+          setTopProducts([]);
+          return;
+        }
+
+        const { results } = data.orders;
+
+        // Initialize product map to track revenues
+        const productMap = new Map<
+          string,
+          {
+            productId: string;
+            name: string;
+            revenue: number;
+            quantity: number;
+            currencyCode: string;
+            imageUrl?: string;
+          }
+        >();
+
+        // Aggregate product data
+        results.forEach((order: Order) => {
+          if (!order.lineItems) return;
+
+          order.lineItems.forEach((lineItem: LineItem) => {
+            if (!lineItem.productId) return;
+
+            const productId = lineItem.productId;
+            const revenue = lineItem.totalPrice.centAmount / 100; // Convert cents to dollars
+            const imageUrl = lineItem.variant?.images?.[0]?.url;
+
+            if (productMap.has(productId)) {
+              const product = productMap.get(productId)!;
+              product.revenue += revenue;
+              product.quantity += lineItem.quantity;
+            } else {
+              productMap.set(productId, {
+                productId,
+                name: lineItem.name,
+                revenue,
+                quantity: lineItem.quantity,
+                currencyCode: lineItem.totalPrice.currencyCode,
+                imageUrl,
+              });
+            }
+          });
+        });
+
+        // Convert map to array and sort by revenue
+        const sortedProducts = Array.from(productMap.values())
+          .sort((a, b) => b.revenue - a.revenue)
+          .slice(0, 5); // Get top 5
+
+        setTopProducts(sortedProducts);
+        setCurrentPeriod(getPeriodLabel(period));
+      } catch (err) {
+        console.error('Error fetching top products:', err);
+        setError(
+          err instanceof Error ? err : new Error('Failed to fetch top products')
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [refetch, dataLocale]
+  );
 
   return {
     topProducts,
@@ -220,4 +248,4 @@ const useTopProducts = (): UseTopProductsHook => {
   };
 };
 
-export default useTopProducts; 
+export default useTopProducts;

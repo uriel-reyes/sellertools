@@ -38,13 +38,10 @@ const ProductDiscountForm: React.FC<ProductDiscountFormProps> = ({
 }) => {
   const { storeKey: channelKey } = useAuthContext();
   const intl = useIntl();
-  const {
-    createProductDiscount,
-    updateProductDiscount,
-    loading,
-    error,
-  } = usePromotions();
-  const [discountData, setDiscountData] = useState<ProductDiscountData>(initialData);
+  const { createProductDiscount, updateProductDiscount, loading, error } =
+    usePromotions();
+  const [discountData, setDiscountData] =
+    useState<ProductDiscountData>(initialData);
 
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [submissionError, setSubmissionError] = useState<string | null>(null);

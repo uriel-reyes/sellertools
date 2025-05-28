@@ -40,15 +40,15 @@ const LOOKUP_CUSTOMER_QUERY = gql`
 const useCustomerLookup = (): CustomerLookupResult => {
   const [error, setError] = useState<Error | null>(null);
 
-  const { loading, refetch } = useMcQuery<CustomerQueryResult, { where: string }>(
-    LOOKUP_CUSTOMER_QUERY,
-    {
-      context: {
-        target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
-      },
-      skip: true, // Skip initial query
-    }
-  );
+  const { loading, refetch } = useMcQuery<
+    CustomerQueryResult,
+    { where: string }
+  >(LOOKUP_CUSTOMER_QUERY, {
+    context: {
+      target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
+    },
+    skip: true, // Skip initial query
+  });
 
   const lookupCustomerByEmail = useCallback(
     async (email: string): Promise<CustomerInfo | null> => {
@@ -57,31 +57,35 @@ const useCustomerLookup = (): CustomerLookupResult => {
       try {
         setError(null);
         console.log('Looking up customer by email:', email);
-        
+
         // The where clause to find customer by email
         const whereClause = `email="${email}"`;
-        
+
         const result = await refetch({ where: whereClause });
         console.log('Customer lookup result:', result);
-        
+
         if (
           result.data?.customers?.results &&
           result.data.customers.results.length > 0
         ) {
           const customer = result.data.customers.results[0];
           console.log('Found customer:', customer);
-          
+
           return {
             id: customer.id,
             key: customer.key,
-            email: customer.email
+            email: customer.email,
           };
         }
-        
+
         return null;
       } catch (err) {
         console.error('Error looking up customer:', err);
-        setError(err instanceof Error ? err : new Error('Unknown error during customer lookup'));
+        setError(
+          err instanceof Error
+            ? err
+            : new Error('Unknown error during customer lookup')
+        );
         return null;
       }
     },
@@ -95,4 +99,4 @@ const useCustomerLookup = (): CustomerLookupResult => {
   };
 };
 
-export default useCustomerLookup; 
+export default useCustomerLookup;

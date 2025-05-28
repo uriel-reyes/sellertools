@@ -33,30 +33,30 @@ interface ProductFormData {
   imageLabel: string;
 }
 
-const ProductForm: React.FC<ProductFormProps> = ({ 
+const ProductForm: React.FC<ProductFormProps> = ({
   channelKey,
   onBack,
-  onSubmit
+  onSubmit,
 }) => {
   const intl = useIntl();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  
+
   const [formData, setFormData] = useState<ProductFormData>({
     name: '',
     description: '',
     sku: '',
     price: '0.00',
     imageUrl: '',
-    imageLabel: 'Product Image'
+    imageLabel: 'Product Image',
   });
 
   // Handle form input changes
   const handleInputChange = (field: keyof ProductFormData, value: string) => {
     setFormData({
       ...formData,
-      [field]: value
+      [field]: value,
     });
   };
 
@@ -66,23 +66,23 @@ const ProductForm: React.FC<ProductFormProps> = ({
   const handlePriceChange = (value: string) => {
     // Update displayed value immediately for user feedback
     setPriceInputValue(value);
-    
+
     // Process for actual data - remove non-numeric chars except decimal point
     const validInput = value.replace(/[^\d.]/g, '');
-    
+
     // Handle special cases for incomplete inputs
     if (validInput === '' || validInput === '.') {
       handleInputChange('price', '0');
       return;
     }
-    
+
     // Ensure only one decimal point
     const parts = validInput.split('.');
     let formattedValue = validInput;
     if (parts.length > 2) {
       formattedValue = parts[0] + '.' + parts.slice(1).join('');
     }
-    
+
     // Parse and update
     const parsedValue = parseFloat(formattedValue);
     if (!isNaN(parsedValue)) {
@@ -102,72 +102,68 @@ const ProductForm: React.FC<ProductFormProps> = ({
   // Handle form submission
   const handleSubmit = async () => {
     if (!isFormValid()) return;
-    
+
     setIsSubmitting(true);
     setError(null);
     setSuccessMessage(null);
-    
+
     try {
       // Generate a unique slug
       const slug = `product_slug_${uuidv4()}`;
-      
+
       // Convert price to cent amount (multiply by 100)
       const priceValue = Math.round(parseFloat(formData.price) * 100);
-      
+
       // Construct the product draft
       const productDraft = {
         productType: {
           id: PRODUCT_TYPE_ID,
-          typeId: "product-type"
+          typeId: 'product-type',
         },
-        name: [
-          { locale: "en-us", value: formData.name }
-        ],
-        description: [
-          { locale: "en-us", value: formData.description || " " }
-        ],
-        slug: [
-          { locale: "en-us", value: slug }
-        ],
+        name: [{ locale: 'en-us', value: formData.name }],
+        description: [{ locale: 'en-us', value: formData.description || ' ' }],
+        slug: [{ locale: 'en-us', value: slug }],
         masterVariant: {
           sku: formData.sku,
           prices: [
             {
               value: {
                 centPrecision: {
-                  currencyCode: "USD",
-                  centAmount: priceValue
-                }
+                  currencyCode: 'USD',
+                  centAmount: priceValue,
+                },
               },
               channel: {
-                typeId: "channel",
-                key: "uri-store"
-              }
-            }
+                typeId: 'channel',
+                key: 'uri-store',
+              },
+            },
           ],
-          images: formData.imageUrl ? [
-            {
-              url: formData.imageUrl,
-              label: "Product Image",
-              dimensions: {
-                width: 500,
-                height: 500
-              }
-            }
-          ] : []
+          images: formData.imageUrl
+            ? [
+                {
+                  url: formData.imageUrl,
+                  label: 'Product Image',
+                  dimensions: {
+                    width: 500,
+                    height: 500,
+                  },
+                },
+              ]
+            : [],
         },
         variants: [],
-        publish: true
+        publish: true,
       };
-      
+
       console.log('Submitting product:', productDraft);
-      
+
       // Call the onSubmit callback
       await onSubmit(productDraft);
-      
+
       // Show success message
       setSuccessMessage(intl.formatMessage(messages.productCreateSuccess));
-      
+
       // Reset form
       setFormData({
         name: '',
@@ -175,18 +171,19 @@ const ProductForm: React.FC<ProductFormProps> = ({
         sku: '',
         price: '0.00',
         imageUrl: '',
-        imageLabel: 'Product Image'
+        imageLabel: 'Product Image',
       });
       setPriceInputValue('0.00');
-      
+
       // Go back to the product list after a delay
       setTimeout(() => {
         onBack();
       }, 2000);
-      
     } catch (err) {
       console.error('Error creating product:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error creating product');
+      setError(
+        err instanceof Error ? err.message : 'Unknown error creating product'
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -202,73 +199,92 @@ const ProductForm: React.FC<ProductFormProps> = ({
             iconLeft={<BackIcon />}
           />
         </Spacings.Inline>
-        
-        <Text.Headline as="h2">{intl.formatMessage(messages.createProduct)}</Text.Headline>
-        
+
+        <Text.Headline as="h2">
+          {intl.formatMessage(messages.createProduct)}
+        </Text.Headline>
+
         {successMessage && (
           <ContentNotification type="success">
             <Text.Body>{successMessage}</Text.Body>
           </ContentNotification>
         )}
-        
+
         {error && (
           <ContentNotification type="error">
             <Text.Body>{error}</Text.Body>
           </ContentNotification>
         )}
-        
+
         <Card>
           <Spacings.Stack scale="m">
             <div className={styles.sectionTitle}>
-              <Text.Subheadline as="h4">{intl.formatMessage(messages.productBasicInfo)}</Text.Subheadline>
+              <Text.Subheadline as="h4">
+                {intl.formatMessage(messages.productBasicInfo)}
+              </Text.Subheadline>
             </div>
-            
+
             <Spacings.Stack scale="s">
               <TextField
                 title={intl.formatMessage(messages.productName)}
                 value={formData.name}
-                onChange={(event) => handleInputChange('name', event.target.value)}
+                onChange={(event) =>
+                  handleInputChange('name', event.target.value)
+                }
                 isRequired
                 horizontalConstraint="scale"
               />
-              
+
               <TextField
                 title={intl.formatMessage(messages.productDescription)}
                 value={formData.description}
-                onChange={(event) => handleInputChange('description', event.target.value)}
+                onChange={(event) =>
+                  handleInputChange('description', event.target.value)
+                }
                 horizontalConstraint="scale"
               />
             </Spacings.Stack>
           </Spacings.Stack>
         </Card>
-        
+
         <Card>
           <Spacings.Stack scale="m">
             <div className={styles.sectionTitle}>
-              <Text.Subheadline as="h4">{intl.formatMessage(messages.masterVariant)}</Text.Subheadline>
+              <Text.Subheadline as="h4">
+                {intl.formatMessage(messages.masterVariant)}
+              </Text.Subheadline>
             </div>
-            
+
             <Spacings.Stack scale="s">
               <TextField
                 title={intl.formatMessage(messages.variantSku)}
                 value={formData.sku}
-                onChange={(event) => handleInputChange('sku', event.target.value)}
+                onChange={(event) =>
+                  handleInputChange('sku', event.target.value)
+                }
                 isRequired
                 horizontalConstraint="scale"
               />
-              
+
               <Spacings.Stack scale="xs">
-                <Text.Subheadline as="h4">{intl.formatMessage(messages.price)}</Text.Subheadline>
+                <Text.Subheadline as="h4">
+                  {intl.formatMessage(messages.price)}
+                </Text.Subheadline>
                 <Spacings.Inline alignItems="center">
                   <Text.Body>$</Text.Body>
                   <div className={styles.customMoneyInput}>
                     <input
                       type="text"
                       value={priceInputValue}
-                      onChange={(event) => handlePriceChange(event.target.value)}
+                      onChange={(event) =>
+                        handlePriceChange(event.target.value)
+                      }
                       onBlur={() => {
                         // Format on blur
-                        const value = Math.max(0, parseFloat(formData.price) || 0);
+                        const value = Math.max(
+                          0,
+                          parseFloat(formData.price) || 0
+                        );
                         setPriceInputValue(value.toFixed(2));
                         handleInputChange('price', value.toString());
                       }}
@@ -284,38 +300,47 @@ const ProductForm: React.FC<ProductFormProps> = ({
             </Spacings.Stack>
           </Spacings.Stack>
         </Card>
-        
+
         <Card>
           <Spacings.Stack scale="m">
             <div className={styles.sectionTitle}>
-              <Text.Subheadline as="h4">{intl.formatMessage(messages.productImage)}</Text.Subheadline>
+              <Text.Subheadline as="h4">
+                {intl.formatMessage(messages.productImage)}
+              </Text.Subheadline>
             </div>
-            
+
             <Spacings.Stack scale="s">
               <TextField
                 title={intl.formatMessage(messages.imageUrl)}
                 value={formData.imageUrl}
-                onChange={(event) => handleInputChange('imageUrl', event.target.value)}
+                onChange={(event) =>
+                  handleInputChange('imageUrl', event.target.value)
+                }
                 horizontalConstraint="scale"
               />
-              
+
               <TextField
                 title={intl.formatMessage(messages.imageLabel)}
                 value={formData.imageLabel}
-                onChange={(event) => handleInputChange('imageLabel', event.target.value)}
+                onChange={(event) =>
+                  handleInputChange('imageLabel', event.target.value)
+                }
                 horizontalConstraint="scale"
               />
-              
+
               {formData.imageUrl && (
                 <div className={styles.imagePreviewContainer}>
-                  <Text.Detail tone="secondary">{intl.formatMessage(messages.imagePreview)}</Text.Detail>
+                  <Text.Detail tone="secondary">
+                    {intl.formatMessage(messages.imagePreview)}
+                  </Text.Detail>
                   <div className={styles.imagePreview}>
-                    <img 
+                    <img
                       src={formData.imageUrl}
                       alt={formData.imageLabel}
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
-                        target.src = 'https://via.placeholder.com/150?text=Invalid+Image+URL';
+                        target.src =
+                          'https://via.placeholder.com/150?text=Invalid+Image+URL';
                       }}
                     />
                   </div>
@@ -324,21 +349,21 @@ const ProductForm: React.FC<ProductFormProps> = ({
             </Spacings.Stack>
           </Spacings.Stack>
         </Card>
-        
+
         <Spacings.Inline justifyContent="flex-end">
           <SecondaryButton
             label={intl.formatMessage(messages.cancel)}
             onClick={onBack}
             isDisabled={isSubmitting}
           />
-          
+
           <PrimaryButton
             label={intl.formatMessage(messages.createProductButton)}
             onClick={handleSubmit}
             isDisabled={!isFormValid() || isSubmitting}
           />
         </Spacings.Inline>
-        
+
         {isSubmitting && (
           <div className={styles.loadingOverlay}>
             <LoadingSpinner scale="l" />
@@ -349,4 +374,4 @@ const ProductForm: React.FC<ProductFormProps> = ({
   );
 };
 
-export default ProductForm; 
+export default ProductForm;

@@ -25,9 +25,9 @@ const ApplicationRoutes = (_props: ApplicationRoutesProps) => {
   return (
     <AuthProvider>
       <BusinessUnitProvider>
-      <Spacings.Inset scale="l">
-        <App />
-      </Spacings.Inset>
+        <Spacings.Inset scale="l">
+          <App />
+        </Spacings.Inset>
       </BusinessUnitProvider>
     </AuthProvider>
   );

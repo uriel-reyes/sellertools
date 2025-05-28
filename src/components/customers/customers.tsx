@@ -31,11 +31,14 @@ const Customers: React.FC<CustomersProps> = ({ onBack, linkToWelcome }) => {
   const history = useHistory();
   const { page, perPage } = usePaginationState();
   const tableSorting = useDataTableSortingState();
-  const { fetchCustomersByStore, customers, loading, error, total } = useStoreCustomers({page, perPage, tableSorting});
+  const { fetchCustomersByStore, customers, loading, error, total } =
+    useStoreCustomers({ page, perPage, tableSorting });
   const { storeKey } = useAuthContext();
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [lastRefreshed, setLastRefreshed] = useState<string>('');
-  const [enhancedCustomers, setEnhancedCustomers] = useState<CustomerWithGroup[]>([]);
+  const [enhancedCustomers, setEnhancedCustomers] = useState<
+    CustomerWithGroup[]
+  >([]);
   const [loadingGroups, setLoadingGroups] = useState(false);
 
   useEffect(() => {
@@ -54,17 +57,21 @@ const Customers: React.FC<CustomersProps> = ({ onBack, linkToWelcome }) => {
   useEffect(() => {
     const enrichCustomersWithGroups = async () => {
       if (customers.length === 0) return;
-      
-      setEnhancedCustomers(customers.map(customer => ({
-        id: customer.id,
-        lastName: `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'N/A',
-        email: customer.email,
-        'customerGroup.id': customer.customerGroup?.name || 'N/A',
-        rawData: customer
-      })));
+
+      setEnhancedCustomers(
+        customers.map((customer) => ({
+          id: customer.id,
+          lastName:
+            `${customer.firstName || ''} ${customer.lastName || ''}`.trim() ||
+            'N/A',
+          email: customer.email,
+          'customerGroup.id': customer.customerGroup?.name || 'N/A',
+          rawData: customer,
+        }))
+      );
       setLoadingGroups(false);
     };
-    
+
     enrichCustomersWithGroups();
   }, [customers]);
 
@@ -73,11 +80,10 @@ const Customers: React.FC<CustomersProps> = ({ onBack, linkToWelcome }) => {
     if (!row || !row.rawData) {
       return;
     }
-    
+
     // Navigate to the customer details page
     history.push(`${linkToWelcome}/customers/${row.id}`);
   };
-
 
   const handleRefreshCustomers = () => {
     if (storeKey) {
@@ -92,7 +98,7 @@ const Customers: React.FC<CustomersProps> = ({ onBack, linkToWelcome }) => {
   const columns = [
     { key: 'lastName', label: 'Customer Name', isSortable: true },
     { key: 'email', label: 'Email', isSortable: true },
-    { key: 'customerGroup.id', label: 'Customer Group', isSortable: true }
+    { key: 'customerGroup.id', label: 'Customer Group', isSortable: true },
   ];
 
   const isLoading = loading || isFirstLoad || loadingGroups;
@@ -104,7 +110,8 @@ const Customers: React.FC<CustomersProps> = ({ onBack, linkToWelcome }) => {
           <div>
             <Text.Headline as="h1">Customers</Text.Headline>
             <Text.Subheadline>
-              Store: <span className={styles.storeKeyHighlight}>{storeKey}</span>
+              Store:{' '}
+              <span className={styles.storeKeyHighlight}>{storeKey}</span>
             </Text.Subheadline>
             {lastRefreshed && (
               <Text.Detail tone="secondary">
@@ -119,10 +126,7 @@ const Customers: React.FC<CustomersProps> = ({ onBack, linkToWelcome }) => {
               onClick={handleRefreshCustomers}
               isDisabled={isLoading}
             />
-            <PrimaryButton
-              label="Back to Dashboard"
-              onClick={onBack}
-            />
+            <PrimaryButton label="Back to Dashboard" onClick={onBack} />
           </Spacings.Inline>
         </div>
 
@@ -132,13 +136,13 @@ const Customers: React.FC<CustomersProps> = ({ onBack, linkToWelcome }) => {
             <Text.Body>Loading customers...</Text.Body>
           </div>
         ) : error ? (
-          <ErrorMessage>
-            Error loading customers: {error.message}
-          </ErrorMessage>
+          <ErrorMessage>Error loading customers: {error.message}</ErrorMessage>
         ) : enhancedCustomers.length === 0 ? (
           <div className={styles.emptyState}>
             <Text.Headline as="h2">No customers found</Text.Headline>
-            <Text.Body>There are no customers associated with this store.</Text.Body>
+            <Text.Body>
+              There are no customers associated with this store.
+            </Text.Body>
           </div>
         ) : (
           <div className={styles.tableContainer}>
@@ -161,11 +165,9 @@ const Customers: React.FC<CustomersProps> = ({ onBack, linkToWelcome }) => {
             />
           </div>
         )}
-
-        
       </Spacings.Stack>
     </div>
   );
 };
 
-export default Customers; 
+export default Customers;

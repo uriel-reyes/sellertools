@@ -38,9 +38,12 @@ interface ProductPriceData {
 }
 
 // Calculate profit margin as a percentage
-const calculateProfitMargin = (storePrice?: number, masterPrice?: number): string => {
+const calculateProfitMargin = (
+  storePrice?: number,
+  masterPrice?: number
+): string => {
   if (!storePrice || !masterPrice || masterPrice === 0) return 'N/A';
-  
+
   const margin = ((storePrice - masterPrice) / masterPrice) * 100;
   return `${margin.toFixed(2)}%`;
 };
@@ -53,14 +56,20 @@ const ImageCell = ({ value }: { value: string }) => (
 );
 
 // Custom cell renderer for the price input
-const PriceInputCell = ({ 
-  product, 
+const PriceInputCell = ({
+  product,
   storeKey,
-  onPriceChange 
-}: { 
+  onPriceChange,
+}: {
   product: ProductPriceData;
   storeKey: string;
-  onPriceChange: (productId: string, version: number, price: number, channelKey: string, priceId?: string) => void;
+  onPriceChange: (
+    productId: string,
+    version: number,
+    price: number,
+    channelKey: string,
+    priceId?: string
+  ) => void;
 }) => {
   const [price, setPrice] = useState<string>('');
   const [isUpdating, setIsUpdating] = useState(false);
@@ -69,7 +78,7 @@ const PriceInputCell = ({
   useEffect(() => {
     // Set the component as mounted
     isMounted.current = true;
-    
+
     // Cleanup function to prevent state updates after unmounting
     return () => {
       isMounted.current = false;
@@ -86,10 +95,10 @@ const PriceInputCell = ({
       setIsUpdating(true);
       try {
         await onPriceChange(
-          product.id, 
-          product.version, 
-          numericPrice, 
-          storeKey, 
+          product.id,
+          product.version,
+          numericPrice,
+          storeKey,
           product.currentPrice?.id
         );
       } finally {
@@ -116,7 +125,7 @@ const PriceInputCell = ({
         disabled={isUpdating}
       />
       <PrimaryButton
-        label={isUpdating ? "Updating..." : "Update"}
+        label={isUpdating ? 'Updating...' : 'Update'}
         onClick={handlePriceSubmit}
         isDisabled={isUpdating || !price || parseFloat(price) <= 0}
         size="small"
@@ -132,13 +141,13 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
   const [error, setError] = useState<Error | null>(null);
   const [products, setProducts] = useState<ProductPriceData[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   // Ref for debouncing search
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   const { fetchProductsWithPrices, updateProductPrice } = usePriceManagement();
   const { searchProducts } = useStoreProducts({});
-  
+
   // Clean up the search timeout when component unmounts
   useEffect(() => {
     return () => {
@@ -147,31 +156,37 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
       }
     };
   }, []);
-  
+
   const fetchProducts = async () => {
     try {
       const result = await fetchProductsWithPrices(storeKey!);
       setProducts(result);
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Unknown error fetching products'));
+      setError(
+        err instanceof Error
+          ? err
+          : new Error('Unknown error fetching products')
+      );
     } finally {
       setIsInitialLoading(false);
     }
   };
-  
+
   useEffect(() => {
     if (storeKey) {
-      console.log(`Store key changed to "${storeKey}" - fetching products for this store`);
+      console.log(
+        `Store key changed to "${storeKey}" - fetching products for this store`
+      );
       setIsInitialLoading(true);
       fetchProducts();
     }
   }, [storeKey]);
-  
+
   const handlePriceChange = async (
-    productId: string, 
-    version: number, 
-    newPrice: number, 
-    channelKey: string, 
+    productId: string,
+    version: number,
+    newPrice: number,
+    channelKey: string,
     priceId?: string
   ) => {
     try {
@@ -182,7 +197,7 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
         channelKey,
         priceId
       );
-      
+
       if (success) {
         // Refresh the products list to show updated prices
         await fetchProducts();
@@ -191,74 +206,76 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
       console.error('Error updating price:', err);
     }
   };
-  
+
   // Execute search with the current query
   const executeSearch = async (query: string) => {
     if (!query.trim()) {
       fetchProducts();
       return;
     }
-    
+
     setIsSearchLoading(true);
     setError(null);
-    
+
     try {
       const searchResults = await searchProducts(query);
-      
+
       if (searchResults.length > 0) {
         // Fetch detailed price information for the search results
         const result = await fetchProductsWithPrices(storeKey!);
-        
+
         // Filter the price data to only include products that match our search results
-        const searchResultIds = searchResults.map(product => product.id);
-        const filteredProducts = result.filter(product => 
+        const searchResultIds = searchResults.map((product) => product.id);
+        const filteredProducts = result.filter((product) =>
           searchResultIds.includes(product.id)
         );
-        
+
         setProducts(filteredProducts);
       } else {
         setProducts([]);
       }
     } catch (err) {
       console.error('Error searching products:', err);
-      setError(err instanceof Error ? err : new Error('Error searching products'));
+      setError(
+        err instanceof Error ? err : new Error('Error searching products')
+      );
     } finally {
       setIsSearchLoading(false);
     }
   };
-  
+
   const columns = [
-    { 
-      key: 'image', 
-      label: 'Image', 
+    {
+      key: 'image',
+      label: 'Image',
       renderItem: (item: ProductPriceData) => <ImageCell value={item.image} />,
-      width: "10%" 
+      width: '10%',
     },
-    { key: 'name', label: 'Product Name', width: "25%" },
-    { key: 'sku', label: 'SKU', width: "15%" },
-    { 
-      key: 'masterPrice', 
-      label: 'Cost', 
+    { key: 'name', label: 'Product Name', width: '25%' },
+    { key: 'sku', label: 'SKU', width: '15%' },
+    {
+      key: 'masterPrice',
+      label: 'Cost',
       renderItem: (item: ProductPriceData) => (
         <Text.Body>
-          {item.masterPrice 
+          {item.masterPrice
             ? `$${item.masterPrice.value.toFixed(2)}`
             : 'Not set'}
         </Text.Body>
       ),
-      width: "12.5%" 
+      width: '12.5%',
     },
-    { 
-      key: 'currentPrice', 
-      label: 'Your Price', 
+    {
+      key: 'currentPrice',
+      label: 'Your Price',
       renderItem: (item: ProductPriceData) => (
         <Text.Body>
-          {item.currentPrice 
+          {item.currentPrice
             ? `$${item.currentPrice.value.toFixed(2)}`
             : 'Not set'}
         </Text.Body>
       ),
-      width: "12.5%" 
+      width: '12.5%',
     },
     {
       key: 'profitMargin',
@@ -266,24 +283,24 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
       renderItem: (item: ProductPriceData) => (
         <Text.Body>
           {calculateProfitMargin(
-            item.currentPrice?.value, 
+            item.currentPrice?.value,
             item.masterPrice?.value
           )}
         </Text.Body>
       ),
-      width: "10%" 
+      width: '10%',
     },
-    { 
-      key: 'newPrice', 
-      label: 'New Price', 
+    {
+      key: 'newPrice',
+      label: 'New Price',
       renderItem: (item: ProductPriceData) => (
-        <PriceInputCell 
+        <PriceInputCell
           product={item}
           storeKey={storeKey!}
-          onPriceChange={handlePriceChange} 
+          onPriceChange={handlePriceChange}
         />
       ),
-      width: "15%" 
+      width: '15%',
     },
   ];
 
@@ -294,7 +311,8 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
           <div>
             <Text.Headline as="h1">Manage Prices</Text.Headline>
             <Text.Subheadline as="h4">
-              Store: <span className={styles.storeKeyHighlight}>{storeKey}</span>
+              Store:{' '}
+              <span className={styles.storeKeyHighlight}>{storeKey}</span>
             </Text.Subheadline>
           </div>
           <Spacings.Inline scale="s">
@@ -304,38 +322,34 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
               onClick={fetchProducts}
               isDisabled={isInitialLoading || isSearchLoading}
             />
-            <PrimaryButton
-              label="Back to Dashboard"
-              onClick={onBack}
-            />
+            <PrimaryButton label="Back to Dashboard" onClick={onBack} />
           </Spacings.Inline>
         </div>
-        
+
         {/* Search bar */}
         <div className={styles.searchContainer} style={{ maxWidth: '600px' }}>
-          
-            <SearchTextInput
-              value={searchQuery}
-              onSubmit={executeSearch}
-              onReset={() => {
-                setSearchQuery('');
-                fetchProducts();
-              }}
-              onChange={(event) => {
-                const newValue = event.target.value;
-                setSearchQuery(newValue);
-                
-                // Debounce search to avoid too many API calls
-                if (searchTimeoutRef.current) {
-                  clearTimeout(searchTimeoutRef.current);
-                }
-                
-                searchTimeoutRef.current = setTimeout(() => {
-                  executeSearch(newValue);
-                }, 500); // 500ms debounce
-              }}
-              placeholder="Search products..."
-            />
+          <SearchTextInput
+            value={searchQuery}
+            onSubmit={executeSearch}
+            onReset={() => {
+              setSearchQuery('');
+              fetchProducts();
+            }}
+            onChange={(event) => {
+              const newValue = event.target.value;
+              setSearchQuery(newValue);
+
+              // Debounce search to avoid too many API calls
+              if (searchTimeoutRef.current) {
+                clearTimeout(searchTimeoutRef.current);
+              }
+
+              searchTimeoutRef.current = setTimeout(() => {
+                executeSearch(newValue);
+              }, 500); // 500ms debounce
+            }}
+            placeholder="Search products..."
+          />
         </div>
 
         {/* Initial loading state */}
@@ -345,19 +359,17 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
             <Text.Body>Loading products and prices...</Text.Body>
           </div>
         ) : error ? (
-          <ErrorMessage>
-            Error loading products: {error.message}
-          </ErrorMessage>
+          <ErrorMessage>Error loading products: {error.message}</ErrorMessage>
         ) : products.length === 0 ? (
           <div className={styles.emptyState}>
             <Text.Headline as="h3">
-              {searchQuery 
-                ? `No products found matching "${searchQuery}"` 
-                : "No products found"}
+              {searchQuery
+                ? `No products found matching "${searchQuery}"`
+                : 'No products found'}
             </Text.Headline>
             <Text.Body>
-              {searchQuery 
-                ? "Try a different search term or clear the search" 
+              {searchQuery
+                ? 'Try a different search term or clear the search'
                 : "There are no products in your store's catalog."}
             </Text.Body>
           </div>
@@ -377,8 +389,8 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
             />
             <div className={styles.tableFooter}>
               <Text.Detail>
-                {searchQuery 
-                  ? `${products.length} products found matching "${searchQuery}"` 
+                {searchQuery
+                  ? `${products.length} products found matching "${searchQuery}"`
                   : `${products.length} products found`}
               </Text.Detail>
             </div>
@@ -389,4 +401,4 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
   );
 };
 
-export default Prices; 
+export default Prices;

@@ -87,7 +87,8 @@ export default defineMessages({
   },
   tierBasedPromotionDescription: {
     id: 'Promotions.tierBasedPromotionDescription',
-    defaultMessage: 'Create discounts based on the quantity of items purchased.',
+    defaultMessage:
+      'Create discounts based on the quantity of items purchased.',
   },
   customerGroupPromotion: {
     id: 'Promotions.customerGroupPromotion',
@@ -184,11 +185,13 @@ export default defineMessages({
   },
   percentageDiscountDescription: {
     id: 'Promotions.percentageDiscountDescription',
-    defaultMessage: 'The discount will be applied as a percentage off the product price.',
+    defaultMessage:
+      'The discount will be applied as a percentage off the product price.',
   },
   absoluteDiscountDescription: {
     id: 'Promotions.absoluteDiscountDescription',
-    defaultMessage: 'The discount will be applied as a fixed amount off the product price.',
+    defaultMessage:
+      'The discount will be applied as a fixed amount off the product price.',
   },
   absoluteDiscountHint: {
     id: 'Promotions.absoluteDiscountHint',
@@ -220,7 +223,8 @@ export default defineMessages({
   },
   sortOrderHint: {
     id: 'Promotions.sortOrderHint',
-    defaultMessage: 'Enter a decimal value less than 1 (e.g., 0.5). Lower values will be shown first.',
+    defaultMessage:
+      'Enter a decimal value less than 1 (e.g., 0.5). Lower values will be shown first.',
   },
   sortOrderError: {
     id: 'Promotions.sortOrderError',
@@ -249,7 +253,8 @@ export default defineMessages({
   },
   specificProductsDescription: {
     id: 'Promotions.specificProductsDescription',
-    defaultMessage: 'Add conditions to select which products this discount applies to',
+    defaultMessage:
+      'Add conditions to select which products this discount applies to',
   },
   conditionType: {
     id: 'Promotions.conditionType',
@@ -293,7 +298,8 @@ export default defineMessages({
   },
   noConditionsWarning: {
     id: 'Promotions.noConditionsWarning',
-    defaultMessage: 'Please add at least one condition or select "All products"',
+    defaultMessage:
+      'Please add at least one condition or select "All products"',
   },
   attributePlaceholder: {
     id: 'Promotions.attributePlaceholder',
@@ -368,39 +374,48 @@ export default defineMessages({
   },
   bulkActivateConfirmMessage: {
     id: 'Promotions.bulkActivateConfirmMessage',
-    defaultMessage: 'Are you sure you want to activate {count, plural, one {# promotion} other {# promotions}}?',
+    defaultMessage:
+      'Are you sure you want to activate {count, plural, one {# promotion} other {# promotions}}?',
   },
   bulkDeactivateConfirmMessage: {
     id: 'Promotions.bulkDeactivateConfirmMessage',
-    defaultMessage: 'Are you sure you want to deactivate {count, plural, one {# promotion} other {# promotions}}?',
+    defaultMessage:
+      'Are you sure you want to deactivate {count, plural, one {# promotion} other {# promotions}}?',
   },
   bulkDeleteConfirmMessage: {
     id: 'Promotions.bulkDeleteConfirmMessage',
-    defaultMessage: 'Are you sure you want to delete {count, plural, one {# promotion} other {# promotions}}? This action cannot be undone.',
+    defaultMessage:
+      'Are you sure you want to delete {count, plural, one {# promotion} other {# promotions}}? This action cannot be undone.',
   },
   bulkActivateSuccess: {
     id: 'Promotions.bulkActivateSuccess',
-    defaultMessage: 'Successfully activated {count, plural, one {# promotion} other {# promotions}}.',
+    defaultMessage:
+      'Successfully activated {count, plural, one {# promotion} other {# promotions}}.',
   },
   bulkDeactivateSuccess: {
     id: 'Promotions.bulkDeactivateSuccess',
-    defaultMessage: 'Successfully deactivated {count, plural, one {# promotion} other {# promotions}}.',
+    defaultMessage:
+      'Successfully deactivated {count, plural, one {# promotion} other {# promotions}}.',
   },
   bulkDeleteSuccess: {
     id: 'Promotions.bulkDeleteSuccess',
-    defaultMessage: 'Successfully deleted {count, plural, one {# promotion} other {# promotions}}.',
+    defaultMessage:
+      'Successfully deleted {count, plural, one {# promotion} other {# promotions}}.',
   },
   bulkActivatePartialError: {
     id: 'Promotions.bulkActivatePartialError',
-    defaultMessage: 'Failed to activate {count, plural, one {# promotion} other {# promotions}}.',
+    defaultMessage:
+      'Failed to activate {count, plural, one {# promotion} other {# promotions}}.',
   },
   bulkDeactivatePartialError: {
     id: 'Promotions.bulkDeactivatePartialError',
-    defaultMessage: 'Failed to deactivate {count, plural, one {# promotion} other {# promotions}}.',
+    defaultMessage:
+      'Failed to deactivate {count, plural, one {# promotion} other {# promotions}}.',
   },
   bulkDeletePartialError: {
     id: 'Promotions.bulkDeletePartialError',
-    defaultMessage: 'Failed to delete {count, plural, one {# promotion} other {# promotions}}.',
+    defaultMessage:
+      'Failed to delete {count, plural, one {# promotion} other {# promotions}}.',
   },
   bulkActionInProgress: {
     id: 'Promotions.bulkActionInProgress',
@@ -442,4 +457,4 @@ export default defineMessages({
     id: 'Promotions.promotionDataError',
     defaultMessage: 'Error preparing promotion data. Please try again.',
   },
-}); 
+});

@@ -53,20 +53,27 @@ const useStoreLookup = (): UseStoreLookupResult => {
       try {
         setError(null);
         console.log(`Checking if store with key '${key}' exists...`);
-        
+
         // Create a where condition to filter by key
         const whereCondition = `key="${key}"`;
-        
+
         const result = await refetch({
           where: whereCondition,
         });
 
         const storeExists = result.data?.stores.results.length > 0;
-        console.log(`Store with key '${key}'${storeExists ? ' exists' : ' does not exist'}`);
-        
+        console.log(
+          `Store with key '${key}'${
+            storeExists ? ' exists' : ' does not exist'
+          }`
+        );
+
         return storeExists;
       } catch (err) {
-        const error = err instanceof Error ? err : new Error('Unknown error checking store');
+        const error =
+          err instanceof Error
+            ? err
+            : new Error('Unknown error checking store');
         setError(error);
         console.error('Error checking store existence:', error);
         return false;
@@ -82,4 +89,4 @@ const useStoreLookup = (): UseStoreLookupResult => {
   };
 };
 
-export default useStoreLookup; 
+export default useStoreLookup;

@@ -67,21 +67,21 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack }) => {
   const showNotification = useShowNotification();
   const { customerDetails } = useAuthContext();
   const timeOptions = generateTimeOptions();
-  
+
   // Get business units data using the hook
-  const { 
-    businessUnits, 
-    selectedBusinessUnit, 
-    loading, 
-    error, 
-    fetchBusinessUnitsByCustomerId, 
+  const {
+    businessUnits,
+    selectedBusinessUnit,
+    loading,
+    error,
+    fetchBusinessUnitsByCustomerId,
     selectBusinessUnit,
-    updateBusinessUnit 
+    updateBusinessUnit,
   } = useCustomerBusinessUnits();
-  
+
   // Track if saving is in progress
   const [isSaving, setIsSaving] = useState(false);
-  
+
   // Initial state - will be populated with business unit data when fetched
   const [formData, setFormData] = useState<StoreConfigData>({
     name: '',
@@ -95,9 +95,11 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack }) => {
     closeTime: '17:00',
     stripeAccountId: '',
   });
-  
+
   // Track original data to detect changes
-  const [originalData, setOriginalData] = useState<StoreConfigData | null>(null);
+  const [originalData, setOriginalData] = useState<StoreConfigData | null>(
+    null
+  );
 
   // Fetch business units data on component mount using customer ID from auth context
   useEffect(() => {
@@ -122,12 +124,19 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack }) => {
       let stripeAccountId = '';
 
       // Extract custom fields
-      if (selectedBusinessUnit.custom && selectedBusinessUnit.custom.customFieldsRaw) {
+      if (
+        selectedBusinessUnit.custom &&
+        selectedBusinessUnit.custom.customFieldsRaw
+      ) {
         // Get hours of operation
         const hoursField = selectedBusinessUnit.custom.customFieldsRaw.find(
           (field: CustomField) => field.name === 'hours-of-operation'
         );
-        if (hoursField && Array.isArray(hoursField.value) && hoursField.value.length >= 2) {
+        if (
+          hoursField &&
+          Array.isArray(hoursField.value) &&
+          hoursField.value.length >= 2
+        ) {
           // Format time from "09:00:00" to "09:00"
           openTime = String(hoursField.value[0]).substring(0, 5);
           closeTime = String(hoursField.value[1]).substring(0, 5);
@@ -155,37 +164,43 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack }) => {
         closeTime,
         stripeAccountId,
       };
-      
+
       setFormData(newFormData);
       setOriginalData(newFormData);
     }
   }, [selectedBusinessUnit]);
 
   // Form field handlers
-  const handleChange = (field: keyof StoreConfigData) => (event: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [field]: event.target.value,
-    });
-  };
-
-  // Updated event handler for SelectField
-  const handleTimeChange = (field: 'openTime' | 'closeTime') => (event: any) => {
-    const value = event.target.value;
-    if (typeof value === 'string') {
+  const handleChange =
+    (field: keyof StoreConfigData) =>
+    (event: React.ChangeEvent<HTMLInputElement>) => {
       setFormData({
         ...formData,
-        [field]: value,
+        [field]: event.target.value,
       });
-    }
-  };
+    };
+
+  // Updated event handler for SelectField
+  const handleTimeChange =
+    (field: 'openTime' | 'closeTime') => (event: any) => {
+      const value = event.target.value;
+      if (typeof value === 'string') {
+        setFormData({
+          ...formData,
+          [field]: value,
+        });
+      }
+    };
 
   // Check if any field has changed
   const hasChanges = (): boolean => {
     if (!originalData) return false;
-    
-    return Object.keys(formData).some(key => {
-      return formData[key as keyof StoreConfigData] !== originalData[key as keyof StoreConfigData];
+
+    return Object.keys(formData).some((key) => {
+      return (
+        formData[key as keyof StoreConfigData] !==
+        originalData[key as keyof StoreConfigData]
+      );
     });
   };
 
@@ -198,7 +213,7 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack }) => {
       });
       return;
     }
-    
+
     if (!selectedBusinessUnit) {
       showNotification({
         kind: 'error',
@@ -207,9 +222,9 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack }) => {
       });
       return;
     }
-    
+
     setIsSaving(true);
-    
+
     try {
       // Prepare address data for update
       const addressData = {
@@ -220,27 +235,27 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack }) => {
         postalCode: formData.zipcode,
         phone: formData.phoneNumber,
       };
-      
+
       // Prepare custom fields
       const customFields = {
-        'stripeAccountId': formData.stripeAccountId,
+        stripeAccountId: formData.stripeAccountId,
         'hours-of-operation': [
-          `${formData.openTime}:00`,  // Add seconds to match expected format
+          `${formData.openTime}:00`, // Add seconds to match expected format
           `${formData.closeTime}:00`, // Add seconds to match expected format
-        ]
+        ],
       };
-      
+
       // Update business unit
       const updatedBusinessUnit = await updateBusinessUnit(
         selectedBusinessUnit.id,
         addressData,
         customFields
       );
-      
+
       if (updatedBusinessUnit) {
         // Update original data to reflect the saved changes
         setOriginalData({ ...formData });
-        
+
         // Show success notification
         showNotification({
           kind: 'success',
@@ -250,12 +265,14 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack }) => {
       }
     } catch (error) {
       console.error('Error saving configuration:', error);
-      
+
       // Show error notification
       showNotification({
         kind: 'error',
         domain: DOMAINS.SIDE,
-        text: intl.formatMessage(messages.errorSaving) + (error instanceof Error ? `: ${error.message}` : ''),
+        text:
+          intl.formatMessage(messages.errorSaving) +
+          (error instanceof Error ? `: ${error.message}` : ''),
       });
     } finally {
       setIsSaving(false);
@@ -280,7 +297,9 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack }) => {
       <div className={styles.configurationContainer}>
         <Spacings.Stack scale="l">
           <ContentNotification type="error">
-            <Text.Body>Error loading store configuration: {error.message}</Text.Body>
+            <Text.Body>
+              Error loading store configuration: {error.message}
+            </Text.Body>
           </ContentNotification>
           <SecondaryButton
             label={intl.formatMessage(messages.backToWelcome)}
@@ -343,7 +362,7 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack }) => {
                 }}
                 options={businessUnits.map((unit: BusinessUnit) => ({
                   value: unit.id,
-                  label: unit.name
+                  label: unit.name,
                 }))}
                 isDisabled={isSaving}
               />
@@ -371,7 +390,9 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack }) => {
                     title={intl.formatMessage(messages.streetNumber)}
                     value={formData.streetNumber}
                     onChange={handleChange('streetNumber')}
-                    placeholder={intl.formatMessage(messages.streetNumberPlaceholder)}
+                    placeholder={intl.formatMessage(
+                      messages.streetNumberPlaceholder
+                    )}
                     isDisabled={isSaving}
                   />
                 </div>
@@ -443,7 +464,9 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack }) => {
               title={intl.formatMessage(messages.stripeAccountId)}
               value={formData.stripeAccountId}
               onChange={handleChange('stripeAccountId')}
-              placeholder={intl.formatMessage(messages.stripeAccountIdPlaceholder)}
+              placeholder={intl.formatMessage(
+                messages.stripeAccountIdPlaceholder
+              )}
               horizontalConstraint={13}
               isDisabled={isSaving}
             />
@@ -463,4 +486,4 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack }) => {
   );
 };
 
-export default Configuration; 
+export default Configuration;

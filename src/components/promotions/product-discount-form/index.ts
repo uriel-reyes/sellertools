@@ -1,1 +1,1 @@
-export { default } from '../product-discount-form'; 
+export { default } from '../product-discount-form';

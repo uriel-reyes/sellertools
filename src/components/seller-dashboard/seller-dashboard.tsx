@@ -1,28 +1,23 @@
+import Card from '@commercetools-uikit/card';
+import {
+  CartIcon,
+  CoinsIcon,
+  FrontendStudioIcon,
+  GearIcon,
+  GraphIcon,
+  ListWithSearchIcon,
+  TagIcon,
+  UsersIcon,
+} from '@commercetools-uikit/icons';
+import LoadingSpinner from '@commercetools-uikit/loading-spinner';
+import SelectField from '@commercetools-uikit/select-field';
+import Spacings from '@commercetools-uikit/spacings';
+import Text from '@commercetools-uikit/text';
 import React, { useMemo } from 'react';
 import { useIntl } from 'react-intl';
-import { useHistory } from 'react-router-dom';
-import Spacings from '@commercetools-uikit/spacings';
-import Card from '@commercetools-uikit/card';
-import Text from '@commercetools-uikit/text';
-import SelectField from '@commercetools-uikit/select-field';
-import { 
-  CartIcon, 
-  UsersIcon, 
-  ListWithSearchIcon, 
-  CoinsIcon, 
-  TagIcon, 
-  FrontendStudioIcon, 
-  GraphIcon,
-  LogoutIcon,
-  GearIcon
-} from '@commercetools-uikit/icons';
-import PrimaryButton from '@commercetools-uikit/primary-button';
-import SecondaryButton from '@commercetools-uikit/secondary-button';
-import LoadingSpinner from '@commercetools-uikit/loading-spinner';
-import { useAuthContext } from '../../contexts/auth-context';
 import { useBusinessUnitContext } from '../../contexts/business-unit-context';
-import styles from './seller-dashboard.module.css';
 import messages from './messages';
+import styles from './seller-dashboard.module.css';
 
 type DashboardCardProps = {
   title: string;
@@ -30,12 +25,16 @@ type DashboardCardProps = {
   onClick: () => void;
 };
 
-const DashboardCard: React.FC<DashboardCardProps> = ({ title, icon, onClick }) => (
+const DashboardCard: React.FC<DashboardCardProps> = ({
+  title,
+  icon,
+  onClick,
+}) => (
   <Card className={styles.dashboardCard} onClick={onClick}>
     <Spacings.Stack alignItems="center" scale="m">
       <div className={styles.iconContainer}>
         <div className={styles.iconWrapper}>
-          {React.cloneElement(icon, { size: "big", color: "surface" })}
+          {React.cloneElement(icon, { size: 'big', color: 'surface' })}
         </div>
       </div>
       <Text.Headline as="h3">{title}</Text.Headline>
@@ -59,24 +58,16 @@ type TCustomEvent = {
 
 const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate }) => {
   const intl = useIntl();
-  const history = useHistory();
-  const { logout } = useAuthContext();
-  const { 
-    businessUnits, 
-    selectedBusinessUnit, 
-    loading, 
-    error, 
-    selectBusinessUnit
+  const {
+    businessUnits,
+    selectedBusinessUnit,
+    loading,
+    error,
+    selectBusinessUnit,
   } = useBusinessUnitContext();
 
   const handleNavigate = (route: string) => {
     onNavigate(route);
-  };
-
-  const handleLogout = () => {
-    logout();
-    // Redirect to the root/welcome page
-    history.push('/');
   };
 
   // Memoize business unit options to prevent unnecessary re-renders
@@ -159,26 +150,21 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate }) => {
   return (
     <div className={styles.dashboardContainer}>
       <Spacings.Stack scale="xl">
-        <div className={styles.logoutContainer}>
-          <SecondaryButton
-            label={intl.formatMessage(messages.logout)}
-            onClick={handleLogout}
-            iconLeft={<LogoutIcon />}
-            className={styles.logoutButton}
-          />
-        </div>
-
         <div className={styles.headerContainer}>
           <div className={styles.dashboardTitle}>
-            <Text.Headline as="h1">{intl.formatMessage(messages.title)}</Text.Headline>
+            <Text.Headline as="h1">
+              {intl.formatMessage(messages.title)}
+            </Text.Headline>
           </div>
         </div>
-        
+
         <div className={styles.businessUnitContainer}>
           {loading ? (
             <Spacings.Inline alignItems="center">
               <LoadingSpinner />
-              <Text.Body>{intl.formatMessage(messages.loadingBusinessUnits)}</Text.Body>
+              <Text.Body>
+                {intl.formatMessage(messages.loadingBusinessUnits)}
+              </Text.Body>
             </Spacings.Inline>
           ) : businessUnits.length > 0 ? (
             <div className={styles.businessUnitSelector}>
@@ -193,10 +179,12 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate }) => {
               />
             </div>
           ) : (
-            <Text.Body>{intl.formatMessage(messages.noBusinessUnits)}</Text.Body>
+            <Text.Body>
+              {intl.formatMessage(messages.noBusinessUnits)}
+            </Text.Body>
           )}
         </div>
-        
+
         <div className={styles.dashboardGrid}>
           {dashboardItems.map((item) => (
             <DashboardCard
@@ -212,4 +200,4 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate }) => {
   );
 };
 
-export default SellerDashboard; 
+export default SellerDashboard;

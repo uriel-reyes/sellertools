@@ -105,4 +105,4 @@ export default defineMessages({
     id: 'Configuration.errorNoCustomerId',
     defaultMessage: 'No customer ID available',
   },
-}); 
+});

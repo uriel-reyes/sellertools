@@ -1,11 +1,16 @@
 import { ApolloError } from '@apollo/client';
-import { useMcLazyQuery, useMcQuery } from '@commercetools-frontend/application-shell-connectors';
+import {
+  useMcLazyQuery,
+  useMcQuery,
+} from '@commercetools-frontend/application-shell-connectors';
 import { GRAPHQL_TARGETS } from '@commercetools-frontend/constants';
 import gql from 'graphql-tag';
 import { TCustomer } from '../../types/generated/ctp';
 
 type TCustomerSearchResult = {
-  results?: (TCustomer & {customerGroupAssignments: {customerGroup: {key: string}}[]})[];
+  results?: (TCustomer & {
+    customerGroupAssignments: { customerGroup: { key: string } }[];
+  })[];
   total: number;
 };
 
@@ -24,12 +29,16 @@ interface UseCustomerAuthResult {
   mcLoggedInUserLoading: boolean;
   mcLoggedInUserError?: ApolloError;
   findCustomerByEmailLoading: boolean;
-  findCustomerByEmail: ({variables}: {variables: any}) => Promise<{data?: {customers?: TCustomerSearchResult}}>;
+  findCustomerByEmail: ({
+    variables,
+  }: {
+    variables: any;
+  }) => Promise<{ data?: { customers?: TCustomerSearchResult } }>;
 }
 
 // Regular customer sign-in mutation
 const FIND_CUSTOMER_BY_EMAIL = gql`
-  query FindCustomerByEmail ($where: String!) {
+  query FindCustomerByEmail($where: String!) {
     customers(where: $where) {
       results {
         id
@@ -48,7 +57,6 @@ const FIND_CUSTOMER_BY_EMAIL = gql`
             value
           }
         }
-        
       }
     }
   }
@@ -69,29 +77,27 @@ const FETCHED_LOGGED_IN_USER = gql`
 `;
 
 const useCustomerAuth = (): UseCustomerAuthResult => {
-
-  
   // Regular customer sign-in mutation
-  const [findCustomerByEmail, { loading: findCustomerByEmailLoading }] = useMcLazyQuery<
-    { customers: TCustomerSearchResult }
-  >(
-    FIND_CUSTOMER_BY_EMAIL,
-    {
-      context: {
-        target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
-      },
-    }
-  );
-  
+  const [findCustomerByEmail, { loading: findCustomerByEmailLoading }] =
+    useMcLazyQuery<{ customers: TCustomerSearchResult }>(
+      FIND_CUSTOMER_BY_EMAIL,
+      {
+        context: {
+          target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
+        },
+      }
+    );
+
   // MC User query
-  const { data: mcLoggedInUser, loading: mcLoggedInUserLoading, error: mcLoggedInUserError } = useMcQuery<{user: TMCUser}>(
-    FETCHED_LOGGED_IN_USER,
-    {
-      context: {
-        target: GRAPHQL_TARGETS.MERCHANT_CENTER_BACKEND,
-      },
-    }
-  );
+  const {
+    data: mcLoggedInUser,
+    loading: mcLoggedInUserLoading,
+    error: mcLoggedInUserError,
+  } = useMcQuery<{ user: TMCUser }>(FETCHED_LOGGED_IN_USER, {
+    context: {
+      target: GRAPHQL_TARGETS.MERCHANT_CENTER_BACKEND,
+    },
+  });
 
   return {
     mcLoggedInUser,
@@ -102,4 +108,4 @@ const useCustomerAuth = (): UseCustomerAuthResult => {
   };
 };
 
-export default useCustomerAuth; 
+export default useCustomerAuth;

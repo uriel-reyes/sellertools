@@ -5,7 +5,9 @@ import LoadingSpinner from '@commercetools-uikit/loading-spinner';
 import Spacings from '@commercetools-uikit/spacings';
 import Text from '@commercetools-uikit/text';
 import { ContentNotification } from '@commercetools-uikit/notifications';
-import usePromotions, { PromotionData } from '../../hooks/use-promotions/use-promotions';
+import usePromotions, {
+  PromotionData,
+} from '../../hooks/use-promotions/use-promotions';
 import ProductDiscountForm from './product-discount-form';
 import { useAuthContext } from '../../contexts/auth-context';
 import messages from './messages';
@@ -56,7 +58,9 @@ const ProductDiscountWrapper: React.FC<ProductDiscountWrapperProps> = ({
   const { promotionId } = useParams<{ promotionId?: string }>();
   const { storeKey: channelKey } = useAuthContext();
   const { getPromotionById, loading, error } = usePromotions();
-  const [discountData, setDiscountData] = useState<ProductDiscountData | null>(null);
+  const [discountData, setDiscountData] = useState<ProductDiscountData | null>(
+    null
+  );
   const [isLoading, setIsLoading] = useState(isEditing);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -187,7 +191,9 @@ const ProductDiscountWrapper: React.FC<ProductDiscountWrapperProps> = ({
   };
 
   // Initialize form data based on if we're editing or creating
-  const getProductDiscountData = (promotion?: PromotionData | null): ProductDiscountData => {
+  const getProductDiscountData = (
+    promotion?: PromotionData | null
+  ): ProductDiscountData => {
     if (isEditing && promotion) {
       return {
         id: promotion.id,
@@ -230,20 +236,20 @@ const ProductDiscountWrapper: React.FC<ProductDiscountWrapperProps> = ({
       setIsLoading(true);
       try {
         const promotion = await getPromotionById(promotionId);
-        
+
         if (!promotion) {
           setLoadError(intl.formatMessage(messages.promotionNotFound));
           setIsLoading(false);
           return;
         }
-        
+
         const formattedData = getProductDiscountData(promotion);
         setDiscountData(formattedData);
       } catch (err) {
         console.error('Error loading promotion:', err);
         setLoadError(
-          err instanceof Error 
-            ? err.message 
+          err instanceof Error
+            ? err.message
             : intl.formatMessage(messages.promotionLoadError)
         );
       } finally {
@@ -254,14 +260,11 @@ const ProductDiscountWrapper: React.FC<ProductDiscountWrapperProps> = ({
     fetchPromotion();
   }, [promotionId, isEditing, getPromotionById, channelKey, intl]);
 
-
   if (isLoading) {
     return (
       <Spacings.Stack scale="l" alignItems="center">
         <LoadingSpinner scale="l" />
-        <Text.Body>
-          {intl.formatMessage(messages.loadingPromotion)}
-        </Text.Body>
+        <Text.Body>{intl.formatMessage(messages.loadingPromotion)}</Text.Body>
       </Spacings.Stack>
     );
   }
@@ -280,7 +283,9 @@ const ProductDiscountWrapper: React.FC<ProductDiscountWrapperProps> = ({
     return (
       <Spacings.Stack scale="l">
         <ContentNotification type="error">
-          <Text.Body>{intl.formatMessage(messages.promotionDataError)}</Text.Body>
+          <Text.Body>
+            {intl.formatMessage(messages.promotionDataError)}
+          </Text.Body>
         </ContentNotification>
       </Spacings.Stack>
     );
