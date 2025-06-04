@@ -113,7 +113,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             (assignment) =>
               assignment.customerGroup.key ===
               environment.SELLER_CUSTOMERGROUP_KEY
-          );
+          ) || result.data?.customers?.results?.[0].customerGroup?.key ===
+            environment.SELLER_CUSTOMERGROUP_KEY;
           setIsLoggedIn(!!isSeller);
           setCustomerDetails(convertToCustomerDetails(customer));
         }

@@ -51,6 +51,9 @@ const FIND_CUSTOMER_BY_EMAIL = gql`
             key
           }
         }
+        customerGroup {
+          key
+        }
         custom {
           customFieldsRaw {
             name

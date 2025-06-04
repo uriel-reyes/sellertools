@@ -33,11 +33,11 @@ const App = () => {
 
   if ((!isLoggedIn || !storeKey) && !isLoading && !businessUnitIsLoading) {
     return (
-      <Spacings.Stack>
+      <Spacings.Stack alignItems="center">
         <Text.Body>
           <FormattedMessage
             id="You are not logged in"
-            defaultMessage="You are not logged in"
+            defaultMessage="You are not logged in. Please contact your administrator."
           />
         </Text.Body>
       </Spacings.Stack>
