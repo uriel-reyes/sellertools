@@ -10,4 +10,4 @@ const ReportsWrapper: React.FC<Props> = (props) => {
   return <Reports {...props} />;
 };
 
-export default ReportsWrapper; 
+export default ReportsWrapper;

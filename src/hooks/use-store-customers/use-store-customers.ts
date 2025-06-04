@@ -44,7 +44,12 @@ interface Customer {
 
 // GraphQL query to fetch customers by store key
 const GET_STORE_CUSTOMERS = gql`
-  query GetStoreCustomers($where: String, $sort: [String!], $limit: Int, $offset: Int) {
+  query GetStoreCustomers(
+    $where: String
+    $sort: [String!]
+    $limit: Int
+    $offset: Int
+  ) {
     customers(where: $where, sort: $sort, limit: $limit, offset: $offset) {
       total
       results {
@@ -141,7 +146,6 @@ interface CustomerDetailResponse {
   customer: Customer;
 }
 
-
 interface CustomerOrdersResponse {
   orders: {
     results: Array<Order>;
@@ -158,19 +162,29 @@ interface UseStoreCustomersHook {
   error: Error | null;
 }
 
-const useStoreCustomers = ( {page, perPage, tableSorting}: { page?: {value: number}, perPage?: {value: number}, tableSorting?: TDataTableSortingState}): UseStoreCustomersHook => {
+const useStoreCustomers = ({
+  page,
+  perPage,
+  tableSorting,
+}: {
+  page?: { value: number };
+  perPage?: { value: number };
+  tableSorting?: TDataTableSortingState;
+}): UseStoreCustomersHook => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [total, setTotal] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const [customerGroups, setCustomerGroups] = useState<{[key: string]: {id: string; name: string}}>({});
-  
-  const { dataLocale } = useApplicationContext(context => ({
+  const [customerGroups, setCustomerGroups] = useState<{
+    [key: string]: { id: string; name: string };
+  }>({});
+
+  const { dataLocale } = useApplicationContext((context) => ({
     dataLocale: context.dataLocale,
   }));
-  
+
   const { refetch, loading: queryLoading } = useMcQuery<{
-    customers?: { results: Array<Customer>, total: number };
+    customers?: { results: Array<Customer>; total: number };
   }>(GET_STORE_CUSTOMERS, {
     context: {
       target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
@@ -178,73 +192,73 @@ const useStoreCustomers = ( {page, perPage, tableSorting}: { page?: {value: numb
     skip: true, // Skip on initial render
   });
 
-  const { refetch: refetchCustomerById, loading: customerDetailLoading } = useMcQuery<CustomerDetailResponse>(
-    GET_CUSTOMER_BY_ID, 
-    {
+  const { refetch: refetchCustomerById, loading: customerDetailLoading } =
+    useMcQuery<CustomerDetailResponse>(GET_CUSTOMER_BY_ID, {
       context: {
         target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
       },
       skip: true, // Skip on initial render
-    }
-  );
+    });
 
-
-  const { refetch: refetchCustomerOrders, loading: ordersLoading } = useMcQuery<CustomerOrdersResponse>(
-    GET_CUSTOMER_ORDERS,
-    {
+  const { refetch: refetchCustomerOrders, loading: ordersLoading } =
+    useMcQuery<CustomerOrdersResponse>(GET_CUSTOMER_ORDERS, {
       context: {
         target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
       },
       skip: true, // Skip on initial render
-    }
-  );
+    });
 
   const fetchCustomersByStore = useCallback(
     async (storeKey: string): Promise<Customer[]> => {
       setLoading(true);
       setError(null);
-      
+
       try {
         console.log(`Fetching customers for store ${storeKey}`);
-        
+
         // Create a where condition to filter customers by store key
         const whereCondition = `stores(key="${storeKey}")`;
-        
-        const { data, error: apiError } = await refetch({ 
+
+        const { data, error: apiError } = await refetch({
           where: whereCondition,
-          sort: tableSorting?.value ? [tableSorting.value.key + ' ' + tableSorting.value.order] : ['createdAt desc'],
+          sort: tableSorting?.value
+            ? [tableSorting.value.key + ' ' + tableSorting.value.order]
+            : ['createdAt desc'],
           limit: perPage?.value,
-          offset:  ((page?.value || 1) - 1) * (perPage?.value || 20)
+          offset: ((page?.value || 1) - 1) * (perPage?.value || 20),
         });
-        
+
         if (apiError) {
           console.error('API Error fetching customers:', apiError);
           throw apiError;
         }
-        
+
         if (!data?.customers?.results || data.customers.results.length === 0) {
           console.log('No customers found for this store');
           setCustomers([]);
           setTotal(0);
           return [];
         }
-        
+
         console.log('Customers retrieved:', data.customers.results.length);
-        
-        const formattedCustomers = data.customers.results.map(customer => ({
+
+        const formattedCustomers = data.customers.results.map((customer) => ({
           ...customer,
           createdAt: new Date(customer.createdAt).toLocaleString(),
-          lastModifiedAt: customer.lastModifiedAt 
-            ? new Date(customer.lastModifiedAt).toLocaleString() 
+          lastModifiedAt: customer.lastModifiedAt
+            ? new Date(customer.lastModifiedAt).toLocaleString()
             : undefined,
         }));
-        
+
         setCustomers(formattedCustomers);
         setTotal(data.customers.total);
         return formattedCustomers;
       } catch (err) {
         console.error('Error in fetchCustomersByStore:', err);
-        const errorObject = err instanceof Error ? err : new Error('Unknown error fetching customers');
+        const errorObject =
+          err instanceof Error
+            ? err
+            : new Error('Unknown error fetching customers');
         setError(errorObject);
         return [];
       } finally {
@@ -258,39 +272,42 @@ const useStoreCustomers = ( {page, perPage, tableSorting}: { page?: {value: numb
     async (customerId: string): Promise<Customer | null> => {
       setLoading(true);
       setError(null);
-      
+
       try {
         console.log(`Fetching customer details for ID: ${customerId}`);
-        
-        const { data, error: apiError } = await refetchCustomerById({ 
-          id: customerId
+
+        const { data, error: apiError } = await refetchCustomerById({
+          id: customerId,
         });
-        
+
         if (apiError) {
           console.error('API Error fetching customer details:', apiError);
           throw apiError;
         }
-        
+
         if (!data?.customer) {
           console.log('Customer not found');
           return null;
         }
-        
+
         console.log('Customer details retrieved');
-        
+
         // Format dates
         const formattedCustomer = {
           ...data.customer,
           createdAt: new Date(data.customer.createdAt).toLocaleString(),
-          lastModifiedAt: data.customer.lastModifiedAt 
-            ? new Date(data.customer.lastModifiedAt).toLocaleString() 
+          lastModifiedAt: data.customer.lastModifiedAt
+            ? new Date(data.customer.lastModifiedAt).toLocaleString()
             : undefined,
         };
 
         return formattedCustomer;
       } catch (err) {
         console.error('Error in fetchCustomerById:', err);
-        const errorObject = err instanceof Error ? err : new Error('Unknown error fetching customer details');
+        const errorObject =
+          err instanceof Error
+            ? err
+            : new Error('Unknown error fetching customer details');
         setError(errorObject);
         return null;
       } finally {
@@ -304,33 +321,35 @@ const useStoreCustomers = ( {page, perPage, tableSorting}: { page?: {value: numb
     async (customerId: string, limit: number = 5): Promise<Order[]> => {
       try {
         console.log(`Fetching orders for customer ID: ${customerId}`);
-        
+
         // Create a where condition to filter orders by customer ID
         const whereCondition = `customerId="${customerId}"`;
-        
-        const { data, error: apiError } = await refetchCustomerOrders({ 
+
+        const { data, error: apiError } = await refetchCustomerOrders({
           where: whereCondition,
           sort: ['createdAt desc'], // Sort by creation date, newest first
-          limit
+          limit,
         });
-        
+
         if (apiError) {
           console.error('API Error fetching customer orders:', apiError);
           return [];
         }
-        
+
         if (!data?.orders?.results) {
           console.log('No orders found for this customer');
           return [];
         }
-        
-        console.log(`Found ${data.orders.results.length} orders for customer ${customerId}`);
-        
-        const formattedOrders = data.orders.results.map(order => ({
+
+        console.log(
+          `Found ${data.orders.results.length} orders for customer ${customerId}`
+        );
+
+        const formattedOrders = data.orders.results.map((order) => ({
           ...order,
           createdAt: new Date(order.createdAt).toLocaleString(),
         }));
-        
+
         return formattedOrders;
       } catch (err) {
         console.error('Error fetching customer orders:', err);
@@ -351,4 +370,4 @@ const useStoreCustomers = ( {page, perPage, tableSorting}: { page?: {value: numb
   };
 };
 
-export default useStoreCustomers; 
+export default useStoreCustomers;

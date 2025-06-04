@@ -49,4 +49,4 @@ const AverageOrderValueStats: React.FC<AverageOrderValueStatsProps> = ({
   );
 };
 
-export default AverageOrderValueStats; 
+export default AverageOrderValueStats;

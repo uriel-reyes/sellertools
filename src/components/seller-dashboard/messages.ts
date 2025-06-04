@@ -57,12 +57,8 @@ export default defineMessages({
     id: 'SellerDashboard.storeConfiguration',
     defaultMessage: 'Store Configuration',
   },
-  logout: {
-    id: 'SellerDashboard.logout',
-    defaultMessage: 'Logout',
-  },
   storeSelector: {
     id: 'SellerDashboard.storeSelector',
     defaultMessage: 'Store:',
   },
-}); 
+});

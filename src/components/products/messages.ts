@@ -35,7 +35,8 @@ export default defineMessages({
   },
   storeProductsDescription: {
     id: 'Products.storeProductsDescription',
-    defaultMessage: 'Products currently in your store\'s catalog. Select to remove products',
+    defaultMessage:
+      "Products currently in your store's catalog. Select to remove products",
   },
   storeProductsCount: {
     id: 'Products.storeProductsCount',
@@ -183,4 +184,4 @@ export default defineMessages({
     id: 'Products.tryDifferentSearch',
     defaultMessage: 'Try a different search term or browse the master catalog.',
   },
-}); 
+});

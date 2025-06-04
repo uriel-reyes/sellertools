@@ -1,4 +1,7 @@
-import { useMcMutation, useMcQuery } from '@commercetools-frontend/application-shell';
+import {
+  useMcMutation,
+  useMcQuery,
+} from '@commercetools-frontend/application-shell';
 import { useApplicationContext } from '@commercetools-frontend/application-shell-connectors';
 import { GRAPHQL_TARGETS } from '@commercetools-frontend/constants';
 import { TState } from '@commercetools-uikit/hooks';
@@ -75,7 +78,7 @@ const GET_STORE_PRODUCTS_QUERY = gql`
   query GetProductSelection($storeKey: String!, $limit: Int, $offset: Int) {
     productSelection(key: $storeKey) {
       id
-      productRefs (limit: $limit, offset: $offset) {
+      productRefs(limit: $limit, offset: $offset) {
         results {
           product {
             id
@@ -99,7 +102,11 @@ const GET_STORE_PRODUCTS_QUERY = gql`
 
 // GraphQL mutation to update product selection
 const UPDATE_PRODUCT_SELECTION_MUTATION = gql`
-  mutation UpdateProductSelection($id: String!, $version: Long!, $actions: [ProductSelectionUpdateAction!]!) {
+  mutation UpdateProductSelection(
+    $id: String!
+    $version: Long!
+    $actions: [ProductSelectionUpdateAction!]!
+  ) {
     updateProductSelection(id: $id, version: $version, actions: $actions) {
       id
       version
@@ -166,15 +173,30 @@ interface ProductData {
 // Define the hook interface
 interface UseStoreProductsResult {
   fetchStoreProducts: (storeKey: string) => Promise<ProductData[]>;
-  addProductsToStore: (storeKey: string, productIds: string[]) => Promise<boolean>;
-  removeProductsFromStore: (storeKey: string, productIds: string[]) => Promise<boolean>;
+  addProductsToStore: (
+    storeKey: string,
+    productIds: string[]
+  ) => Promise<boolean>;
+  removeProductsFromStore: (
+    storeKey: string,
+    productIds: string[]
+  ) => Promise<boolean>;
   createProduct: (productDraft: any) => Promise<boolean>;
-  searchProducts: (searchText: string, filters?: SearchFilterInput[]) => Promise<ProductData[]>;
+  searchProducts: (
+    searchText: string,
+    filters?: SearchFilterInput[]
+  ) => Promise<ProductData[]>;
   loading: boolean;
   error: Error | null;
 }
 
-const useStoreProducts = ({page, perPage}: {page?: TState, perPage?: TState}): UseStoreProductsResult => {
+const useStoreProducts = ({
+  page,
+  perPage,
+}: {
+  page?: TState;
+  perPage?: TState;
+}): UseStoreProductsResult => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const { dataLocale } = useApplicationContext((context) => ({
@@ -182,22 +204,24 @@ const useStoreProducts = ({page, perPage}: {page?: TState, perPage?: TState}): U
   }));
 
   const { refetch } = useMcQuery(GET_STORE_PRODUCTS_QUERY, {
-
     context: {
       target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
     },
     skip: true, // Skip initial query, we'll trigger it manually
   });
 
-  const { refetch: getProductSelectionByKey } = useMcQuery(GET_PRODUCT_SELECTION_BY_KEY, {
-    variables: {
-      key: 'placeholder', // Will be overridden
-    },
-    context: {
-      target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
-    },
-    skip: true, // Skip initial query, we'll trigger it manually
-  });
+  const { refetch: getProductSelectionByKey } = useMcQuery(
+    GET_PRODUCT_SELECTION_BY_KEY,
+    {
+      variables: {
+        key: 'placeholder', // Will be overridden
+      },
+      context: {
+        target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
+      },
+      skip: true, // Skip initial query, we'll trigger it manually
+    }
+  );
 
   const { refetch: searchProducts } = useMcQuery(SEARCH_PRODUCTS_QUERY, {
     variables: {
@@ -210,12 +234,15 @@ const useStoreProducts = ({page, perPage}: {page?: TState, perPage?: TState}): U
     skip: true, // Skip initial query, we'll trigger it manually
   });
 
-  const [updateProductSelection] = useMcMutation(UPDATE_PRODUCT_SELECTION_MUTATION, {
-    context: {
-      target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
-    },
-  });
-  
+  const [updateProductSelection] = useMcMutation(
+    UPDATE_PRODUCT_SELECTION_MUTATION,
+    {
+      context: {
+        target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
+      },
+    }
+  );
+
   const [createProductMutation] = useMcMutation(CREATE_PRODUCT_MUTATION, {
     context: {
       target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
@@ -229,11 +256,11 @@ const useStoreProducts = ({page, perPage}: {page?: TState, perPage?: TState}): U
 
       try {
         logger.info(`Fetching products for store: ${storeKey}`);
-        const { data } = await refetch({
+        const { data } = (await refetch({
           storeKey,
           limit: perPage?.value,
-          offset:  ((page?.value || 1) - 1) * (perPage?.value || 20)
-        }) as { data: ProductSelectionResponse };
+          offset: ((page?.value || 1) - 1) * (perPage?.value || 20),
+        })) as { data: ProductSelectionResponse };
 
         if (
           data?.productSelection?.productRefs?.results &&
@@ -242,27 +269,29 @@ const useStoreProducts = ({page, perPage}: {page?: TState, perPage?: TState}): U
           const products = data.productSelection.productRefs.results.map(
             (item, index) => {
               const product = item.product;
-              
+
               // Get the image URL with better fallbacks
               let imageUrl = 'https://via.placeholder.com/80';
               const masterVariant = product.masterData.current.masterVariant;
-              
+
               if (masterVariant.images && masterVariant.images.length > 0) {
                 imageUrl = masterVariant.images[0].url;
               }
-              
+
               // Add cache busting parameter to prevent browser caching issues
               if (imageUrl && !imageUrl.includes('via.placeholder.com')) {
                 // Add a unique timestamp and random parameter to prevent caching
-                const cacheBuster = `_cb=${Date.now()}_${index}_${Math.random().toString(36).substring(2, 8)}`;
-                imageUrl = imageUrl.includes('?') 
-                  ? `${imageUrl}&${cacheBuster}` 
+                const cacheBuster = `_cb=${Date.now()}_${index}_${Math.random()
+                  .toString(36)
+                  .substring(2, 8)}`;
+                imageUrl = imageUrl.includes('?')
+                  ? `${imageUrl}&${cacheBuster}`
                   : `${imageUrl}?${cacheBuster}`;
               }
-              
+
               // Get the best SKU with fallbacks
               const sku = masterVariant.sku || masterVariant.key || 'No SKU';
-              
+
               return {
                 id: product.id,
                 name: product.masterData.current.name || 'Unnamed product',
@@ -272,7 +301,9 @@ const useStoreProducts = ({page, perPage}: {page?: TState, perPage?: TState}): U
             }
           );
 
-          logger.info(`Successfully fetched ${products.length} products for store ${storeKey}`);
+          logger.info(
+            `Successfully fetched ${products.length} products for store ${storeKey}`
+          );
           return products;
         }
 
@@ -280,7 +311,11 @@ const useStoreProducts = ({page, perPage}: {page?: TState, perPage?: TState}): U
         return [];
       } catch (err) {
         logger.error(`Error fetching products for store ${storeKey}:`, err);
-        setError(err instanceof Error ? err : new Error(`Unknown error loading products for store ${storeKey}`));
+        setError(
+          err instanceof Error
+            ? err
+            : new Error(`Unknown error loading products for store ${storeKey}`)
+        );
         return [];
       } finally {
         setLoading(false);
@@ -300,31 +335,35 @@ const useStoreProducts = ({page, perPage}: {page?: TState, perPage?: TState}): U
       setError(null);
 
       try {
-        logger.info(`Adding ${productIds.length} products to store ${storeKey}`);
-        
+        logger.info(
+          `Adding ${productIds.length} products to store ${storeKey}`
+        );
+
         // Step 1: Get the product selection ID and version
-        const { data: selectionData } = await getProductSelectionByKey({
+        const { data: selectionData } = (await getProductSelectionByKey({
           key: storeKey,
-        }) as { data: ProductSelectionResponse };
-        
+        })) as { data: ProductSelectionResponse };
+
         if (!selectionData?.productSelection?.id) {
           throw new Error(`Product selection for store ${storeKey} not found`);
         }
-        
+
         const selectionId = selectionData.productSelection.id;
         const version = selectionData.productSelection.version;
-        
-        logger.info(`Found product selection: ${selectionId} (version ${version})`);
-        
+
+        logger.info(
+          `Found product selection: ${selectionId} (version ${version})`
+        );
+
         // Step 2: Create actions to add each product
-        const actions = productIds.map(productId => ({
+        const actions = productIds.map((productId) => ({
           addProduct: {
             product: {
               id: productId,
             },
           },
         }));
-        
+
         // Step 3: Execute the mutation to update the product selection
         const result = await updateProductSelection({
           variables: {
@@ -333,12 +372,16 @@ const useStoreProducts = ({page, perPage}: {page?: TState, perPage?: TState}): U
             actions,
           },
         });
-        
+
         logger.info('Product selection updated successfully:', result);
         return true;
       } catch (err) {
         logger.error(`Error adding products to store ${storeKey}:`, err);
-        setError(err instanceof Error ? err : new Error(`Unknown error adding products to store ${storeKey}`));
+        setError(
+          err instanceof Error
+            ? err
+            : new Error(`Unknown error adding products to store ${storeKey}`)
+        );
         return false;
       } finally {
         setLoading(false);
@@ -358,31 +401,35 @@ const useStoreProducts = ({page, perPage}: {page?: TState, perPage?: TState}): U
       setError(null);
 
       try {
-        logger.info(`Removing ${productIds.length} products from store ${storeKey}`);
-        
+        logger.info(
+          `Removing ${productIds.length} products from store ${storeKey}`
+        );
+
         // Step 1: Get the product selection ID and version
-        const { data: selectionData } = await getProductSelectionByKey({
+        const { data: selectionData } = (await getProductSelectionByKey({
           key: storeKey,
-        }) as { data: ProductSelectionResponse };
-        
+        })) as { data: ProductSelectionResponse };
+
         if (!selectionData?.productSelection?.id) {
           throw new Error(`Product selection for store ${storeKey} not found`);
         }
-        
+
         const selectionId = selectionData.productSelection.id;
         const version = selectionData.productSelection.version;
-        
-        logger.info(`Found product selection: ${selectionId} (version ${version})`);
-        
+
+        logger.info(
+          `Found product selection: ${selectionId} (version ${version})`
+        );
+
         // Step 2: Create actions to remove each product
-        const actions = productIds.map(productId => ({
+        const actions = productIds.map((productId) => ({
           removeProduct: {
             product: {
               id: productId,
             },
           },
         }));
-        
+
         // Step 3: Execute the mutation to update the product selection
         const result = await updateProductSelection({
           variables: {
@@ -391,12 +438,18 @@ const useStoreProducts = ({page, perPage}: {page?: TState, perPage?: TState}): U
             actions,
           },
         });
-        
+
         logger.info('Products successfully removed from selection:', result);
         return true;
       } catch (err) {
         logger.error(`Error removing products from store ${storeKey}:`, err);
-        setError(err instanceof Error ? err : new Error(`Unknown error removing products from store ${storeKey}`));
+        setError(
+          err instanceof Error
+            ? err
+            : new Error(
+                `Unknown error removing products from store ${storeKey}`
+              )
+        );
         return false;
       } finally {
         setLoading(false);
@@ -409,66 +462,82 @@ const useStoreProducts = ({page, perPage}: {page?: TState, perPage?: TState}): U
   const createProduct = async (productDraft: any) => {
     setLoading(true);
     setError(null);
-    
+
     try {
       // Add priceMode: Embedded to match the working example
       const finalProductDraft = {
         ...productDraft,
-        priceMode: "Embedded"
+        priceMode: 'Embedded',
       };
-      
-      logger.info('Creating product with data:', JSON.stringify(finalProductDraft, null, 2));
-      
+
+      logger.info(
+        'Creating product with data:',
+        JSON.stringify(finalProductDraft, null, 2)
+      );
+
       // Step 1: Create the product using the GraphQL mutation
       const result = await createProductMutation({
         variables: {
-          draft: finalProductDraft
-        }
+          draft: finalProductDraft,
+        },
       }).catch((error) => {
         // Extract GraphQL specific error details
         const graphqlErrors = error.graphQLErrors || [];
-        
+
         if (graphqlErrors.length > 0) {
-          const errorDetails = graphqlErrors.map((err: any) => {
-            logger.error('GraphQL error details:', JSON.stringify(err, null, 2));
-            return `${err.message}${err.extensions?.code ? ` (${err.extensions.code})` : ''}`;
-          }).join('\n');
+          const errorDetails = graphqlErrors
+            .map((err: any) => {
+              logger.error(
+                'GraphQL error details:',
+                JSON.stringify(err, null, 2)
+              );
+              return `${err.message}${
+                err.extensions?.code ? ` (${err.extensions.code})` : ''
+              }`;
+            })
+            .join('\n');
           logger.error('GraphQL errors:', errorDetails);
           throw new Error(`Failed to create product: ${errorDetails}`);
         } else if (error.networkError) {
           logger.error('Network error:', error.networkError);
-          throw new Error('Network error when creating product. Please try again.');
+          throw new Error(
+            'Network error when creating product. Please try again.'
+          );
         } else {
           logger.error('Unexpected error:', error);
           throw error;
         }
       });
-      
+
       // Type assertion to handle TypeScript type safety
       const data = result.data as CreateProductResponse;
-      
+
       if (!data?.createProduct?.id) {
         throw new Error('Failed to create product: No product ID returned');
       }
-      
+
       const productId = data.createProduct.id;
       logger.info('Product created successfully with ID:', productId);
-      
+
       // Step 2: Add the product to the store's product selection if a channel key is provided
       if (productDraft.masterVariant.prices?.[0]?.channel?.key) {
         const storeKey = productDraft.masterVariant.prices[0].channel.key;
-        
+
         // Add the newly created product to the store's product selection
         await addProductsToStore(storeKey, [productId]);
         logger.info(`Product ${productId} added to store ${storeKey}`);
       } else {
-        logger.warn('No channel key found in product draft, skipping add to product selection');
+        logger.warn(
+          'No channel key found in product draft, skipping add to product selection'
+        );
       }
-      
+
       return true;
     } catch (err) {
       logger.error('Error creating product:', err);
-      setError(err instanceof Error ? err : new Error('Unknown error creating product'));
+      setError(
+        err instanceof Error ? err : new Error('Unknown error creating product')
+      );
       return false;
     } finally {
       setLoading(false);
@@ -476,80 +545,106 @@ const useStoreProducts = ({page, perPage}: {page?: TState, perPage?: TState}): U
   };
 
   const searchProductsFunc = useCallback(
-    async (searchText: string, filters?: SearchFilterInput[]): Promise<ProductData[]> => {
+    async (
+      searchText: string,
+      filters?: SearchFilterInput[]
+    ): Promise<ProductData[]> => {
       setLoading(true);
       setError(null);
 
       try {
         logger.info(`Searching products with text: "${searchText}"`);
-        const response = await searchProducts({
+        const response = (await searchProducts({
           text: searchText,
-          filter: filters || []
-        }) as { data: ProductSearchResponse };
-        
+          filter: filters || [],
+        })) as { data: ProductSearchResponse };
+
         const { data } = response;
-        
+
         // Log the raw response for debugging
-        logger.info('Raw search response data structure:', 
-          JSON.stringify(data?.productProjectionSearch?.results?.[0] || {}, null, 2)
+        logger.info(
+          'Raw search response data structure:',
+          JSON.stringify(
+            data?.productProjectionSearch?.results?.[0] || {},
+            null,
+            2
+          )
         );
 
         if (
           data?.productProjectionSearch?.results &&
           Array.isArray(data.productProjectionSearch.results)
         ) {
-          logger.info(`Search found ${data.productProjectionSearch.results.length} products`);
-          
+          logger.info(
+            `Search found ${data.productProjectionSearch.results.length} products`
+          );
+
           const products = data.productProjectionSearch.results.map(
             (product, index) => {
-              logger.info(`Processing product ${index + 1}/${data.productProjectionSearch.results.length}, ID: ${product.id}`);
-              
+              logger.info(
+                `Processing product ${index + 1}/${
+                  data.productProjectionSearch.results.length
+                }, ID: ${product.id}`
+              );
+
               // Extract name from nameAllLocales, preferring en-US
               let productName = 'Unnamed product';
               if (product.nameAllLocales && product.nameAllLocales.length > 0) {
-                logger.info(`nameAllLocales for product ${product.id}:`, 
+                logger.info(
+                  `nameAllLocales for product ${product.id}:`,
                   JSON.stringify(product.nameAllLocales, null, 2)
                 );
-                
+
                 // Try to find the en-US locale first
-                const enUsName = product.nameAllLocales.find(name => name.locale === 'en-US');
+                const enUsName = product.nameAllLocales.find(
+                  (name) => name.locale === 'en-US'
+                );
                 if (enUsName) {
                   productName = enUsName.value;
                   logger.info(`Using en-US locale name: "${productName}"`);
                 } else {
                   // Fallback to first name if en-US not available
                   productName = product.nameAllLocales[0].value;
-                  logger.info(`No en-US locale found, using first available: "${productName}"`);
+                  logger.info(
+                    `No en-US locale found, using first available: "${productName}"`
+                  );
                 }
               } else {
-                logger.info(`No nameAllLocales found for product ${product.id}`);
+                logger.info(
+                  `No nameAllLocales found for product ${product.id}`
+                );
               }
-              
+
               // Get image URL from masterVariant
               let imageUrl = 'https://via.placeholder.com/80';
-              if (product.masterVariant?.images && product.masterVariant.images.length > 0) {
+              if (
+                product.masterVariant?.images &&
+                product.masterVariant.images.length > 0
+              ) {
                 imageUrl = product.masterVariant.images[0].url;
                 logger.info(`Found image URL: ${imageUrl}`);
               } else {
                 logger.info(`No images found, using placeholder`);
               }
-              
+
               // Add cache busting parameter with product ID to ensure uniqueness
               if (imageUrl && !imageUrl.includes('via.placeholder.com')) {
                 const productSpecificId = `product_${product.id}`;
-                const cacheBuster = `_cb=${Date.now()}_${productSpecificId}_${Math.random().toString(36).substring(2, 8)}`;
-                imageUrl = imageUrl.includes('?') 
-                  ? `${imageUrl}&${cacheBuster}` 
+                const cacheBuster = `_cb=${Date.now()}_${productSpecificId}_${Math.random()
+                  .toString(36)
+                  .substring(2, 8)}`;
+                imageUrl = imageUrl.includes('?')
+                  ? `${imageUrl}&${cacheBuster}`
                   : `${imageUrl}?${cacheBuster}`;
               }
-              
+
               const result = {
                 id: product.id,
                 name: productName,
                 image: imageUrl,
                 sku: product.masterVariant?.sku || 'No SKU',
               };
-              
+
               logger.info(`Final product data:`, result);
               return result;
             }
@@ -562,7 +657,11 @@ const useStoreProducts = ({page, perPage}: {page?: TState, perPage?: TState}): U
         return [];
       } catch (err) {
         logger.error(`Error searching products:`, err);
-        setError(err instanceof Error ? err : new Error(`Unknown error searching products`));
+        setError(
+          err instanceof Error
+            ? err
+            : new Error(`Unknown error searching products`)
+        );
         return [];
       } finally {
         setLoading(false);
@@ -582,4 +681,4 @@ const useStoreProducts = ({page, perPage}: {page?: TState, perPage?: TState}): U
   };
 };
 
-export default useStoreProducts; 
+export default useStoreProducts;

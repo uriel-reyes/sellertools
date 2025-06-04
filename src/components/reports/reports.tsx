@@ -6,19 +6,19 @@ import PrimaryButton from '@commercetools-uikit/primary-button';
 import LoadingSpinner from '@commercetools-uikit/loading-spinner';
 import { ContentNotification } from '@commercetools-uikit/notifications';
 import { useAuthContext } from '../../contexts/auth-context';
-import { 
-  useSalesPerformance, 
-  useTotalSales, 
+import {
+  useSalesPerformance,
+  useTotalSales,
   useAverageOrderValue,
-  useTopProducts
+  useTopProducts,
 } from '../../hooks/use-reports';
 import type { TimePeriod as SalesPerformancePeriod } from '../../hooks/use-reports/use-sales-performance';
 import type { TimePeriod as TopProductsPeriod } from '../../hooks/use-reports/use-top-products';
-import { 
-  SalesPerformanceChart, 
-  TotalSalesStats, 
-  AverageOrderValueStats, 
-  TopProductsList 
+import {
+  SalesPerformanceChart,
+  TotalSalesStats,
+  AverageOrderValueStats,
+  TopProductsList,
 } from './components';
 import styles from './reports.module.css';
 
@@ -40,29 +40,31 @@ const Reports: React.FC<Props> = ({ onBack, linkToWelcome }) => {
   const { storeKey } = useAuthContext();
 
   // State for selected periods
-  const [salesPeriod, setSalesPeriod] = useState<SalesPerformancePeriod>('year');
-  const [topProductsPeriod, setTopProductsPeriod] = useState<TopProductsPeriod>('month');
+  const [salesPeriod, setSalesPeriod] =
+    useState<SalesPerformancePeriod>('year');
+  const [topProductsPeriod, setTopProductsPeriod] =
+    useState<TopProductsPeriod>('month');
 
   // Initialize hooks
-  const { 
-    salesData, 
-    loading: salesLoading, 
-    error: salesError, 
-    fetchSalesData 
+  const {
+    salesData,
+    loading: salesLoading,
+    error: salesError,
+    fetchSalesData,
   } = useSalesPerformance();
 
   const {
     totals: salesTotals,
     loading: totalSalesLoading,
     error: totalSalesError,
-    fetchTotalSales
+    fetchTotalSales,
   } = useTotalSales();
 
   const {
     averages,
     loading: avgOrderLoading,
     error: avgOrderError,
-    fetchAverageOrderValues
+    fetchAverageOrderValues,
   } = useAverageOrderValue();
 
   const {
@@ -70,7 +72,7 @@ const Reports: React.FC<Props> = ({ onBack, linkToWelcome }) => {
     loading: topProductsLoading,
     error: topProductsError,
     currentPeriod,
-    fetchTopProducts
+    fetchTopProducts,
   } = useTopProducts();
 
   // Load data on component mount and when store key changes
@@ -81,7 +83,13 @@ const Reports: React.FC<Props> = ({ onBack, linkToWelcome }) => {
       fetchAverageOrderValues(storeKey);
       fetchTopProducts(storeKey, topProductsPeriod);
     }
-  }, [storeKey, fetchSalesData, fetchTotalSales, fetchAverageOrderValues, fetchTopProducts]);
+  }, [
+    storeKey,
+    fetchSalesData,
+    fetchTotalSales,
+    fetchAverageOrderValues,
+    fetchTopProducts,
+  ]);
 
   // Handle period changes
   const handleSalesPeriodChange = (event: any) => {
@@ -101,13 +109,18 @@ const Reports: React.FC<Props> = ({ onBack, linkToWelcome }) => {
   };
 
   // Determine if any data is loading
-  const isLoading = salesLoading && totalSalesLoading && avgOrderLoading && topProductsLoading;
+  const isLoading =
+    salesLoading && totalSalesLoading && avgOrderLoading && topProductsLoading;
 
   // Render the percent change indicator
   const renderPercentChange = (change: number) => {
     const isPositive = change >= 0;
     return (
-      <div className={`${styles.percentChange} ${isPositive ? styles.positive : styles.negative}`}>
+      <div
+        className={`${styles.percentChange} ${
+          isPositive ? styles.positive : styles.negative
+        }`}
+      >
         {isPositive ? '↑' : '↓'} {Math.abs(change).toFixed(1)}% from last period
       </div>
     );
@@ -120,22 +133,26 @@ const Reports: React.FC<Props> = ({ onBack, linkToWelcome }) => {
           <div>
             <Text.Headline as="h1">Reports</Text.Headline>
             <Text.Subheadline>
-              Store: <span className={styles.storeKeyHighlight}>{storeKey}</span>
+              Store:{' '}
+              <span className={styles.storeKeyHighlight}>{storeKey}</span>
             </Text.Subheadline>
           </div>
           <Spacings.Inline scale="s">
-            <PrimaryButton
-              label="Back to Dashboard"
-              onClick={onBack}
-            />
+            <PrimaryButton label="Back to Dashboard" onClick={onBack} />
           </Spacings.Inline>
         </div>
 
         {/* Error handling */}
-        {(salesError || totalSalesError || avgOrderError || topProductsError) && (
+        {(salesError ||
+          totalSalesError ||
+          avgOrderError ||
+          topProductsError) && (
           <ContentNotification type="error">
             <Text.Body>
-              {salesError?.message || totalSalesError?.message || avgOrderError?.message || topProductsError?.message}
+              {salesError?.message ||
+                totalSalesError?.message ||
+                avgOrderError?.message ||
+                topProductsError?.message}
             </Text.Body>
           </ContentNotification>
         )}
@@ -148,7 +165,7 @@ const Reports: React.FC<Props> = ({ onBack, linkToWelcome }) => {
         ) : (
           <>
             {/* Total Sales Stats */}
-            <TotalSalesStats 
+            <TotalSalesStats
               salesTotals={salesTotals}
               formatCurrency={formatCurrency}
               renderPercentChange={renderPercentChange}
@@ -186,4 +203,4 @@ const Reports: React.FC<Props> = ({ onBack, linkToWelcome }) => {
   );
 };
 
-export default Reports; 
+export default Reports;

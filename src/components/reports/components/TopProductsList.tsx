@@ -33,7 +33,9 @@ const TopProductsList: React.FC<TopProductsListProps> = ({
   return (
     <Card className={styles.chartCard}>
       <div className={styles.chartHeader}>
-        <Text.Headline as="h2">Top 5 Products by Revenue for {currentPeriod}</Text.Headline>
+        <Text.Headline as="h2">
+          Top 5 Products by Revenue for {currentPeriod}
+        </Text.Headline>
         <SelectField
           horizontalConstraint={6}
           title="Time Period"
@@ -53,9 +55,9 @@ const TopProductsList: React.FC<TopProductsListProps> = ({
           {topProducts.map((product) => (
             <div key={product.productId} className={styles.topProductCard}>
               {product.imageUrl ? (
-                <img 
-                  src={product.imageUrl} 
-                  alt={product.name} 
+                <img
+                  src={product.imageUrl}
+                  alt={product.name}
                   className={styles.productImage}
                 />
               ) : (
@@ -67,9 +69,7 @@ const TopProductsList: React.FC<TopProductsListProps> = ({
               <div className={styles.productRevenue}>
                 {formatCurrency(product.revenue, product.currencyCode)}
               </div>
-              <div className={styles.statLabel}>
-                Qty: {product.quantity}
-              </div>
+              <div className={styles.statLabel}>Qty: {product.quantity}</div>
             </div>
           ))}
         </div>
@@ -80,4 +80,4 @@ const TopProductsList: React.FC<TopProductsListProps> = ({
   );
 };
 
-export default TopProductsList; 
+export default TopProductsList;

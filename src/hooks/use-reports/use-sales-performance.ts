@@ -78,14 +78,44 @@ const getLabelsForPeriod = (period: TimePeriod): string[] => {
     case 'week':
       return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     case 'month':
-      const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+      const daysInMonth = new Date(
+        new Date().getFullYear(),
+        new Date().getMonth() + 1,
+        0
+      ).getDate();
       return Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString());
     case 'quarter':
       const currentQuarter = Math.floor(new Date().getMonth() / 3);
-      const monthsInQuarter = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].slice(currentQuarter * 3, (currentQuarter + 1) * 3);
+      const monthsInQuarter = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ].slice(currentQuarter * 3, (currentQuarter + 1) * 3);
       return monthsInQuarter;
     case 'year':
-      return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
     default:
       return [];
   }
@@ -103,79 +133,85 @@ const useSalesPerformance = (): UseSalesPerformanceHook => {
     skip: true, // Skip on initial render
   });
 
-  const fetchSalesData = useCallback(async (storeKey: string, period: TimePeriod) => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const startDate = getStartDateForPeriod(period);
-      const formattedStartDate = startDate.toISOString();
-      
-      // Create a where query for the store and date range
-      const whereQuery = `store(key="${storeKey}") AND createdAt >= "${formattedStartDate}"`;
-      
-      const { data } = await refetch({
-        where: whereQuery,
-        sort: ["createdAt asc"],
-      });
-      
-      if (!data || !data.orders) {
-        setSalesData([]);
-        return;
+  const fetchSalesData = useCallback(
+    async (storeKey: string, period: TimePeriod) => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const startDate = getStartDateForPeriod(period);
+        const formattedStartDate = startDate.toISOString();
+
+        // Create a where query for the store and date range
+        const whereQuery = `store(key="${storeKey}") AND createdAt >= "${formattedStartDate}"`;
+
+        const { data } = await refetch({
+          where: whereQuery,
+          sort: ['createdAt asc'],
+        });
+
+        if (!data || !data.orders) {
+          setSalesData([]);
+          return;
+        }
+
+        const { results } = data.orders;
+
+        // Default to USD if mixed currencies
+        const defaultCurrency =
+          results.length > 0 ? results[0].totalPrice.currencyCode : 'USD';
+
+        // Get the appropriate labels for the period
+        const labels = getLabelsForPeriod(period);
+
+        // Initialize data points with zero values
+        const initialDataPoints: SalesDataPoint[] = labels.map((label) => ({
+          label,
+          value: 0,
+          currencyCode: defaultCurrency,
+        }));
+
+        // Group orders by the appropriate time unit and sum their values
+        results.forEach((order: Order) => {
+          const orderDate = new Date(order.createdAt);
+          let index;
+
+          switch (period) {
+            case 'week':
+              index = orderDate.getDay(); // 0-6 for Sunday-Saturday
+              break;
+            case 'month':
+              index = orderDate.getDate() - 1; // 0-30 for days of month
+              break;
+            case 'quarter':
+              // Calculate month within quarter (0-2)
+              index = orderDate.getMonth() % 3;
+              break;
+            case 'year':
+              index = orderDate.getMonth(); // 0-11 for January-December
+              break;
+            default:
+              index = -1;
+          }
+
+          // Add order value to corresponding data point
+          if (index >= 0 && index < initialDataPoints.length) {
+            initialDataPoints[index].value += order.totalPrice.centAmount / 100; // Convert cents to dollars
+          }
+        });
+
+        setSalesData(initialDataPoints);
+      } catch (err) {
+        console.error('Error fetching sales data:', err);
+        setError(
+          err instanceof Error ? err : new Error('Failed to fetch sales data')
+        );
+      } finally {
+        setLoading(false);
       }
-      
-      const { results } = data.orders;
-      
-      // Default to USD if mixed currencies
-      const defaultCurrency = results.length > 0 ? results[0].totalPrice.currencyCode : 'USD';
-      
-      // Get the appropriate labels for the period
-      const labels = getLabelsForPeriod(period);
-      
-      // Initialize data points with zero values
-      const initialDataPoints: SalesDataPoint[] = labels.map(label => ({
-        label,
-        value: 0,
-        currencyCode: defaultCurrency,
-      }));
-      
-      // Group orders by the appropriate time unit and sum their values
-      results.forEach((order: Order) => {
-        const orderDate = new Date(order.createdAt);
-        let index;
-        
-        switch (period) {
-          case 'week':
-            index = orderDate.getDay(); // 0-6 for Sunday-Saturday
-            break;
-          case 'month':
-            index = orderDate.getDate() - 1; // 0-30 for days of month
-            break;
-          case 'quarter':
-            // Calculate month within quarter (0-2)
-            index = orderDate.getMonth() % 3;
-            break;
-          case 'year':
-            index = orderDate.getMonth(); // 0-11 for January-December
-            break;
-          default:
-            index = -1;
-        }
-        
-        // Add order value to corresponding data point
-        if (index >= 0 && index < initialDataPoints.length) {
-          initialDataPoints[index].value += order.totalPrice.centAmount / 100; // Convert cents to dollars
-        }
-      });
-      
-      setSalesData(initialDataPoints);
-    } catch (err) {
-      console.error('Error fetching sales data:', err);
-      setError(err instanceof Error ? err : new Error('Failed to fetch sales data'));
-    } finally {
-      setLoading(false);
-    }
-  }, [refetch]);
+    },
+    [refetch]
+  );
 
   return {
     salesData,
@@ -185,4 +221,4 @@ const useSalesPerformance = (): UseSalesPerformanceHook => {
   };
 };
 
-export default useSalesPerformance; 
+export default useSalesPerformance;

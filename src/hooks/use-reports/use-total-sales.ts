@@ -108,120 +108,130 @@ const useTotalSales = (): UseTotalSalesHook => {
     skip: true, // Skip on initial render
   });
 
-  const fetchTotalSales = useCallback(async (storeKey: string) => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const now = new Date();
-      const startOfToday = getStartOfDay(now);
-      const startOfWeek = getStartOfWeek(now);
-      const startOfPrevWeek = getStartOfPreviousWeek(now);
-      const startOfMonth = getStartOfMonth(now);
-      const startOfPrevMonth = getStartOfPreviousMonth(now);
-      
-      // Create a where query for the store and from the beginning of the previous month
-      const whereQuery = `store(key="${storeKey}") AND createdAt >= "${startOfPrevMonth.toISOString()}"`;
-      
-      const { data } = await refetch({
-        where: whereQuery,
-        sort: ["createdAt desc"],
-      });
-      
-      if (!data || !data.orders) {
-        return;
+  const fetchTotalSales = useCallback(
+    async (storeKey: string) => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const now = new Date();
+        const startOfToday = getStartOfDay(now);
+        const startOfWeek = getStartOfWeek(now);
+        const startOfPrevWeek = getStartOfPreviousWeek(now);
+        const startOfMonth = getStartOfMonth(now);
+        const startOfPrevMonth = getStartOfPreviousMonth(now);
+
+        // Create a where query for the store and from the beginning of the previous month
+        const whereQuery = `store(key="${storeKey}") AND createdAt >= "${startOfPrevMonth.toISOString()}"`;
+
+        const { data } = await refetch({
+          where: whereQuery,
+          sort: ['createdAt desc'],
+        });
+
+        if (!data || !data.orders) {
+          return;
+        }
+
+        const { results } = data.orders;
+
+        // Default to USD if mixed currencies
+        const defaultCurrency =
+          results.length > 0 ? results[0].totalPrice.currencyCode : 'USD';
+
+        // Initialize calculations
+        let todayAmount = 0;
+        let todayOrderCount = 0;
+
+        let weekAmount = 0;
+        let weekOrderCount = 0;
+
+        let prevWeekAmount = 0;
+        let prevWeekOrderCount = 0;
+
+        let monthAmount = 0;
+        let monthOrderCount = 0;
+
+        let prevMonthAmount = 0;
+        let prevMonthOrderCount = 0;
+
+        // Calculate totals
+        results.forEach((order: Order) => {
+          const orderDate = new Date(order.createdAt);
+          const orderAmount = order.totalPrice.centAmount / 100; // Convert cents to dollars
+
+          // Today's orders
+          if (orderDate >= startOfToday) {
+            todayAmount += orderAmount;
+            todayOrderCount++;
+          }
+
+          // This week's orders
+          if (orderDate >= startOfWeek) {
+            weekAmount += orderAmount;
+            weekOrderCount++;
+          }
+          // Previous week's orders
+          else if (orderDate >= startOfPrevWeek) {
+            prevWeekAmount += orderAmount;
+            prevWeekOrderCount++;
+          }
+
+          // This month's orders
+          if (orderDate >= startOfMonth) {
+            monthAmount += orderAmount;
+            monthOrderCount++;
+          }
+          // Previous month's orders
+          else if (orderDate >= startOfPrevMonth) {
+            prevMonthAmount += orderAmount;
+            prevMonthOrderCount++;
+          }
+        });
+
+        // Calculate percent changes
+        const weekPercentChange =
+          prevWeekAmount === 0
+            ? 0
+            : ((weekAmount - prevWeekAmount) / prevWeekAmount) * 100;
+
+        const monthPercentChange =
+          prevMonthAmount === 0
+            ? 0
+            : ((monthAmount - prevMonthAmount) / prevMonthAmount) * 100;
+
+        setTotals({
+          today: {
+            amount: todayAmount,
+            orderCount: todayOrderCount,
+            currencyCode: defaultCurrency,
+          },
+          week: {
+            amount: weekAmount,
+            orderCount: weekOrderCount,
+            currencyCode: defaultCurrency,
+            percentChange: weekPercentChange,
+          },
+          month: {
+            amount: monthAmount,
+            orderCount: monthOrderCount,
+            currencyCode: defaultCurrency,
+            percentChange: monthPercentChange,
+          },
+        });
+      } catch (err) {
+        console.error('Error fetching total sales data:', err);
+        setError(
+          err instanceof Error
+            ? err
+            : new Error('Failed to fetch total sales data')
+        );
+      } finally {
+        setLoading(false);
       }
-      
-      const { results } = data.orders;
-      
-      // Default to USD if mixed currencies
-      const defaultCurrency = results.length > 0 ? results[0].totalPrice.currencyCode : 'USD';
-      
-      // Initialize calculations
-      let todayAmount = 0;
-      let todayOrderCount = 0;
-      
-      let weekAmount = 0;
-      let weekOrderCount = 0;
-      
-      let prevWeekAmount = 0;
-      let prevWeekOrderCount = 0;
-      
-      let monthAmount = 0;
-      let monthOrderCount = 0;
-      
-      let prevMonthAmount = 0;
-      let prevMonthOrderCount = 0;
-      
-      // Calculate totals
-      results.forEach((order: Order) => {
-        const orderDate = new Date(order.createdAt);
-        const orderAmount = order.totalPrice.centAmount / 100; // Convert cents to dollars
-        
-        // Today's orders
-        if (orderDate >= startOfToday) {
-          todayAmount += orderAmount;
-          todayOrderCount++;
-        }
-        
-        // This week's orders
-        if (orderDate >= startOfWeek) {
-          weekAmount += orderAmount;
-          weekOrderCount++;
-        } 
-        // Previous week's orders
-        else if (orderDate >= startOfPrevWeek) {
-          prevWeekAmount += orderAmount;
-          prevWeekOrderCount++;
-        }
-        
-        // This month's orders
-        if (orderDate >= startOfMonth) {
-          monthAmount += orderAmount;
-          monthOrderCount++;
-        } 
-        // Previous month's orders
-        else if (orderDate >= startOfPrevMonth) {
-          prevMonthAmount += orderAmount;
-          prevMonthOrderCount++;
-        }
-      });
-      
-      // Calculate percent changes
-      const weekPercentChange = prevWeekAmount === 0 
-        ? 0 
-        : ((weekAmount - prevWeekAmount) / prevWeekAmount) * 100;
-      
-      const monthPercentChange = prevMonthAmount === 0 
-        ? 0 
-        : ((monthAmount - prevMonthAmount) / prevMonthAmount) * 100;
-      
-      setTotals({
-        today: {
-          amount: todayAmount,
-          orderCount: todayOrderCount,
-          currencyCode: defaultCurrency,
-        },
-        week: {
-          amount: weekAmount,
-          orderCount: weekOrderCount,
-          currencyCode: defaultCurrency,
-          percentChange: weekPercentChange,
-        },
-        month: {
-          amount: monthAmount,
-          orderCount: monthOrderCount,
-          currencyCode: defaultCurrency,
-          percentChange: monthPercentChange,
-        },
-      });
-    } catch (err) {
-      console.error('Error fetching total sales data:', err);
-      setError(err instanceof Error ? err : new Error('Failed to fetch total sales data'));
-    } finally {
-      setLoading(false);
-    }
-  }, [refetch]);
+    },
+    [refetch]
+  );
 
   return {
     totals,
@@ -231,4 +241,4 @@ const useTotalSales = (): UseTotalSalesHook => {
   };
 };
 
-export default useTotalSales; 
+export default useTotalSales;

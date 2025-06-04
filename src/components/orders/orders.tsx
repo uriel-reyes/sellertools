@@ -34,23 +34,29 @@ const Orders: React.FC<OrdersProps> = ({ onBack, linkToWelcome }) => {
   const { storeKey } = useAuthContext();
   const { page, perPage } = usePaginationState();
   const tableSorting = useDataTableSortingState();
-  const { 
-    fetchOrdersByStore, 
-    updateOrderState, 
-    transitionOrderState, 
-    fetchOrderStates, 
-    orders, 
-    orderStates, 
-    loading, 
-    error, 
-    total 
-  } = useOrders({page, perPage, tableSorting});
-  
+  const {
+    fetchOrdersByStore,
+    updateOrderState,
+    transitionOrderState,
+    fetchOrderStates,
+    orders,
+    orderStates,
+    loading,
+    error,
+    total,
+  } = useOrders({ page, perPage, tableSorting });
+
   const [isFirstLoad, setIsFirstLoad] = useState(true);
-  const [statusUpdateSuccess, setStatusUpdateSuccess] = useState<string | null>(null);
-  const [statusUpdateError, setStatusUpdateError] = useState<string | null>(null);
+  const [statusUpdateSuccess, setStatusUpdateSuccess] = useState<string | null>(
+    null
+  );
+  const [statusUpdateError, setStatusUpdateError] = useState<string | null>(
+    null
+  );
   const [lastRefreshed, setLastRefreshed] = useState<string>('');
-  const [updatingOrderIds, setUpdatingOrderIds] = useState<Record<string, boolean>>({});
+  const [updatingOrderIds, setUpdatingOrderIds] = useState<
+    Record<string, boolean>
+  >({});
 
   useEffect(() => {
     // Load order states on component mount
@@ -76,76 +82,106 @@ const Orders: React.FC<OrdersProps> = ({ onBack, linkToWelcome }) => {
         setStatusUpdateSuccess(null);
         setStatusUpdateError(null);
       }, 5000);
-      
+
       return () => clearTimeout(timer);
     }
   }, [statusUpdateSuccess, statusUpdateError]);
-
 
   const handleRowClick = (row: any) => {
     // Skip handling if we don't have the raw data
     if (!row || !row.rawData) {
       return;
     }
-    
+
     push(`${linkToWelcome}/orders/${row.rawData.id}`);
   };
 
   // Modified handle functions to show loading state - memoized with useCallback
-  const handleStatusChange = useCallback(async (event: any, orderId: string, version: number) => {
-    const newState = event.target.value;
-    
-    if (!newState) return;
-    
-    setStatusUpdateSuccess(null);
-    setStatusUpdateError(null);
-    
-    // Set this specific order as updating
-    setUpdatingOrderIds(prev => ({ ...prev, [orderId]: true }));
-    
-    try {
-      const result = await updateOrderState(orderId, version, newState);
-      
-      if (result) {
-        setStatusUpdateSuccess(`Order ${orderId} status updated to ${newState}`);
-      } else {
-        setStatusUpdateError(`Failed to update order ${orderId} status`);
-      }
-    } catch (err) {
-      setStatusUpdateError(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    } finally {
-      // Clear the updating state
-      setUpdatingOrderIds(prev => ({ ...prev, [orderId]: false }));
-    }
-  }, [updateOrderState, setStatusUpdateSuccess, setStatusUpdateError, setUpdatingOrderIds]);
+  const handleStatusChange = useCallback(
+    async (event: any, orderId: string, version: number) => {
+      const newState = event.target.value;
 
-  const handleStateChange = useCallback(async (event: any, orderId: string, version: number) => {
-    const newStateKey = event.target.value;
-    
-    if (!newStateKey) return;
-    
-    setStatusUpdateSuccess(null);
-    setStatusUpdateError(null);
-    
-    // Set this specific order as updating
-    setUpdatingOrderIds(prev => ({ ...prev, [orderId]: true }));
-    
-    try {
-      const result = await transitionOrderState(orderId, version, newStateKey);
-      
-      if (result) {
-        const stateName = orderStates.find(state => state.key === newStateKey)?.name || newStateKey;
-        setStatusUpdateSuccess(`Order ${orderId} state updated to ${stateName}`);
-      } else {
-        setStatusUpdateError(`Failed to update order ${orderId} state`);
+      if (!newState) return;
+
+      setStatusUpdateSuccess(null);
+      setStatusUpdateError(null);
+
+      // Set this specific order as updating
+      setUpdatingOrderIds((prev) => ({ ...prev, [orderId]: true }));
+
+      try {
+        const result = await updateOrderState(orderId, version, newState);
+
+        if (result) {
+          setStatusUpdateSuccess(
+            `Order ${orderId} status updated to ${newState}`
+          );
+        } else {
+          setStatusUpdateError(`Failed to update order ${orderId} status`);
+        }
+      } catch (err) {
+        setStatusUpdateError(
+          `Error: ${err instanceof Error ? err.message : 'Unknown error'}`
+        );
+      } finally {
+        // Clear the updating state
+        setUpdatingOrderIds((prev) => ({ ...prev, [orderId]: false }));
       }
-    } catch (err) {
-      setStatusUpdateError(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    } finally {
-      // Clear the updating state
-      setUpdatingOrderIds(prev => ({ ...prev, [orderId]: false }));
-    }
-  }, [transitionOrderState, orderStates, setStatusUpdateSuccess, setStatusUpdateError, setUpdatingOrderIds]);
+    },
+    [
+      updateOrderState,
+      setStatusUpdateSuccess,
+      setStatusUpdateError,
+      setUpdatingOrderIds,
+    ]
+  );
+
+  const handleStateChange = useCallback(
+    async (event: any, orderId: string, version: number) => {
+      const newStateKey = event.target.value;
+
+      if (!newStateKey) return;
+
+      setStatusUpdateSuccess(null);
+      setStatusUpdateError(null);
+
+      // Set this specific order as updating
+      setUpdatingOrderIds((prev) => ({ ...prev, [orderId]: true }));
+
+      try {
+        const result = await transitionOrderState(
+          orderId,
+          version,
+          newStateKey
+        );
+
+        if (result) {
+          const stateName =
+            orderStates.find((state) => state.key === newStateKey)?.name ||
+            newStateKey;
+          setStatusUpdateSuccess(
+            `Order ${orderId} state updated to ${stateName}`
+          );
+        } else {
+          setStatusUpdateError(`Failed to update order ${orderId} state`);
+        }
+      } catch (err) {
+        setStatusUpdateError(
+          `Error: ${err instanceof Error ? err.message : 'Unknown error'}`
+        );
+      } finally {
+        // Clear the updating state
+        setUpdatingOrderIds((prev) => ({ ...prev, [orderId]: false }));
+      }
+    },
+    [
+      transitionOrderState,
+      orderStates,
+      setStatusUpdateSuccess,
+      setStatusUpdateError,
+      setUpdatingOrderIds,
+    ]
+  );
 
   const handleRefreshOrders = useCallback(() => {
     if (storeKey) {
@@ -157,97 +193,118 @@ const Orders: React.FC<OrdersProps> = ({ onBack, linkToWelcome }) => {
   }, [storeKey, fetchOrdersByStore, setLastRefreshed]);
 
   // Map order states to select options - memoized
-  const orderStateOptions = useMemo(() => 
-    orderStates.map(state => ({
-      value: state.key,
-      label: state.name
-    })), 
+  const orderStateOptions = useMemo(
+    () =>
+      orderStates.map((state) => ({
+        value: state.key,
+        label: state.name,
+      })),
     [orderStates]
   );
 
   // Define columns for the table - memoized
-  const columns = useMemo(() => [
-    { key: 'createdAt', label: 'Date', isSortable: true },
-    { key: 'orderNumber', label: 'Order Number', isSortable: true },
-    { key: 'customerName', label: 'Customer' },
-    { key: 'total', label: 'Total'},
-    { 
-      key: 'state', 
-      label: 'State', 
-      renderItem: (row: any) => {
-        const handleStateClick = (e: React.MouseEvent) => {
-          // Stop the click from propagating to the row
-          e.stopPropagation();
-        };
-        
-        const isUpdating = updatingOrderIds[row.id] === true;
-        
-        return (
-          <div onClick={handleStateClick} className={isUpdating ? styles.selectLoading : undefined}>
-            <SelectField
-              title=""
-              name={`state-${row.id}`}
-              value={row.stateKey || ''}
-              options={orderStateOptions}
-              onChange={(event) => handleStateChange(event, row.rawData.id, row.rawData.version)}
-              data-testid={`state-selector-${row.id}`}
-              horizontalConstraint="scale"
-              isDisabled={orderStateOptions.length === 0 || isUpdating}
-              hasWarning={isUpdating}
-            />
-          </div>
-        );
-      }
-    },
-    { 
-      key: 'status', 
-      label: 'Status', 
-      renderItem: (row: any) => {
-        const handleStatusClick = (e: React.MouseEvent) => {
-          // Stop the click from propagating to the row
-          e.stopPropagation();
-        };
-        
-        const isUpdating = updatingOrderIds[row.id] === true;
-        
-        return (
-          <div onClick={handleStatusClick} className={isUpdating ? styles.selectLoading : undefined}>
-            <SelectField
-              title=""
-              name={`status-${row.id}`}
-              value={row.status}
-              options={ORDER_STATES}
-              onChange={(event) => handleStatusChange(event, row.rawData.id, row.rawData.version)}
-              data-testid={`status-selector-${row.id}`}
-              horizontalConstraint="scale"
-              isDisabled={isUpdating}
-              hasWarning={isUpdating}
-            />
-          </div>
-        );
-      }
-    },
-  ], [orderStateOptions, updatingOrderIds, handleStateChange, handleStatusChange]);
+  const columns = useMemo(
+    () => [
+      { key: 'createdAt', label: 'Date', isSortable: true },
+      { key: 'orderNumber', label: 'Order Number', isSortable: true },
+      { key: 'customerName', label: 'Customer' },
+      { key: 'total', label: 'Total' },
+      {
+        key: 'state',
+        label: 'State',
+        renderItem: (row: any) => {
+          const handleStateClick = (e: React.MouseEvent) => {
+            // Stop the click from propagating to the row
+            e.stopPropagation();
+          };
+
+          const isUpdating = updatingOrderIds[row.id] === true;
+
+          return (
+            <div
+              onClick={handleStateClick}
+              className={isUpdating ? styles.selectLoading : undefined}
+            >
+              <SelectField
+                title=""
+                name={`state-${row.id}`}
+                value={row.stateKey || ''}
+                options={orderStateOptions}
+                onChange={(event) =>
+                  handleStateChange(event, row.rawData.id, row.rawData.version)
+                }
+                data-testid={`state-selector-${row.id}`}
+                horizontalConstraint="scale"
+                isDisabled={orderStateOptions.length === 0 || isUpdating}
+                hasWarning={isUpdating}
+              />
+            </div>
+          );
+        },
+      },
+      {
+        key: 'status',
+        label: 'Status',
+        renderItem: (row: any) => {
+          const handleStatusClick = (e: React.MouseEvent) => {
+            // Stop the click from propagating to the row
+            e.stopPropagation();
+          };
+
+          const isUpdating = updatingOrderIds[row.id] === true;
+
+          return (
+            <div
+              onClick={handleStatusClick}
+              className={isUpdating ? styles.selectLoading : undefined}
+            >
+              <SelectField
+                title=""
+                name={`status-${row.id}`}
+                value={row.status}
+                options={ORDER_STATES}
+                onChange={(event) =>
+                  handleStatusChange(event, row.rawData.id, row.rawData.version)
+                }
+                data-testid={`status-selector-${row.id}`}
+                horizontalConstraint="scale"
+                isDisabled={isUpdating}
+                hasWarning={isUpdating}
+              />
+            </div>
+          );
+        },
+      },
+    ],
+    [orderStateOptions, updatingOrderIds, handleStateChange, handleStatusChange]
+  );
 
   // Map orders to simple row format - memoized
-  const rows = useMemo(() => 
-    orders
-      .filter(order => {
-        // Double-check that the order belongs to this store
-        // This is a safety measure in case the API returns orders from other stores
-        return true; // The filtering should be handled by the API query
-      })
-      .map(order => ({
-        id: order.id,
-        createdAt: order.createdAt,
-        orderNumber: order.orderNumber || 'N/A',
-        customerName: order.customer?.firstName + ' ' + order.customer?.lastName || order.customerEmail || 'Unknown',
-        total: formatPrice(order.totalPrice.centAmount, order.totalPrice.currencyCode),
-        stateName: order.state?.name || 'Not set',
-        stateKey: order.state?.key || '',
-        status: order.orderState,
-        rawData: order
-      })),
+  const rows = useMemo(
+    () =>
+      orders
+        .filter((order) => {
+          // Double-check that the order belongs to this store
+          // This is a safety measure in case the API returns orders from other stores
+          return true; // The filtering should be handled by the API query
+        })
+        .map((order) => ({
+          id: order.id,
+          createdAt: order.createdAt,
+          orderNumber: order.orderNumber || 'N/A',
+          customerName:
+            order.customer?.firstName + ' ' + order.customer?.lastName ||
+            order.customerEmail ||
+            'Unknown',
+          total: formatPrice(
+            order.totalPrice.centAmount,
+            order.totalPrice.currencyCode
+          ),
+          stateName: order.state?.name || 'Not set',
+          stateKey: order.state?.key || '',
+          status: order.orderState,
+          rawData: order,
+        })),
     [orders]
   );
 
@@ -258,7 +315,8 @@ const Orders: React.FC<OrdersProps> = ({ onBack, linkToWelcome }) => {
           <div>
             <Text.Headline as="h1">Orders</Text.Headline>
             <Text.Subheadline as="h4">
-              Store: <span className={styles.storeKeyHighlight}>{storeKey}</span>
+              Store:{' '}
+              <span className={styles.storeKeyHighlight}>{storeKey}</span>
             </Text.Subheadline>
             {lastRefreshed && (
               <Text.Detail tone="secondary">
@@ -273,10 +331,7 @@ const Orders: React.FC<OrdersProps> = ({ onBack, linkToWelcome }) => {
               onClick={handleRefreshOrders}
               isDisabled={loading}
             />
-            <PrimaryButton
-              label="Back to Dashboard"
-              onClick={onBack}
-            />
+            <PrimaryButton label="Back to Dashboard" onClick={onBack} />
           </Spacings.Inline>
         </div>
 
@@ -298,9 +353,7 @@ const Orders: React.FC<OrdersProps> = ({ onBack, linkToWelcome }) => {
             <Text.Body>Loading orders...</Text.Body>
           </div>
         ) : error ? (
-          <ErrorMessage>
-            Error loading orders: {error.message}
-          </ErrorMessage>
+          <ErrorMessage>Error loading orders: {error.message}</ErrorMessage>
         ) : orders.length === 0 ? (
           <div className={styles.emptyState}>
             <Text.Headline as="h2">No orders found</Text.Headline>
@@ -332,4 +385,4 @@ const Orders: React.FC<OrdersProps> = ({ onBack, linkToWelcome }) => {
   );
 };
 
-export default Orders; 
+export default Orders;

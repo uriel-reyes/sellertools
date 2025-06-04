@@ -1,1 +1,1 @@
-export { default } from './use-customer-lookup'; 
+export { default } from './use-customer-lookup';

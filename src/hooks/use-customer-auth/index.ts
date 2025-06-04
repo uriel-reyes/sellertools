@@ -1,1 +1,1 @@
-export { default } from './use-customer-auth'; 
+export { default } from './use-customer-auth';

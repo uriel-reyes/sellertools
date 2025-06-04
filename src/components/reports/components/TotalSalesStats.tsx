@@ -20,31 +20,46 @@ const TotalSalesStats: React.FC<TotalSalesStatsProps> = ({
       <Card className={styles.statsCard}>
         <Text.Subheadline>Today</Text.Subheadline>
         <div className={styles.statValue}>
-          {formatCurrency(salesTotals.today.amount, salesTotals.today.currencyCode)}
+          {formatCurrency(
+            salesTotals.today.amount,
+            salesTotals.today.currencyCode
+          )}
         </div>
-        <div className={styles.statLabel}>{salesTotals.today.orderCount} orders</div>
+        <div className={styles.statLabel}>
+          {salesTotals.today.orderCount} orders
+        </div>
         <div className={styles.statLabel}>— not enough data available</div>
       </Card>
-      
+
       <Card className={styles.statsCard}>
         <Text.Subheadline>This Week</Text.Subheadline>
         <div className={styles.statValue}>
-          {formatCurrency(salesTotals.week.amount, salesTotals.week.currencyCode)}
+          {formatCurrency(
+            salesTotals.week.amount,
+            salesTotals.week.currencyCode
+          )}
         </div>
-        <div className={styles.statLabel}>{salesTotals.week.orderCount} orders</div>
+        <div className={styles.statLabel}>
+          {salesTotals.week.orderCount} orders
+        </div>
         {renderPercentChange(salesTotals.week.percentChange)}
       </Card>
-      
+
       <Card className={styles.statsCard}>
         <Text.Subheadline>This Month</Text.Subheadline>
         <div className={styles.statValue}>
-          {formatCurrency(salesTotals.month.amount, salesTotals.month.currencyCode)}
+          {formatCurrency(
+            salesTotals.month.amount,
+            salesTotals.month.currencyCode
+          )}
         </div>
-        <div className={styles.statLabel}>{salesTotals.month.orderCount} orders</div>
+        <div className={styles.statLabel}>
+          {salesTotals.month.orderCount} orders
+        </div>
         {renderPercentChange(salesTotals.month.percentChange)}
       </Card>
     </div>
   );
 };
 
-export default TotalSalesStats; 
+export default TotalSalesStats;

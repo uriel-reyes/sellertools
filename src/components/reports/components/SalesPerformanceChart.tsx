@@ -1,5 +1,13 @@
 import React from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
 import Text from '@commercetools-uikit/text';
 import Card from '@commercetools-uikit/card';
 import SelectField from '@commercetools-uikit/select-field';
@@ -62,20 +70,19 @@ const SalesPerformanceChart: React.FC<SalesPerformanceChartProps> = ({
                   value: salesData[0]?.currencyCode || 'USD',
                   angle: -90,
                   position: 'insideLeft',
-                  offset: -5
+                  offset: -5,
                 }}
               />
               <Tooltip
                 formatter={(value: any) => [
-                  formatCurrency(Number(value), salesData[0]?.currencyCode || 'USD'),
-                  'Revenue'
+                  formatCurrency(
+                    Number(value),
+                    salesData[0]?.currencyCode || 'USD'
+                  ),
+                  'Revenue',
                 ]}
               />
-              <Bar
-                dataKey="value"
-                fill="#8884d8"
-                name="Revenue"
-              />
+              <Bar dataKey="value" fill="#8884d8" name="Revenue" />
             </BarChart>
           </ResponsiveContainer>
         ) : (
@@ -86,4 +93,4 @@ const SalesPerformanceChart: React.FC<SalesPerformanceChartProps> = ({
   );
 };
 
-export default SalesPerformanceChart; 
+export default SalesPerformanceChart;

@@ -6,7 +6,7 @@ import React, {
   SetStateAction,
   useContext,
   useEffect,
-  useState
+  useState,
 } from 'react';
 import useStoreProducts from '../../hooks/use-store-products/use-store-products';
 import logger from '../../utils/logger';
@@ -66,10 +66,10 @@ export const StoreProductsProvider: React.FC<ProductsProviderProps> = ({
   const [isStoreProductsLoading, setIsStoreProductsLoading] = useState(false);
 
   const { page, perPage } = usePaginationState();
-  const {
-    fetchStoreProducts,
-    removeProductsFromStore,
-  } = useStoreProducts({ page, perPage });
+  const { fetchStoreProducts, removeProductsFromStore } = useStoreProducts({
+    page,
+    perPage,
+  });
 
   const handleStoreSearch = () => {
     if (!storeSearchQuery.trim()) {
@@ -166,16 +166,15 @@ export const StoreProductsProvider: React.FC<ProductsProviderProps> = ({
     }
   };
 
-
   useEffect(() => {
     fetchUserStoreProducts();
   }, [storeKey, fetchStoreProducts]);
 
   useEffect(() => {
-    setStoreProducts(prev => 
-      prev.map(product => ({
+    setStoreProducts((prev) =>
+      prev.map((product) => ({
         ...product,
-        isSelected: selectedStoreProducts.includes(product.id)
+        isSelected: selectedStoreProducts.includes(product.id),
       }))
     );
   }, [selectedStoreProducts]);
@@ -183,7 +182,6 @@ export const StoreProductsProvider: React.FC<ProductsProviderProps> = ({
   useEffect(() => {
     setFilteredStoreProducts(storeProducts);
   }, [storeProducts]);
-
 
   const value = {
     fetchUserStoreProducts,
@@ -226,5 +224,9 @@ export default function ProductsWrapper({
   children: ReactNode;
   storeKey: string;
 }) {
-  return <StoreProductsProvider storeKey={storeKey}>{children}</StoreProductsProvider>;
+  return (
+    <StoreProductsProvider storeKey={storeKey}>
+      {children}
+    </StoreProductsProvider>
+  );
 }

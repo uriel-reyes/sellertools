@@ -78,10 +78,13 @@ const useCustomerDetails = (): UseCustomerDetailsResult => {
           setCustomer(result.data.customer);
           return result.data.customer;
         }
-        
+
         return null;
       } catch (err) {
-        const error = err instanceof Error ? err : new Error('Unknown error fetching customer');
+        const error =
+          err instanceof Error
+            ? err
+            : new Error('Unknown error fetching customer');
         setError(error);
         console.error('Error fetching customer:', error);
         return null;
@@ -98,4 +101,4 @@ const useCustomerDetails = (): UseCustomerDetailsResult => {
   };
 };
 
-export default useCustomerDetails; 
+export default useCustomerDetails;

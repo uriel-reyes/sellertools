@@ -1,1 +1,1 @@
-export { default } from './use-store-customers'; 
+export { default } from './use-store-customers';

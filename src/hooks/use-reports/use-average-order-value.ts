@@ -103,124 +103,136 @@ const useAverageOrderValue = (): UseAverageOrderValueHook => {
     skip: true, // Skip on initial render
   });
 
-  const fetchAverageOrderValues = useCallback(async (storeKey: string) => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const now = new Date();
-      const startOfYear = getStartOfYear(now);
-      const startOfWeek = getStartOfWeek(now);
-      const startOfPrevWeek = getStartOfPreviousWeek(now);
-      const startOfMonth = getStartOfMonth(now);
-      const startOfPrevMonth = getStartOfPreviousMonth(now);
-      
-      // Create a where query for the store and from the beginning of the year
-      const whereQuery = `store(key="${storeKey}") AND createdAt >= "${startOfYear.toISOString()}"`;
-      
-      const { data } = await refetch({
-        where: whereQuery,
-        sort: ["createdAt desc"],
-      });
-      
-      if (!data || !data.orders) {
-        return;
+  const fetchAverageOrderValues = useCallback(
+    async (storeKey: string) => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const now = new Date();
+        const startOfYear = getStartOfYear(now);
+        const startOfWeek = getStartOfWeek(now);
+        const startOfPrevWeek = getStartOfPreviousWeek(now);
+        const startOfMonth = getStartOfMonth(now);
+        const startOfPrevMonth = getStartOfPreviousMonth(now);
+
+        // Create a where query for the store and from the beginning of the year
+        const whereQuery = `store(key="${storeKey}") AND createdAt >= "${startOfYear.toISOString()}"`;
+
+        const { data } = await refetch({
+          where: whereQuery,
+          sort: ['createdAt desc'],
+        });
+
+        if (!data || !data.orders) {
+          return;
+        }
+
+        const { results } = data.orders;
+
+        // Default to USD if mixed currencies
+        const defaultCurrency =
+          results.length > 0 ? results[0].totalPrice.currencyCode : 'USD';
+
+        // Initialize calculations
+        let weekTotal = 0;
+        let weekCount = 0;
+
+        let prevWeekTotal = 0;
+        let prevWeekCount = 0;
+
+        let monthTotal = 0;
+        let monthCount = 0;
+
+        let prevMonthTotal = 0;
+        let prevMonthCount = 0;
+
+        let yearTotal = 0;
+        let yearCount = 0;
+
+        // Calculate totals
+        results.forEach((order: Order) => {
+          const orderDate = new Date(order.createdAt);
+          const orderAmount = order.totalPrice.centAmount / 100; // Convert cents to dollars
+
+          // This week's orders
+          if (orderDate >= startOfWeek) {
+            weekTotal += orderAmount;
+            weekCount++;
+          }
+          // Previous week's orders
+          else if (orderDate >= startOfPrevWeek) {
+            prevWeekTotal += orderAmount;
+            prevWeekCount++;
+          }
+
+          // This month's orders
+          if (orderDate >= startOfMonth) {
+            monthTotal += orderAmount;
+            monthCount++;
+          }
+          // Previous month's orders
+          else if (orderDate >= startOfPrevMonth) {
+            prevMonthTotal += orderAmount;
+            prevMonthCount++;
+          }
+
+          // This year's orders
+          if (orderDate >= startOfYear) {
+            yearTotal += orderAmount;
+            yearCount++;
+          }
+        });
+
+        // Calculate averages
+        const weekAverage = weekCount === 0 ? 0 : weekTotal / weekCount;
+        const prevWeekAverage =
+          prevWeekCount === 0 ? 0 : prevWeekTotal / prevWeekCount;
+        const monthAverage = monthCount === 0 ? 0 : monthTotal / monthCount;
+        const prevMonthAverage =
+          prevMonthCount === 0 ? 0 : prevMonthTotal / prevMonthCount;
+        const yearAverage = yearCount === 0 ? 0 : yearTotal / yearCount;
+
+        // Calculate percent changes
+        const weekPercentChange =
+          prevWeekAverage === 0
+            ? 0
+            : ((weekAverage - prevWeekAverage) / prevWeekAverage) * 100;
+
+        const monthPercentChange =
+          prevMonthAverage === 0
+            ? 0
+            : ((monthAverage - prevMonthAverage) / prevMonthAverage) * 100;
+
+        setAverages({
+          week: {
+            value: weekAverage,
+            currencyCode: defaultCurrency,
+            percentChange: weekPercentChange,
+          },
+          month: {
+            value: monthAverage,
+            currencyCode: defaultCurrency,
+            percentChange: monthPercentChange,
+          },
+          year: {
+            value: yearAverage,
+            currencyCode: defaultCurrency,
+          },
+        });
+      } catch (err) {
+        console.error('Error fetching average order values:', err);
+        setError(
+          err instanceof Error
+            ? err
+            : new Error('Failed to fetch average order values')
+        );
+      } finally {
+        setLoading(false);
       }
-      
-      const { results } = data.orders;
-      
-      // Default to USD if mixed currencies
-      const defaultCurrency = results.length > 0 ? results[0].totalPrice.currencyCode : 'USD';
-      
-      // Initialize calculations
-      let weekTotal = 0;
-      let weekCount = 0;
-      
-      let prevWeekTotal = 0;
-      let prevWeekCount = 0;
-      
-      let monthTotal = 0;
-      let monthCount = 0;
-      
-      let prevMonthTotal = 0;
-      let prevMonthCount = 0;
-      
-      let yearTotal = 0;
-      let yearCount = 0;
-      
-      // Calculate totals
-      results.forEach((order: Order) => {
-        const orderDate = new Date(order.createdAt);
-        const orderAmount = order.totalPrice.centAmount / 100; // Convert cents to dollars
-        
-        // This week's orders
-        if (orderDate >= startOfWeek) {
-          weekTotal += orderAmount;
-          weekCount++;
-        } 
-        // Previous week's orders
-        else if (orderDate >= startOfPrevWeek) {
-          prevWeekTotal += orderAmount;
-          prevWeekCount++;
-        }
-        
-        // This month's orders
-        if (orderDate >= startOfMonth) {
-          monthTotal += orderAmount;
-          monthCount++;
-        } 
-        // Previous month's orders
-        else if (orderDate >= startOfPrevMonth) {
-          prevMonthTotal += orderAmount;
-          prevMonthCount++;
-        }
-        
-        // This year's orders
-        if (orderDate >= startOfYear) {
-          yearTotal += orderAmount;
-          yearCount++;
-        }
-      });
-      
-      // Calculate averages
-      const weekAverage = weekCount === 0 ? 0 : weekTotal / weekCount;
-      const prevWeekAverage = prevWeekCount === 0 ? 0 : prevWeekTotal / prevWeekCount;
-      const monthAverage = monthCount === 0 ? 0 : monthTotal / monthCount;
-      const prevMonthAverage = prevMonthCount === 0 ? 0 : prevMonthTotal / prevMonthCount;
-      const yearAverage = yearCount === 0 ? 0 : yearTotal / yearCount;
-      
-      // Calculate percent changes
-      const weekPercentChange = prevWeekAverage === 0 
-        ? 0 
-        : ((weekAverage - prevWeekAverage) / prevWeekAverage) * 100;
-      
-      const monthPercentChange = prevMonthAverage === 0 
-        ? 0 
-        : ((monthAverage - prevMonthAverage) / prevMonthAverage) * 100;
-      
-      setAverages({
-        week: {
-          value: weekAverage,
-          currencyCode: defaultCurrency,
-          percentChange: weekPercentChange,
-        },
-        month: {
-          value: monthAverage,
-          currencyCode: defaultCurrency,
-          percentChange: monthPercentChange,
-        },
-        year: {
-          value: yearAverage,
-          currencyCode: defaultCurrency,
-        },
-      });
-    } catch (err) {
-      console.error('Error fetching average order values:', err);
-      setError(err instanceof Error ? err : new Error('Failed to fetch average order values'));
-    } finally {
-      setLoading(false);
-    }
-  }, [refetch]);
+    },
+    [refetch]
+  );
 
   return {
     averages,
@@ -230,4 +242,4 @@ const useAverageOrderValue = (): UseAverageOrderValueHook => {
   };
 };
 
-export default useAverageOrderValue; 
+export default useAverageOrderValue;

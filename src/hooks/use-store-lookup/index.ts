@@ -1,1 +1,1 @@
-export { default } from './use-store-lookup'; 
+export { default } from './use-store-lookup';

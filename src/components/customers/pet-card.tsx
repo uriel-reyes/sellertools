@@ -2,7 +2,11 @@ import React, { useState } from 'react';
 import Card from '@commercetools-uikit/card';
 import Spacings from '@commercetools-uikit/spacings';
 import Text from '@commercetools-uikit/text';
-import { AngleDownIcon, AngleUpIcon, InfoIcon } from '@commercetools-uikit/icons';
+import {
+  AngleDownIcon,
+  AngleUpIcon,
+  InfoIcon,
+} from '@commercetools-uikit/icons';
 import type { PetInfo } from '../../hooks/use-customer-pets';
 import styles from './customers.module.css';
 
@@ -21,7 +25,11 @@ const CollapsibleSection: React.FC<{
     <div className={styles.collapsibleSection}>
       <div className={styles.collapsibleHeader} onClick={onChange}>
         {header}
-        {isOpen ? <AngleUpIcon size="medium" /> : <AngleDownIcon size="medium" />}
+        {isOpen ? (
+          <AngleUpIcon size="medium" />
+        ) : (
+          <AngleDownIcon size="medium" />
+        )}
       </div>
       {isOpen && <div className={styles.collapsibleContent}>{children}</div>}
     </div>
@@ -48,11 +56,13 @@ const PetCard: React.FC<PetCardProps> = ({ pet }) => {
       {/* Pet Header Section */}
       <div className={styles.petCardHeader}>
         <Spacings.Inline alignItems="center">
-          <Text.Headline as="h3">
-            {pet.name}
-          </Text.Headline>
+          <Text.Headline as="h3">{pet.name}</Text.Headline>
           {pet.gender && (
-            <span className={`${styles.genderBadge} ${pet.gender === 'male' ? styles.male : styles.female}`}>
+            <span
+              className={`${styles.genderBadge} ${
+                pet.gender === 'male' ? styles.male : styles.female
+              }`}
+            >
               {pet.gender}
             </span>
           )}
@@ -63,9 +73,7 @@ const PetCard: React.FC<PetCardProps> = ({ pet }) => {
           </div>
         </Spacings.Inline>
         <div className={styles.petKey}>
-          <Text.Detail tone="secondary">
-            ID: {pet.key}
-          </Text.Detail>
+          <Text.Detail tone="secondary">ID: {pet.key}</Text.Detail>
         </div>
       </div>
 
@@ -75,8 +83,14 @@ const PetCard: React.FC<PetCardProps> = ({ pet }) => {
         <div className={styles.petDetailsSection}>
           <CollapsibleSection
             header={
-              <Spacings.Inline alignItems="center" justifyContent="space-between" scale="s">
-                <Text.Subheadline as="h4" isBold>Pet Details</Text.Subheadline>
+              <Spacings.Inline
+                alignItems="center"
+                justifyContent="space-between"
+                scale="s"
+              >
+                <Text.Subheadline as="h4" isBold>
+                  Pet Details
+                </Text.Subheadline>
               </Spacings.Inline>
             }
             isOpen={isDetailsOpen}
@@ -132,8 +146,14 @@ const PetCard: React.FC<PetCardProps> = ({ pet }) => {
           {/* Vaccinations Panel */}
           <CollapsibleSection
             header={
-              <Spacings.Inline alignItems="center" justifyContent="space-between" scale="s">
-                <Text.Subheadline as="h4" isBold>Vaccinations ({pet.vaccinations.length})</Text.Subheadline>
+              <Spacings.Inline
+                alignItems="center"
+                justifyContent="space-between"
+                scale="s"
+              >
+                <Text.Subheadline as="h4" isBold>
+                  Vaccinations ({pet.vaccinations.length})
+                </Text.Subheadline>
               </Spacings.Inline>
             }
             isOpen={isVaccinationsOpen}
@@ -144,19 +164,33 @@ const PetCard: React.FC<PetCardProps> = ({ pet }) => {
             ) : (
               <div className={styles.vaccinationsGrid}>
                 {pet.vaccinations.map((vaccination) => (
-                  <Card key={`vaccination-${vaccination.id}`} className={styles.medicalCard}>
+                  <Card
+                    key={`vaccination-${vaccination.id}`}
+                    className={styles.medicalCard}
+                  >
                     <Spacings.Stack scale="xs">
                       <div className={styles.medicalCardHeader}>
-                        <Text.Subheadline as="h5">{vaccination.name}</Text.Subheadline>
+                        <Text.Subheadline as="h5">
+                          {vaccination.name}
+                        </Text.Subheadline>
                         {vaccination.active !== undefined && (
-                          <span className={`${styles.statusBadge} ${vaccination.active ? styles.statusActive : styles.statusInactive}`}>
+                          <span
+                            className={`${styles.statusBadge} ${
+                              vaccination.active
+                                ? styles.statusActive
+                                : styles.statusInactive
+                            }`}
+                          >
                             {vaccination.active ? 'Active' : 'Inactive'}
                           </span>
                         )}
                       </div>
-                      
+
                       {(vaccination.date || vaccination.expiryDate) && (
-                        <Spacings.Inline alignItems="center" justifyContent="space-between">
+                        <Spacings.Inline
+                          alignItems="center"
+                          justifyContent="space-between"
+                        >
                           {vaccination.date && (
                             <Text.Detail tone="secondary">
                               Date: {formatDate(vaccination.date)}
@@ -169,14 +203,14 @@ const PetCard: React.FC<PetCardProps> = ({ pet }) => {
                           )}
                         </Spacings.Inline>
                       )}
-                      
+
                       {vaccination.veterinarian && (
                         <Spacings.Inline alignItems="center">
                           <Text.Detail isBold>Administered by:</Text.Detail>
                           <Text.Detail>{vaccination.veterinarian}</Text.Detail>
                         </Spacings.Inline>
                       )}
-                      
+
                       {vaccination.notes && (
                         <div className={styles.medicalNotes}>
                           <Text.Detail>{vaccination.notes}</Text.Detail>
@@ -192,8 +226,14 @@ const PetCard: React.FC<PetCardProps> = ({ pet }) => {
           {/* Prescriptions Panel */}
           <CollapsibleSection
             header={
-              <Spacings.Inline alignItems="center" justifyContent="space-between" scale="s">
-                <Text.Subheadline as="h4" isBold>Prescriptions ({pet.prescriptions.length})</Text.Subheadline>
+              <Spacings.Inline
+                alignItems="center"
+                justifyContent="space-between"
+                scale="s"
+              >
+                <Text.Subheadline as="h4" isBold>
+                  Prescriptions ({pet.prescriptions.length})
+                </Text.Subheadline>
               </Spacings.Inline>
             }
             isOpen={isPrescriptionsOpen}
@@ -204,31 +244,45 @@ const PetCard: React.FC<PetCardProps> = ({ pet }) => {
             ) : (
               <div className={styles.prescriptionsGrid}>
                 {pet.prescriptions.map((prescription) => (
-                  <Card key={`prescription-${prescription.id}`} className={styles.medicalCard}>
+                  <Card
+                    key={`prescription-${prescription.id}`}
+                    className={styles.medicalCard}
+                  >
                     <Spacings.Stack scale="xs">
                       <div className={styles.medicalCardHeader}>
-                        <Text.Subheadline as="h5">{prescription.medication}</Text.Subheadline>
+                        <Text.Subheadline as="h5">
+                          {prescription.medication}
+                        </Text.Subheadline>
                         {prescription.active !== undefined && (
-                          <span className={`${styles.statusBadge} ${prescription.active ? styles.statusActive : styles.statusInactive}`}>
+                          <span
+                            className={`${styles.statusBadge} ${
+                              prescription.active
+                                ? styles.statusActive
+                                : styles.statusInactive
+                            }`}
+                          >
                             {prescription.active ? 'Active' : 'Inactive'}
                           </span>
                         )}
                       </div>
-                      
+
                       <Spacings.Inline alignItems="center">
                         <Text.Detail isBold>Dosage:</Text.Detail>
                         <Text.Detail>{prescription.dosage}</Text.Detail>
                       </Spacings.Inline>
-                      
+
                       {prescription.frequency && (
                         <Spacings.Inline alignItems="center">
                           <Text.Detail isBold>Frequency:</Text.Detail>
                           <Text.Detail>{prescription.frequency}</Text.Detail>
                         </Spacings.Inline>
                       )}
-                      
+
                       {(prescription.startDate || prescription.endDate) && (
-                        <Spacings.Inline alignItems="center" justifyContent="space-between">
+                        <Spacings.Inline
+                          alignItems="center"
+                          justifyContent="space-between"
+                        >
                           {prescription.startDate && (
                             <Text.Detail tone="secondary">
                               Start: {formatDate(prescription.startDate)}
@@ -241,30 +295,34 @@ const PetCard: React.FC<PetCardProps> = ({ pet }) => {
                           )}
                         </Spacings.Inline>
                       )}
-                      
+
                       {prescription.prescribedBy && (
                         <Spacings.Inline alignItems="center">
                           <Text.Detail isBold>Prescribed by:</Text.Detail>
                           <Text.Detail>{prescription.prescribedBy}</Text.Detail>
                         </Spacings.Inline>
                       )}
-                      
+
                       {prescription.refills !== undefined && (
                         <Spacings.Inline alignItems="center">
                           <Text.Detail isBold>Refills:</Text.Detail>
                           <Text.Detail>{prescription.refills}</Text.Detail>
                         </Spacings.Inline>
                       )}
-                      
+
                       {prescription.authorized !== undefined && (
                         <div className={styles.authorizationInfo}>
                           <Text.Detail tone="secondary">
-                            {prescription.authorized ? 'Authorized' : 'Not Authorized'}
-                            {prescription.authorized && prescription.authorizedBy && ` by ${prescription.authorizedBy}`}
+                            {prescription.authorized
+                              ? 'Authorized'
+                              : 'Not Authorized'}
+                            {prescription.authorized &&
+                              prescription.authorizedBy &&
+                              ` by ${prescription.authorizedBy}`}
                           </Text.Detail>
                         </div>
                       )}
-                      
+
                       {prescription.notes && (
                         <div className={styles.medicalNotes}>
                           <Text.Detail>{prescription.notes}</Text.Detail>
@@ -282,4 +340,4 @@ const PetCard: React.FC<PetCardProps> = ({ pet }) => {
   );
 };
 
-export default PetCard; 
+export default PetCard;
